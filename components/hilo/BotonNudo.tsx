@@ -15,9 +15,10 @@ import Animated, {
 import Svg from 'react-native-svg';
 
 import { colors, fonts, radius } from '@/constants/theme';
-import { type Punto, type Recorrido, curvasPorPuntos, muestrearRecorrido, trazoEntre } from './geometria';
+import { type Punto, curvasPorPuntos, muestrearRecorrido } from './geometria';
 import { hapticaError, hapticaExito, hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
+import { NUDO_FLOJO, cortesDelNudo, extremosDelNudo, tramosVisibles } from './nudo';
 
 const ALTO = 52;
 const GROSOR = 2.4;
@@ -27,32 +28,6 @@ const SEPARACION = 6;
 /** El nudo apretado no queda centrado en su lienzo: cae un poco a la derecha. */
 const DESCENTRE_NUDO = 1.4;
 
-/*
- * Nudo simple visto de frente, con el hilo flojo. Coordenadas en píxeles respecto al centro del
- * botón. El hilo llega por la izquierda, sube y da la vuelta por arriba, baja cruzando su propia
- * entrada, pasa por debajo y sale por dentro del bucle hacia la derecha. Se cruza tres veces
- * (X1, X2 y X3), y por cada cruce pasa dos veces: una por encima y otra por debajo, alternando.
- */
-const X1: Punto = [-9, 2];
-const X2: Punto = [2, 2];
-const X3: Punto = [12, -6];
-const NUDO_FLOJO: Punto[] = [
-  [-24, 1.5],
-  X1, // por encima
-  X2, // por debajo
-  [10, 0],
-  X3, // por encima
-  [6, -12],
-  [-4, -12],
-  [-11, -6],
-  X1, // por debajo
-  [-4, 8],
-  X2, // por encima
-  [7, -3],
-  X3, // por debajo
-  [22, -5],
-  [34, -1],
-];
 /** Al apretarse, el nudo se encoge hacia este punto y los cabos quedan rectos. */
 const CENTRO_NUDO: Punto = [1, -2];
 const ESCALA_APRETADO = 0.36;
@@ -84,34 +59,15 @@ function recorridoDelNudo(ancho: number) {
     curvasPorPuntos(flojo.map(aPantalla)),
     1.8,
   );
-  // marcas[k] = índice en el que el hilo llega al punto k + 1 de la lista.
-  const m = recorrido.marcas;
   const ultimo = recorrido.tx.length - 1;
+  const [entrada, salida] = extremosDelNudo(recorrido.marcas, 1);
   return {
     recorrido,
     ultimo,
-    // Seis tramos, cortados entre cruce y cruce. Los impares pasan por encima; los pares, por debajo.
-    cortes: [0, (m[1] + m[2]) / 2, m[3], m[6], m[9], m[11], ultimo],
+    cortes: cortesDelNudo(recorrido.marcas, 1, ultimo),
     // Cabos cortos que conserva el nudo una vez apretado.
-    cabos: [m[1] - 9 / recorrido.paso, m[12] + 9 / recorrido.paso],
+    cabos: [entrada - 9 / recorrido.paso, salida + 9 / recorrido.paso],
   };
-}
-
-/** Atributo `d` con los tramos visibles de una capa: los pares (0) pasan por encima; los impares (1), por debajo. */
-function tramosVisibles(
-  recorrido: Recorrido,
-  cortes: number[],
-  holgura: number,
-  cola: number,
-  cabeza: number,
-  paridad: number,
-): string {
-  'worklet';
-  let d = '';
-  for (let k = paridad; k < cortes.length - 1; k += 2) {
-    d += trazoEntre(recorrido, holgura, Math.max(cortes[k], cola), Math.min(cortes[k + 1], cabeza));
-  }
-  return d;
 }
 
 type Fase = 'reposo' | 'atando' | 'esperando' | 'hecho' | 'error';

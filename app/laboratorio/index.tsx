@@ -63,7 +63,7 @@ export default function Laboratorio() {
           <HiloSaldar saldado={saldado} />
           <View style={styles.fila}>
             <View style={styles.flex}>
-              <BotonNudo label="Saldar" labelHecho="Saldado" onPress={() => setSaldado(true)} />
+              <BotonNudo label="Saldar" labelHecho="Saldado" onHecho={() => setSaldado(true)} />
             </View>
             <View style={styles.flex}>
               <BotonSecundario label="Reiniciar" onPress={() => setSaldado(false)} />
