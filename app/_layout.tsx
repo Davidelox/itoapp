@@ -5,13 +5,18 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 
+import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // La capa del hilo se muestra una vez por arranque de la app.
+  const [mostrarSplash, setMostrarSplash] = useState(true);
+  const cerrarSplash = useCallback(() => setMostrarSplash(false), []);
   const [fontsLoaded, fontError] = useFonts({
     Damion_400Regular,
     Fraunces_600SemiBold,
@@ -32,9 +37,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
-    </>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="laboratorio/detalle" options={{ animation: 'fade' }} />
+      </Stack>
+      {mostrarSplash && <SplashHilo onDone={cerrarSplash} />}
+    </View>
   );
 }

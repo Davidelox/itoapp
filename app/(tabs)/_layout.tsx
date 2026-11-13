@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { type ComponentProps } from 'react';
 
-import { colors, fonts } from '@/constants/theme';
+import { TabBarHilo } from '@/components/hilo/TabBarHilo';
+import { colors } from '@/constants/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -17,18 +18,8 @@ const tabs: { name: string; title: string; icon: IconName }[] = [
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.background },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: 11 },
-      }}
+      tabBar={(props) => <TabBarHilo {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
       {tabs.map(({ name, title, icon }) => (
         <Tabs.Screen
