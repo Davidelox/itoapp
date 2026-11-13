@@ -39,7 +39,7 @@ export default function Laboratorio() {
           Aquí puedes probar cada animación de ito. Si tienes activado «Reducir movimiento», verás fundidos sencillos.
         </Text>
 
-        <Seccion titulo="Pantalla de inicio" texto="El hilo se dibuja, aparece ito y todo se desvanece. Tócala para saltarla.">
+        <Seccion titulo="Pantalla de inicio" texto="El hilo entra, traza su tirabuzón sobre ito, sale por la derecha, vuelve por abajo y recorre la barra hasta Inicio, donde se tensa y se recoge. Tócala para saltarla.">
           <BotonSecundario label="Relanzar la animación" onPress={() => setSplash(true)} />
         </Seccion>
 
@@ -84,7 +84,7 @@ export default function Laboratorio() {
         </Seccion>
       </ScrollView>
       {overlay}
-      {splash && <SplashHilo onDone={() => setSplash(false)} />}
+      {splash && <SplashHilo relanzada onDone={() => setSplash(false)} />}
     </View>
   );
 }
