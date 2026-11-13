@@ -1,6 +1,6 @@
-# Twobe: revisión de diseño y UX de los mockups
+# ito: revisión de diseño y UX de los mockups
 
-> Fecha: 2026-11-13 · Alcance: los 25 mockups `.dc.html` del lienzo «Twobe – Mockups» frente a `docs/concepto.md`.
+> Fecha: 2026-11-13 · Alcance: los 25 mockups `.dc.html` del lienzo «ito – Mockups» frente a `docs/concepto.md`.
 > Los nombres de pantalla son los de los archivos (`Main` = Inicio, `Dinero` = Gastos, `Agenda` = Calendario).
 
 ## Resumen

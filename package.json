@@ -1,8 +1,9 @@
 {
-  "name": "twobe",
+  "name": "ito",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/damion": "^0.4.0",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo/ui": "~58.0.28",

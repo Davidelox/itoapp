@@ -1,10 +1,10 @@
-# Twobe: documento de concepto
+# ito: documento de concepto
 
 > Última actualización: 2026-11-12
 
 ## Qué es
 
-**Twobe** es un gestor de vida en pareja: un único sitio donde organizar todo lo que comparten dos personas que viven juntas. No es un "tricount para dos": el dinero es solo una parte.
+**ito** es un gestor de vida en pareja: un único sitio donde organizar todo lo que comparten dos personas que viven juntas. No es un "tricount para dos": el dinero es solo una parte.
 
 Su diferencia es que **todo está conectado**. Casi todo lo que hace una pareja tiene una fecha, un coste, un lugar o las tres cosas, y la app los enlaza:
 
@@ -17,10 +17,9 @@ Palabras que definen la app: **complicidad, sintonía, compenetración**.
 
 ## Nombre
 
-**Twobe**: *two* + *be*, que suena a *to be*, en el sentido de *to be together*. Corto, se pronuncia igual en cualquier idioma y no impone ninguna estética.
+**ito**: "hilo" en japonés, por el *akai ito*, el hilo rojo del destino que une a dos personas. Corto, se pronuncia igual en cualquier idioma y va siempre en minúsculas.
 
-- Eslogan provisional: *"Twobe — Two lives, one plan."*
-- **Uso personal por ahora.** El nombre no está limpio para publicar: existe una app de citas "TwoBe" (twobe.life). Si algún día se publica, revisar la marca. La alternativa favorita para Europa era **Fondue**.
+- Uso personal por ahora. "Itō" es también un apellido japonés muy común, así que si algún día se publica habrá que revisar la marca.
 
 ## Plataforma y stack
 
@@ -123,7 +122,7 @@ Nadie junta bien dinero, calendario, listas y mapa conectados entre sí.
 1. **Bienvenida**: entrar con Apple, Google o email.
 2. **Perfil**: nombre y foto.
 3. **Crear o unirse**: el primero crea el espacio de la pareja; el segundo se une con un código.
-4. **Invitar / Unirse**: código de invitación (ej. `TWB·4K7Q`) que se comparte por enlace y caduca a los 7 días. Se puede seguir sin esperar a la pareja.
+4. **Invitar / Unirse**: código de invitación (ej. `4K7·Q2X`) que se comparte por enlace y caduca a los 7 días. Se puede seguir sin esperar a la pareja.
 5. **Reparto por defecto**: mixto (recomendado), 50/50, proporcional a ingresos o bote común.
 6. **Inicio vacío**: checklist de primeros pasos (primer gasto, primer sitio, primer plan, suscripciones).
 
@@ -141,7 +140,7 @@ Nadie junta bien dinero, calendario, listas y mapa conectados entre sí.
 - **Detalle de evento**: sitio con "Cómo llegar", y cuando el plan pasa pregunta "¿Quién pagó?" para crear el gasto con un toque.
 - **Mapa**: vista de mapa o lista, botón para guardar sitio.
 - **Guardar sitio**: buscar o pegar enlace (Google Maps, Instagram, TikTok), quiero ir / hemos ido, categoría, nota y valoración de cada uno.
-- **Compartir desde otra app**: hoja de "Guardar en Twobe" que detecta el sitio del enlace compartido.
+- **Compartir desde otra app**: hoja de "Guardar en ito" que detecta el sitio del enlace compartido.
 - **Ficha de sitio**: notas de cada uno, visitas con lo gastado en cada una, próximo plan, cómo llegar y planear.
 
 ## Planificador: funcionalidad
@@ -163,3 +162,11 @@ Nadie junta bien dinero, calendario, listas y mapa conectados entre sí.
 - **Saldar** por gastos concretos (sin pagos libres a cuenta en el MVP). Cambiar reparto o bote cuando ya sois dos va con propuesta que acepta el otro. Código de invitación de 6 caracteres.
 - Detalle completo en `docs/modelo-datos.md`.
 - **Detalles confirmados**: borrar un movimiento del bote pide aprobación; tareas, ideas y notas se borran sin aprobación; en un evento repetido, borrar una sola fecha pide aprobación y editarla no; las solicitudes de borrado caducan a los 7 días; un evento secreto no puede estar dentro de un plan (MVP).
+
+## Seguridad y datos sensibles
+
+- Las contraseñas las gestiona Supabase Auth (cifradas con hash); la app nunca las guarda ni las ve después del inicio de sesión.
+- Ningún email, contraseña, token o clave en el repositorio, en logs, en URLs ni en herramientas de analítica o errores.
+- En la app solo va la clave pública (anon/publishable) de Supabase; la clave secreta (service_role) solo se usa en el servidor, nunca en el móvil ni en git.
+- Los datos de cada pareja quedan aislados con RLS, y cada persona decide qué ve la otra de lo suyo.
+- Cualquier cambio en cuentas, autenticación o datos personales lo revisa el arquitecto antes de darlo por bueno.

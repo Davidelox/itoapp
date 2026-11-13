@@ -1,4 +1,4 @@
-/** Tokens de diseño de Twobe (docs/especificacion-correcciones.md, sección 3). */
+/** Tokens de diseño de ito (docs/especificacion-correcciones.md, sección 3). */
 
 export const colors = {
   // Marca y estados
@@ -66,6 +66,8 @@ export const fonts = {
   body: 'DMSans_400Regular',
   bodyMedium: 'DMSans_500Medium',
   bodyBold: 'DMSans_700Bold',
+  /** Damion: solo para el logotipo de ito; no usar en textos de la app. */
+  brand: 'Damion_400Regular',
 } as const;
 
 export const fontSizes = {

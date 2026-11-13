@@ -1,4 +1,4 @@
-# Twobe: especificación de correcciones del diseño (ronda 2)
+# ito: especificación de correcciones del diseño (ronda 2)
 
 > 2026-11-13. Referencia común para corregir los mockups tras la auditoría (`docs/revision-diseno.md`) y las decisiones de David. Si algo aquí contradice a la auditoría o al concepto antiguo, manda este documento.
 

@@ -1,27 +1,23 @@
 {
   "expo": {
-    "name": "Twobe",
-    "slug": "twobe",
+    "name": "ito",
+    "slug": "ito",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "twobe",
+    "icon": "./assets/brand/ito-icono-app-1024.png",
+    "scheme": "ito",
     "userInterfaceStyle": "light",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FBF7E9",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#7B2433",
+        "foregroundImage": "./assets/brand/ito-android-foreground-1024.png",
+        "monochromeImage": "./assets/brand/ito-android-monochrome-1024.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/brand/ito-favicon-48.png"
     },
     "plugins": [
       "expo-router",
@@ -29,8 +25,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FBF7E9",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/brand/ito-splash-1024.png",
+          "imageWidth": 200
         }
       ],
       "expo-font"

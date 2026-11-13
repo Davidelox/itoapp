@@ -1,4 +1,4 @@
-# Twobe: modelo de datos (Supabase / Postgres)
+# ito: modelo de datos (Supabase / Postgres)
 
 > 2026-11-13 · Fuentes: `docs/concepto.md`, `docs/especificacion-correcciones.md` (manda), `docs/revision-diseno.md`, los mockups de la ronda 2 y las respuestas de David a la primera versión de este documento.
 > Migración: `supabase/migrations/20261113000000_esquema_inicial.sql`.
@@ -126,7 +126,7 @@ Convenciones comunes:
 | `profiles` | `id` (= `auth.users.id`), `display_name`, `avatar_path` | Se crea sola con un trigger en `auth.users`. |
 | `couples` | `currency` (`EUR`), `time_zone` (`Europe/Madrid`) | Moneda única por pareja en el MVP. La zona horaria define el "hoy" de cobros y aportaciones. |
 | `couple_members` | PK (`couple_id`, `user_id`), `slot`, `color`, `left_at`, `share_personal_expenses` / `share_personal_recurring` / `share_places` (valor por defecto de "Visible para…"), `notify_*` | `unique (couple_id, color)` impide repetir color. Un usuario solo puede estar en una pareja activa. |
-| `couple_invitations` | `code` (6 caracteres sin I/L/O/0/1), `expires_at` (+7 días), `used_by`/`used_at`, `revoked_at` | Un solo uso. `join_couple` acepta `TWB·XXXXXX`. Máximo 10 intentos por hora (`private.join_attempts`). |
+| `couple_invitations` | `code` (6 caracteres sin I/L/O/0/1), `expires_at` (+7 días), `used_by`/`used_at`, `revoked_at` | Un solo uso. `join_couple` acepta `4K7·Q2X`. Máximo 10 intentos por hora (`private.join_attempts`). |
 | `couple_settings` | `default_split` (`mixed`, `all_pot`, `half`, `proportional`), `proportional_pct_m1`, `pot_enabled`, `pot_categories[]`, `pot_funding`, `pot_monthly_cents`, `pot_day`, `pot_pct_m1`, `pot_started_on`, `pot_generated_through` | Un solo "Proporcional" con el % editable: no hay "Personalizado" como valor por defecto. Se edita directamente solo mientras no se ha unido la pareja. |
 | `settings_proposals` | `changes jsonb`, `status`, `proposed_by`, `decided_by` | Como máximo una pendiente por pareja. La acepta solo la otra persona (`respond_settings_proposal`). |
 

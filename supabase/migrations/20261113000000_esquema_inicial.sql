@@ -1,5 +1,5 @@
 -- =============================================================================
--- Twobe · Esquema inicial (borrador de diseño)
+-- ito · Esquema inicial (borrador de diseño)
 -- 2026-11-13 · Ver docs/modelo-datos.md para el porqué de cada decisión.
 --
 -- Principios:
@@ -109,7 +109,7 @@ create table public.couple_members (
 create unique index couple_members_one_active_idx on public.couple_members (user_id) where left_at is null;
 create index couple_members_user_idx on public.couple_members (user_id);
 
--- Códigos de invitación (TWB·XXXXXX). Caducan a los 7 días y son de un solo uso.
+-- Códigos de invitación de 6 caracteres (se muestran como 4K7·Q2X; el separador es solo visual). Caducan a los 7 días y son de un solo uso.
 create table public.couple_invitations (
   id         uuid primary key default gen_random_uuid(),
   couple_id  uuid not null references public.couples (id) on delete cascade,
@@ -1363,7 +1363,6 @@ begin
   insert into private.join_attempts (user_id) values (v_uid);
 
   v_code := upper(regexp_replace(coalesce(p_code, ''), '[^A-Za-z0-9]', '', 'g'));
-  if length(v_code) = 9 and left(v_code, 3) = 'TWB' then v_code := substr(v_code, 4); end if;
 
   select * into v_inv from public.couple_invitations i where i.code = v_code for update;
   if not found or v_inv.revoked_at is not null then
@@ -2113,6 +2112,6 @@ create policy avatars_delete on storage.objects for delete to authenticated
 do $$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    perform cron.schedule('twobe-daily', '15 4 * * *', 'select private.run_daily_jobs()');  -- 05:15/06:15 en Madrid
+    perform cron.schedule('ito-daily', '15 4 * * *', 'select private.run_daily_jobs()');  -- 05:15/06:15 en Madrid
   end if;
 end $$;
