@@ -8,3 +8,4 @@ function lanzar(fn: () => Promise<void>) {
 
 export const hapticaLigera = () => lanzar(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 export const hapticaExito = () => lanzar(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+export const hapticaError = () => lanzar(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));

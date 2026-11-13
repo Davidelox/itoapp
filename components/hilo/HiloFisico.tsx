@@ -5,9 +5,34 @@ import { colors } from '@/constants/theme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-/** Tonos del hilo derivados del granate de marca: la cara que recibe la luz y el destello de la punta. */
-const LUZ = '#B9566A';
-const DESTELLO = '#F0C3CB';
+/**
+ * Tonos del hilo. El granate es el de siempre, sobre fondos claros; el crema es el mismo hilo
+ * visto sobre el granate (botones). Luz y destello son tintes derivados del color del cuerpo.
+ */
+const TONOS = {
+  granate: {
+    cuerpo: colors.accent,
+    torsion: colors.accentDark,
+    opacidadTorsion: 0.5,
+    luz: '#B9566A',
+    opacidadLuz: 0.6,
+    destello: '#F0C3CB',
+    sombra: colors.accentDark,
+    opacidadSombra: 1,
+  },
+  crema: {
+    cuerpo: colors.background,
+    torsion: '#C9BB98',
+    opacidadTorsion: 0.6,
+    luz: colors.white,
+    opacidadLuz: 0.85,
+    destello: colors.white,
+    sombra: '#2B080E',
+    opacidadSombra: 2.4,
+  },
+} as const;
+
+export type TonoHilo = keyof typeof TONOS;
 
 type Props = {
   /** Atributo `d` del hilo visible; se calcula en el hilo de UI con `trazoEntre`. */
@@ -22,6 +47,8 @@ type Props = {
   destello?: SharedValue<number>;
   /** Cuánto se separa el hilo de la superficie (0 = apoyado, 1 = en el aire): abre la sombra. */
   sombra?: SharedValue<number>;
+  /** Color del hilo: granate (por defecto) o crema, para fondos granates. */
+  tono?: TonoHilo;
 };
 
 /**
@@ -30,13 +57,15 @@ type Props = {
  * Debe ir dentro de un <Svg>. Todas las capas comparten el mismo trazado, así que en cada
  * fotograma solo se calcula una cadena `d`.
  */
-export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: Props) {
+export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra, tono = 'granate' }: Props) {
   const g = grosorBase;
+  const t = TONOS[tono];
+  const fuerzaSombra = t.opacidadSombra;
 
   const sombraAncha = useAnimatedProps(() => ({
     d: d.value,
     strokeWidth: grosor.value + 3,
-    opacity: 0.07 + 0.03 * (sombra ? sombra.value : 0),
+    opacity: (0.07 + 0.03 * (sombra ? sombra.value : 0)) * fuerzaSombra,
   }));
   const sombraCercana = useAnimatedProps(() => ({ d: d.value, strokeWidth: grosor.value + 0.6 }));
   const cuerpo = useAnimatedProps(() => ({ d: d.value, strokeWidth: grosor.value }));
@@ -54,7 +83,7 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
         <AnimatedPath
           animatedProps={sombraAncha}
           fill="none"
-          stroke={colors.accentDark}
+          stroke={t.sombra}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -63,8 +92,8 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
         <AnimatedPath
           animatedProps={sombraCercana}
           fill="none"
-          stroke={colors.accentDark}
-          strokeOpacity={0.13}
+          stroke={t.sombra}
+          strokeOpacity={0.13 * fuerzaSombra}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -72,7 +101,7 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
       <AnimatedPath
         animatedProps={cuerpo}
         fill="none"
-        stroke={colors.accent}
+        stroke={t.cuerpo}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -80,8 +109,8 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
       <AnimatedPath
         animatedProps={torsion}
         fill="none"
-        stroke={colors.accentDark}
-        strokeOpacity={0.5}
+        stroke={t.torsion}
+        strokeOpacity={t.opacidadTorsion}
         strokeLinecap="butt"
         strokeLinejoin="round"
         strokeDasharray={[g * 0.42, g * 0.78]}
@@ -91,8 +120,8 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
         <AnimatedPath
           animatedProps={luz}
           fill="none"
-          stroke={LUZ}
-          strokeOpacity={0.6}
+          stroke={t.luz}
+          strokeOpacity={t.opacidadLuz}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeDasharray={[g * 7, g * 1.1, g * 3.4, g * 1.6, g * 5.2, g * 0.9]}
@@ -101,7 +130,7 @@ export function HiloFisico({ d, dPunta, grosor, grosorBase, destello, sombra }: 
           <AnimatedPath
             animatedProps={punta}
             fill="none"
-            stroke={DESTELLO}
+            stroke={t.destello}
             strokeLinecap="round"
             strokeLinejoin="round"
           />

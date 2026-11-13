@@ -16,6 +16,9 @@ const TARJETAS = [
   { id: 'lisboa', titulo: '✈️ Escapada a Lisboa', tipo: 'Plan', detalle: '3 días · del 12 al 15 de marzo' },
 ];
 
+/** Simula un guardado que tarda. */
+const esperar = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms));
+
 export default function Laboratorio() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -31,7 +34,7 @@ export default function Laboratorio() {
       <ScrollView
         contentContainerStyle={[styles.contenido, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + 48 }]}
       >
-        <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={12}>
+        <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={12}>
           <Text style={styles.volver}>‹ Volver</Text>
         </Pressable>
         <Text style={styles.titulo}>Laboratorio del hilo</Text>
@@ -43,8 +46,17 @@ export default function Laboratorio() {
           <BotonSecundario label="Relanzar la animación" onPress={() => setSplash(true)} />
         </Seccion>
 
-        <Seccion titulo="Botón con nudo" texto="Al pulsarlo, el hilo hace un nudo y confirma que se ha guardado.">
+        <Seccion
+          titulo="Botón con nudo"
+          texto="Al pulsarlo, el hilo cruza el botón, se anuda y se aprieta para confirmar. Si el guardado tarda, el nudo espera abierto; si falla, se suelta."
+        >
           <BotonNudo label="Guardar gasto" labelHecho="Guardado" />
+          <BotonNudo label="Guardar (tarda 2 s)" labelHecho="Guardado" onPress={() => esperar(2000)} />
+          <BotonNudo
+            label="Guardar (falla)"
+            labelError="No se ha podido guardar"
+            onPress={() => esperar(1300).then(() => Promise.reject(new Error('Fallo de prueba')))}
+          />
         </Seccion>
 
         <Seccion titulo="Saldar cuentas" texto="Cuando lo saldáis, el nudo que os unía se deshace.">

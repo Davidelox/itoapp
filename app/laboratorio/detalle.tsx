@@ -38,7 +38,7 @@ export default function Detalle() {
         <Text style={styles.texto}>{detalle ?? 'Esta pantalla aparece al tirar del hilo de una tarjeta.'}</Text>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           style={({ pressed }) => [styles.boton, pressed && { backgroundColor: colors.accentDark }]}
         >
           <Text style={styles.botonTexto}>Volver al laboratorio</Text>

@@ -170,3 +170,21 @@ export function trazoDePuntos(xs: number[], ys: number[], n: number): string {
   if (n === 2) d += 'L' + r1(xs[1]) + ' ' + r1(ys[1]);
   return d;
 }
+
+/** Curvas suaves (Catmull-Rom) que pasan por todos los puntos dados, una por cada par consecutivo. */
+export function curvasPorPuntos(puntos: Punto[]): Cubica[] {
+  const curvas: Cubica[] = [];
+  for (let i = 0; i < puntos.length - 1; i++) {
+    const previo = puntos[Math.max(i - 1, 0)];
+    const a = puntos[i];
+    const b = puntos[i + 1];
+    const siguiente = puntos[Math.min(i + 2, puntos.length - 1)];
+    curvas.push([
+      a,
+      [a[0] + (b[0] - previo[0]) / 6, a[1] + (b[1] - previo[1]) / 6],
+      [b[0] - (siguiente[0] - a[0]) / 6, b[1] - (siguiente[1] - a[1]) / 6],
+      b,
+    ]);
+  }
+  return curvas;
+}
