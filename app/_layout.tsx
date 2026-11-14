@@ -40,7 +40,8 @@ export default function RootLayout() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="laboratorio/detalle" options={{ animation: 'fade' }} />
+        {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
+        <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />
       </Stack>
       {mostrarSplash && <SplashHilo onDone={cerrarSplash} />}
     </View>

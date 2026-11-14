@@ -1,13 +1,15 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { HiloConector } from '@/components/hilo/HiloConector';
 import { HiloSaldar } from '@/components/hilo/HiloSaldar';
 import { SplashHilo } from '@/components/hilo/SplashHilo';
-import { useTirarDelHilo } from '@/components/hilo/TirarDelHilo';
+import { TarjetaConectada } from '@/components/hilo/TarjetaConectada';
+import { type RectHilo, useTirarDelHilo } from '@/components/hilo/TirarDelHilo';
 import { colors, fonts, fontSizes, radius, spacing } from '@/constants/theme';
 
 const TARJETAS = [
@@ -24,14 +26,21 @@ export default function Laboratorio() {
   const insets = useSafeAreaInsets();
   const [splash, setSplash] = useState(false);
   const [saldado, setSaldado] = useState(false);
-  const { tirar, overlay, reiniciar } = useTirarDelHilo();
+  const { tirar, overlay, alVolver, claveActiva } = useTirarDelHilo();
+  // El hilo que cose las tarjetas se mece un poco al desplazar la pantalla.
+  const desplazamiento = useSharedValue(0);
+  const alDesplazar = useAnimatedScrollHandler((e) => {
+    desplazamiento.value = e.contentOffset.y;
+  });
 
-  // Al volver del detalle, el hilo vuelve a recogerse.
-  useFocusEffect(useCallback(() => reiniciar(), [reiniciar]));
+  // Al volver del detalle, el hilo devuelve la tarjeta a su sitio.
+  useFocusEffect(useCallback(() => alVolver(), [alVolver]));
 
   return (
     <View style={styles.pantalla}>
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={alDesplazar}
+        scrollEventThrottle={16}
         contentContainerStyle={[styles.contenido, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + 48 }]}
       >
         <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} hitSlop={12}>
@@ -73,28 +82,35 @@ export default function Laboratorio() {
 
         <Seccion
           titulo="Tarjetas conectadas"
-          texto="El hilo une lo que va junto. Toca una tarjeta para tirar del hilo y abrir su detalle."
+          texto="El hilo cose lo que va junto. Toca una tarjeta: el hilo tira de ella y la sube hasta su detalle; al volver, la devuelve a su sitio."
         >
-          <HiloConector>
+          <HiloConector desplazamiento={desplazamiento}>
             {TARJETAS.map((t) => (
               <Tarjeta
                 key={t.id}
                 tipo={t.tipo}
                 titulo={t.titulo}
                 detalle={t.detalle}
-                onPress={(y) =>
-                  tirar(y, () =>
-                    router.push({
-                      pathname: '/laboratorio/detalle',
-                      params: { titulo: t.titulo, tipo: t.tipo, detalle: t.detalle },
-                    }),
-                  )
+                oculta={claveActiva === t.id}
+                onPress={(origen) =>
+                  tirar({
+                    clave: t.id,
+                    origen,
+                    contenido: (
+                      <TarjetaConectada tipo={t.tipo} titulo={t.titulo} detalle={t.detalle} style={styles.flex} />
+                    ),
+                    ir: () =>
+                      router.push({
+                        pathname: '/laboratorio/detalle',
+                        params: { titulo: t.titulo, tipo: t.tipo, detalle: t.detalle },
+                      }),
+                  })
                 }
               />
             ))}
           </HiloConector>
         </Seccion>
-      </ScrollView>
+      </Animated.ScrollView>
       {overlay}
       {splash && <SplashHilo relanzada onDone={() => setSplash(false)} />}
     </View>
@@ -127,27 +143,26 @@ function Tarjeta({
   tipo,
   titulo,
   detalle,
+  oculta,
   onPress,
 }: {
   tipo: string;
   titulo: string;
   detalle: string;
-  onPress: (yEnVentana: number) => void;
+  /** Mientras el hilo la lleva al detalle, la tarjeta de la lista no se ve (la sustituye la que viaja). */
+  oculta: boolean;
+  onPress: (enVentana: RectHilo) => void;
 }) {
   const ref = useRef<ComponentRef<typeof Pressable>>(null);
   return (
     <Pressable
       ref={ref}
       accessibilityRole="button"
-      onPress={() => {
-        if (!ref.current) return onPress(200);
-        ref.current.measureInWindow((_x, y) => onPress(y));
-      }}
-      style={({ pressed }) => [styles.tarjeta, pressed && { backgroundColor: colors.surface }]}
+      accessibilityLabel={`${tipo}: ${titulo}. ${detalle}`}
+      onPress={() => ref.current?.measureInWindow((x, y, width, height) => onPress({ x, y, width, height }))}
+      style={({ pressed }) => [oculta && styles.oculta, pressed && styles.tarjetaPulsada]}
     >
-      <Text style={styles.tarjetaTipo}>{tipo}</Text>
-      <Text style={styles.tarjetaTitulo}>{titulo}</Text>
-      <Text style={styles.tarjetaDetalle}>{detalle}</Text>
+      <TarjetaConectada tipo={tipo} titulo={titulo} detalle={detalle} />
     </Pressable>
   );
 }
@@ -175,15 +190,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   secundarioTexto: { fontFamily: fonts.bodyBold, fontSize: fontSizes.body, color: colors.text },
-  tarjeta: {
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    gap: 2,
-  },
-  tarjetaTipo: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.caption, color: colors.accent },
-  tarjetaTitulo: { fontFamily: fonts.title, fontSize: fontSizes.heading, color: colors.text },
-  tarjetaDetalle: { fontFamily: fonts.body, fontSize: fontSizes.small, color: colors.textSecondary },
+  oculta: { opacity: 0 },
+  tarjetaPulsada: { transform: [{ scale: 0.985 }] },
 });
