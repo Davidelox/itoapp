@@ -30,6 +30,21 @@ export function suscribirAncla(oyente: () => void): () => void {
   return () => oyentesAncla.delete(oyente);
 }
 
+let medidor: (() => void) | null = null;
+
+/** La barra de pestañas registra cómo volver a medir su ancla. Devuelve la función para darse de baja. */
+export function registrarMedidor(medir: () => void): () => void {
+  medidor = medir;
+  return () => {
+    if (medidor === medir) medidor = null;
+  };
+}
+
+/** Pide a la barra que vuelva a medir y publicar su ancla (si está montada). */
+export function pedirAncla() {
+  medidor?.();
+}
+
 // Al arrancar la app siempre hay un splash que entregará el hilo; hasta entonces la barra lo espera sin rizo.
 let entregaPendiente = true;
 const oyentesEntrega = new Set<() => void>();

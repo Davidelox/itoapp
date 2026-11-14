@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
-import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentRef } from 'react';
+import {
+  type LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -20,7 +27,7 @@ import { suave, trazoEntre } from './geometria';
 import { hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
 import { ITO_LOGOTIPO, ITO_LOGOTIPO_CAJA } from './marca';
-import { entregarHilo, leerAncla, suscribirAncla } from './relevo';
+import { entregarHilo, leerAncla, pedirAncla, suscribirAncla } from './relevo';
 import {
   T_RECOGIDO,
   T_REPOSO,
@@ -28,7 +35,6 @@ import {
   TOTAL_MS,
   cabezaEn,
   colaEn,
-  destelloEn,
   elevacionLogoEn,
   escenaSplash,
   fondoEn,
@@ -37,6 +43,9 @@ import {
   opacidadHiloEn,
   opacidadLogoEn,
 } from './splashCoreografia';
+
+/** Última vez que se pide a la barra que se mida: el hilo aún está en el tirabuzón (ms). */
+const T_REMEDIR = 520;
 
 /** Margen alrededor del logotipo, en unidades del icono, para que su sombra no se recorte. */
 const MARGEN_LOGO = 2;
@@ -62,17 +71,36 @@ type Props = {
  * Con «Reducir movimiento» no hay recorrido: el hilo en reposo aparece y se va con un fundido.
  */
 export function SplashHilo({ onDone, relanzada = false }: Props) {
-  const { width, height } = useWindowDimensions();
+  const ventana = useWindowDimensions();
+  // El lienzo mide lo que mide de verdad esta capa (onLayout); la ventana solo sirve hasta entonces.
+  const [medida, setMedida] = useState<{ width: number; height: number } | null>(null);
+  const width = medida ? medida.width : ventana.width;
+  const height = medida ? medida.height : ventana.height;
   const insets = useSafeAreaInsets();
   const reducida = useReducedMotion();
-  // Dónde descansa el hilo de la barra de pestañas, medido por la propia barra.
-  const ancla = useSyncExternalStore(suscribirAncla, leerAncla, leerAncla);
+  // Dónde descansa el hilo de la barra de pestañas, medido por la propia barra en la ventana.
+  const anclaEnVentana = useSyncExternalStore(suscribirAncla, leerAncla, leerAncla);
+  // Esta capa se mide con la misma llamada (measureInWindow): al restar, cualquier diferencia de
+  // origen entre plataformas (barra de estado, zona segura) se cancela y el hilo acaba donde debe.
+  const capaRef = useRef<ComponentRef<typeof View>>(null);
+  const [origen, setOrigen] = useState<{ x: number; y: number } | null>(null);
+  const medirCapa = useCallback((e: LayoutChangeEvent) => {
+    const { width: w, height: h } = e.nativeEvent.layout;
+    setMedida((previa) => (previa && previa.width === w && previa.height === h ? previa : { width: w, height: h }));
+    capaRef.current?.measureInWindow((x, y) =>
+      setOrigen((previo) => (previo && previo.x === x && previo.y === y ? previo : { x, y })),
+    );
+  }, []);
+  const ancla = useMemo(
+    () => (anclaEnVentana && origen ? { x: anclaEnVentana.x - origen.x, y: anclaEnVentana.y - origen.y } : null),
+    [anclaEnVentana, origen],
+  );
 
   const escena = useMemo(
     () => escenaSplash({ ancho: width, alto: height, inferior: insets.bottom, ancla }),
     [width, height, insets.bottom, ancla],
   );
-  const { recorrido, indiceIcono, puntosIndicador, puntosDestello, grosor: grosorTenso } = escena;
+  const { recorrido, indiceIcono, puntosIndicador, grosor: grosorTenso } = escena;
   const ultimo = recorrido.tx.length - 1;
 
   /** Reloj de la coreografía, en milisegundos. */
@@ -94,6 +122,14 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
     entregar();
     onDone();
   }, [onDone, entregar]);
+
+  // La barra puede cambiar de sitio después de su primera medida (fuentes, zona segura): se le pide
+  // que se mida de nuevo mientras el hilo aún está lejos de ella, antes de trazar el tramo final.
+  useEffect(() => {
+    pedirAncla();
+    const temporizadores = [250, T_REMEDIR].map((ms) => setTimeout(pedirAncla, ms));
+    return () => temporizadores.forEach(clearTimeout);
+  }, []);
 
   useEffect(() => {
     const retraso = relanzada ? 140 : 0;
@@ -140,13 +176,9 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
   const holgura = useDerivedValue(() => holguraEn(reloj.value));
   const cabeza = useDerivedValue(() => cabezaEn(reloj.value, ultimo, indiceIcono));
   const cola = useDerivedValue(() => colaEn(reloj.value, ultimo, puntosIndicador));
-  // Una sola cadena `d` por fotograma para todas las capas del hilo, y otra corta para el destello.
+  // Una sola cadena `d` por fotograma para todas las capas del hilo.
   const d = useDerivedValue(() => trazoEntre(recorrido, holgura.value, cola.value, cabeza.value));
-  const dPunta = useDerivedValue(() =>
-    trazoEntre(recorrido, holgura.value, Math.max(cola.value, cabeza.value - puntosDestello), cabeza.value),
-  );
   const grosor = useDerivedValue(() => grosorEn(reloj.value, grosorTenso, holgura.value));
-  const destello = useDerivedValue(() => destelloEn(reloj.value));
   const elevacion = useDerivedValue(() => Math.min(Math.max(holgura.value, 0), 1));
   // «ito» está levantado del papel mientras el hilo recorre la pantalla y se posa con él al tensarse.
   const elevacionLogo = useDerivedValue(() => elevacionLogoEn(reloj.value, holgura.value));
@@ -186,7 +218,7 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
 
   return (
     <Animated.View style={[styles.capa, capaStyle]}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View ref={capaRef} onLayout={medirCapa} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Animated.View style={[styles.fondo, fondoStyle]} />
         <Animated.View style={[styles.logo, cajaLogoStyle, logoStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, sombraAnchaStyle]}>
@@ -215,10 +247,8 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
           <Svg width={width} height={height}>
             <HiloFisico
               d={d}
-              dPunta={dPunta}
               grosor={grosor}
               grosorBase={grosorTenso}
-              destello={destello}
               sombra={elevacion}
             />
           </Svg>

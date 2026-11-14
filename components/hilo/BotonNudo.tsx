@@ -21,12 +21,12 @@ import { HiloFisico } from './HiloFisico';
 import { NUDO_FLOJO, cortesDelNudo, extremosDelNudo, tramosVisibles } from './nudo';
 
 const ALTO = 52;
-const GROSOR = 2.4;
+const GROSOR = 1.9;
 /** Ancho que ocupa el nudo ya apretado, con sus dos cabos cortos, y su separación del texto. */
-const ANCHO_NUDO = 28;
+const ANCHO_NUDO = 29;
 const SEPARACION = 6;
 /** El nudo apretado no queda centrado en su lienzo: cae un poco a la derecha. */
-const DESCENTRE_NUDO = 1.4;
+const DESCENTRE_NUDO = 1.6;
 
 /** Al apretarse, el nudo se encoge hacia este punto y los cabos quedan rectos. */
 const CENTRO_NUDO: Punto = [1, -2];

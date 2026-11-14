@@ -40,8 +40,6 @@ const ALTURA_HILO_BARRA = 59;
 const PESTANAS = 5;
 /** Cuánto se aleja el hilo del borde derecho al salir, para que ni la punta ni su sombra asomen. */
 const FUERA_DE_PANTALLA = 50;
-/** Longitud del destello que acompaña a la punta, en píxeles. */
-const LARGO_DESTELLO = 44;
 
 export type MedidasPantalla = {
   ancho: number;
@@ -55,9 +53,8 @@ export type EscenaSplash = {
   recorrido: Recorrido;
   /** Índice del recorrido en el que termina el tirabuzón del icono. */
   indiceIcono: number;
-  /** Puntos del recorrido que mide el indicador de la pestaña y el destello de la punta. */
+  /** Puntos del recorrido que mide el indicador de la pestaña. */
   puntosIndicador: number;
-  puntosDestello: number;
   /** Grosor del hilo tenso, en píxeles. */
   grosor: number;
   /** Posición y tamaño del logotipo «ito» en pantalla. */
@@ -148,7 +145,6 @@ export function escenaSplash({ ancho, alto, inferior, ancla }: MedidasPantalla):
     recorrido,
     indiceIcono: recorrido.marcas[iconoTenso.length],
     puntosIndicador: ANCHO_INDICADOR / recorrido.paso,
-    puntosDestello: LARGO_DESTELLO / recorrido.paso,
     grosor: Math.min(4, Math.max(3, 1.9 * u)),
     logo: {
       left: ox + ITO_LOGOTIPO_CAJA.x * u,
@@ -196,12 +192,6 @@ export function grosorEn(t: number, grosorTenso: number, holgura: number): numbe
   const base = grosorTenso * (1 + 0.09 * holgura);
   const inicio = T_SOLTAR + (T_RECOGIDO - T_SOLTAR) * 0.55;
   return base + (GROSOR_INDICADOR - base) * suave((t - inicio) / (T_RECOGIDO - inicio));
-}
-
-/** Opacidad del destello de la punta: acompaña al hilo mientras avanza y se apaga al tensarse. */
-export function destelloEn(t: number): number {
-  'worklet';
-  return 0.7 * Math.min(1, Math.max(t, 0) / 120) * (1 - suave((t - T_TENSAR) / 220));
 }
 
 /** Opacidad del fondo crema. */

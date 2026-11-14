@@ -18,7 +18,14 @@ import { colors, fonts } from '@/constants/theme';
 import { trazoDePuntos } from './geometria';
 import { hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
-import { ANCHO_INDICADOR, GROSOR_INDICADOR, alEntregarHilo, hayEntregaPendiente, publicarAncla } from './relevo';
+import {
+  ANCHO_INDICADOR,
+  GROSOR_INDICADOR,
+  alEntregarHilo,
+  hayEntregaPendiente,
+  publicarAncla,
+  registrarMedidor,
+} from './relevo';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -73,6 +80,12 @@ export function TabBarHilo({ state, descriptors, emitter, navigateToTab }: Botto
     const centro = state.index * anchoTab + anchoTab / 2;
     lienzoRef.current?.measureInWindow((x, y) => publicarAncla({ x: x + centro, y: y + Y_HILO }));
   }, [ancho, anchoTab, state.index]);
+
+  // El splash puede pedir una medida fresca; y si cambia la zona segura, la barra se ha movido.
+  useEffect(() => registrarMedidor(publicar), [publicar]);
+  useEffect(() => {
+    publicar();
+  }, [publicar, insets.bottom]);
 
   useEffect(() => {
     if (!ancho) return;
@@ -161,7 +174,10 @@ export function TabBarHilo({ state, descriptors, emitter, navigateToTab }: Botto
   return (
     <View
       style={[styles.barra, { paddingBottom: insets.bottom }]}
-      onLayout={(e) => setAncho(e.nativeEvent.layout.width)}
+      onLayout={(e) => {
+        setAncho(e.nativeEvent.layout.width);
+        publicar(); // también cuando solo cambia el alto o la posición de la barra
+      }}
     >
       <View ref={lienzoRef} pointerEvents="none" style={styles.hilo} onLayout={publicar}>
         {ancho > 0 ? (
