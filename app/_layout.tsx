@@ -10,13 +10,13 @@ import { View } from 'react-native';
 
 import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { colors } from '@/constants/theme';
+import { FlujoCuentaProvider } from '@/lib/auth/FlujoCuenta';
+import { SesionProvider } from '@/lib/auth/SesionProvider';
+import { ENTRADA_FASE, EstadoProvider, useEstado } from '@/lib/pareja/EstadoProvider';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // La capa del hilo se muestra una vez por arranque de la app.
-  const [mostrarSplash, setMostrarSplash] = useState(true);
-  const cerrarSplash = useCallback(() => setMostrarSplash(false), []);
   const [fontsLoaded, fontError] = useFonts({
     Damion_400Regular,
     Fraunces_600SemiBold,
@@ -26,24 +26,72 @@ export default function RootLayout() {
     DMSans_700Bold,
   });
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+  return (
+    <SesionProvider>
+      <FlujoCuentaProvider>
+        <EstadoProvider>
+          <Raiz fuentesListas={fontsLoaded || !!fontError} />
+        </EstadoProvider>
+      </FlujoCuentaProvider>
+    </SesionProvider>
+  );
+}
 
-  if (!fontsLoaded && !fontError) {
+function Raiz({ fuentesListas }: { fuentesListas: boolean }) {
+  const { fase } = useEstado();
+  // El arranque termina cuando hay fuentes y se conoce la fase; después, un «cargando» (al entrar) ya se pinta.
+  const [arrancada, setArrancada] = useState(false);
+  const lista = fuentesListas && (arrancada || fase !== 'cargando');
+  if (lista && !arrancada) setArrancada(true);
+
+  useEffect(() => {
+    if (lista) SplashScreen.hideAsync();
+  }, [lista]);
+
+  if (!lista) {
     return null;
   }
+  return <Navegacion />;
+}
 
+function Navegacion() {
+  const { fase } = useEstado();
+  // La capa del hilo se muestra una vez por arranque, cuando ya se sabe qué pantalla toca. Hacia dónde
+  // acaba el hilo se decide aquí, una sola vez: con el espacio listo hay barra de pestañas.
+  const [mostrarSplash, setMostrarSplash] = useState(true);
+  const cerrarSplash = useCallback(() => setMostrarSplash(false), []);
+  const [destino] = useState<'barra' | 'centro'>(() => (fase === 'lista' ? 'barra' : 'centro'));
+
+  const con = (f: typeof fase) => fase === f;
+  // Sin `redirectTo`, expo-router lleva al primer grupo permitido («/(auth)»), que no tiene index: «Unmatched Route».
+  const entrada = ENTRADA_FASE[fase];
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
-        <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />
+        <Stack.Protected guard={con('cargando')} redirectTo={entrada}>
+          <Stack.Screen name="cargando" />
+        </Stack.Protected>
+        <Stack.Protected guard={con('sin_sesion')} redirectTo={entrada}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={con('sin_pareja') || con('sin_perfil') || con('invitar')} redirectTo={entrada}>
+          <Stack.Screen name="(onboarding)" />
+        </Stack.Protected>
+        <Stack.Protected guard={con('sin_conexion')} redirectTo={entrada}>
+          <Stack.Screen name="sin-conexion" />
+        </Stack.Protected>
+        <Stack.Protected guard={con('lista')} redirectTo={entrada}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="pareja/invitar" />
+          <Stack.Screen name="laboratorio/index" />
+          {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
+          <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />
+        </Stack.Protected>
+        {/* Sin guarda: procesa el enlace del email esté o no iniciada la sesión. */}
+        <Stack.Screen name="auth/callback" />
       </Stack>
-      {mostrarSplash && <SplashHilo onDone={cerrarSplash} />}
+      {mostrarSplash && <SplashHilo onDone={cerrarSplash} destino={destino} />}
     </View>
   );
 }

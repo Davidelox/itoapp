@@ -29,6 +29,7 @@ import { HiloFisico } from './HiloFisico';
 import { ITO_LOGOTIPO, ITO_LOGOTIPO_CAJA } from './marca';
 import { entregarHilo, leerAncla, pedirAncla, suscribirAncla } from './relevo';
 import {
+  type DestinoSplash,
   T_RECOGIDO,
   T_REPOSO,
   T_TENSAR,
@@ -60,6 +61,11 @@ type Props = {
   onDone: () => void;
   /** La animación se relanza con la app ya visible (laboratorio): la capa entra con un fundido. */
   relanzada?: boolean;
+  /**
+   * `'barra'` (por defecto): el hilo acaba sobre el hilo de la barra de pestañas, que le toma el relevo.
+   * `'centro'`: aún no hay barra (sin sesión, sin espacio…); el hilo hace el tirabuzón y se recoge allí.
+   */
+  destino?: DestinoSplash;
 };
 
 /**
@@ -70,7 +76,7 @@ type Props = {
  * Tiempos en splashCoreografia.ts. Se salta al tocar.
  * Con «Reducir movimiento» no hay recorrido: el hilo en reposo aparece y se va con un fundido.
  */
-export function SplashHilo({ onDone, relanzada = false }: Props) {
+export function SplashHilo({ onDone, relanzada = false, destino = 'barra' }: Props) {
   const ventana = useWindowDimensions();
   // El lienzo mide lo que mide de verdad esta capa (onLayout); la ventana solo sirve hasta entonces.
   const [medida, setMedida] = useState<{ width: number; height: number } | null>(null);
@@ -92,13 +98,16 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
     );
   }, []);
   const ancla = useMemo(
-    () => (anclaEnVentana && origen ? { x: anclaEnVentana.x - origen.x, y: anclaEnVentana.y - origen.y } : null),
-    [anclaEnVentana, origen],
+    () =>
+      destino === 'barra' && anclaEnVentana && origen
+        ? { x: anclaEnVentana.x - origen.x, y: anclaEnVentana.y - origen.y }
+        : null,
+    [destino, anclaEnVentana, origen],
   );
 
   const escena = useMemo(
-    () => escenaSplash({ ancho: width, alto: height, inferior: insets.bottom, ancla }),
-    [width, height, insets.bottom, ancla],
+    () => escenaSplash({ ancho: width, alto: height, inferior: insets.bottom, ancla, destino }),
+    [width, height, insets.bottom, ancla, destino],
   );
   const { recorrido, indiceIcono, puntosIndicador, grosor: grosorTenso } = escena;
   const ultimo = recorrido.tx.length - 1;
@@ -126,10 +135,11 @@ export function SplashHilo({ onDone, relanzada = false }: Props) {
   // La barra puede cambiar de sitio después de su primera medida (fuentes, zona segura): se le pide
   // que se mida de nuevo mientras el hilo aún está lejos de ella, antes de trazar el tramo final.
   useEffect(() => {
+    if (destino !== 'barra') return;
     pedirAncla();
     const temporizadores = [250, T_REMEDIR].map((ms) => setTimeout(pedirAncla, ms));
     return () => temporizadores.forEach(clearTimeout);
-  }, []);
+  }, [destino]);
 
   useEffect(() => {
     const retraso = relanzada ? 140 : 0;

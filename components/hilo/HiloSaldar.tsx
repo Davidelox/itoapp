@@ -263,11 +263,11 @@ export function HiloSaldar({ saldado, ref }: Props) {
           <HiloFisico d={dDebajo} grosor={grosor} grosorBase={GROSOR} sombra={elevacion} />
           <HiloFisico d={dEncima} grosor={grosor} grosorBase={GROSOR} sombra={elevacion} />
         </Svg>
-        <Animated.View style={[styles.avatar, { left: MARGEN, backgroundColor: personColors.mint.bg }, izqStyle]}>
-          <Text style={[styles.letra, { color: personColors.mint.ink }]}>D</Text>
+        <Animated.View style={[styles.avatar, { left: MARGEN, backgroundColor: personColors.menta.bg }, izqStyle]}>
+          <Text style={[styles.letra, { color: personColors.menta.ink }]}>D</Text>
         </Animated.View>
-        <Animated.View style={[styles.avatar, { right: MARGEN, backgroundColor: personColors.lavender.bg }, derStyle]}>
-          <Text style={[styles.letra, { color: personColors.lavender.ink }]}>M</Text>
+        <Animated.View style={[styles.avatar, { right: MARGEN, backgroundColor: personColors.lavanda.bg }, derStyle]}>
+          <Text style={[styles.letra, { color: personColors.lavanda.ink }]}>M</Text>
         </Animated.View>
       </View>
       <Animated.Text style={[styles.mensaje, mensajeStyle]}>¡Cuentas a cero!</Animated.Text>

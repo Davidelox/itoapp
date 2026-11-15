@@ -32,15 +32,18 @@ export const colors = {
 
 /** Colores pastel de persona: solo para avatares, chips y nombres; nunca para estados, botones ni textos de la app. */
 export const personColors = {
-  mint: { bg: '#C5E7D3', ink: '#23604A' }, // David por defecto
-  lavender: { bg: '#D7CDF2', ink: '#4F3D8C' }, // María por defecto
-  peach: { bg: '#F8CBB4', ink: '#8A4325' },
-  aqua: { bg: '#BFE3E3', ink: '#1F5E60' },
-  pistachio: { bg: '#DCE8B5', ink: '#4A5E14' },
-  mauve: { bg: '#EBCBEA', ink: '#74306F' },
+  menta: { bg: '#C5E7D3', ink: '#23604A', nombre: 'Menta' }, // David por defecto
+  lavanda: { bg: '#D7CDF2', ink: '#4F3D8C', nombre: 'Lavanda' }, // María por defecto
+  melocoton: { bg: '#F8CBB4', ink: '#8A4325', nombre: 'Melocotón' },
+  aguamarina: { bg: '#BFE3E3', ink: '#1F5E60', nombre: 'Aguamarina' },
+  pistacho: { bg: '#DCE8B5', ink: '#4A5E14', nombre: 'Pistacho' },
+  malva: { bg: '#EBCBEA', ink: '#74306F', nombre: 'Malva' },
 } as const;
 
-export type PersonColorKey = keyof typeof personColors;
+/** Mismo enum que `person_color` en la base de datos. */
+export type ColorPersona = keyof typeof personColors;
+/** Orden de la paleta: el primer color libre se preselecciona. */
+export const COLORES_PERSONA = Object.keys(personColors) as ColorPersona[];
 
 export const radius = {
   sm: 8,

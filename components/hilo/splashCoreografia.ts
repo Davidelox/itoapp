@@ -41,12 +41,17 @@ const PESTANAS = 5;
 /** Cuánto se aleja el hilo del borde derecho al salir, para que ni la punta ni su sombra asomen. */
 const FUERA_DE_PANTALLA = 50;
 
+/** Adónde acaba el hilo: en la barra de pestañas, o (si aún no hay barra) recogido junto al logotipo. */
+export type DestinoSplash = 'barra' | 'centro';
+
 export type MedidasPantalla = {
   ancho: number;
   alto: number;
   inferior: number;
   /** Centro real del hilo de la barra de pestañas, si ya se conoce. */
   ancla?: AnclaHilo | null;
+  /** Por defecto `'barra'`. Con `'centro'` el recorrido acaba tras el tirabuzón y el hilo se recoge allí. */
+  destino?: DestinoSplash;
 };
 
 export type EscenaSplash = {
@@ -62,7 +67,7 @@ export type EscenaSplash = {
 };
 
 /** Calcula el recorrido del hilo para una pantalla: tenso y con holgura, con la misma estructura. */
-export function escenaSplash({ ancho, alto, inferior, ancla }: MedidasPantalla): EscenaSplash {
+export function escenaSplash({ ancho, alto, inferior, ancla, destino = 'barra' }: MedidasPantalla): EscenaSplash {
   const u = LADO_ICONO / 100;
   // El logotipo queda centrado en la pantalla, igual que en el splash nativo.
   const ox = ancho / 2 - (ITO_LOGOTIPO_CAJA.x + ITO_LOGOTIPO_CAJA.ancho / 2) * u;
@@ -131,11 +136,17 @@ export function escenaSplash({ ancho, alto, inferior, ancla }: MedidasPantalla):
     ];
   };
 
-  const tenso = [entrada(iconoTenso[0][0], 0), ...iconoTenso, ...salida(iconoTenso[3][3], 6, 20, false)];
+  // Sin barra de pestañas (aún no hay sesión o espacio) el recorrido se queda en el tirabuzón.
+  const alCentro = destino === 'centro';
+  const tenso = [
+    entrada(iconoTenso[0][0], 0),
+    ...iconoTenso,
+    ...(alCentro ? [] : salida(iconoTenso[3][3], 6, 20, false)),
+  ];
   const flojo = [
     entrada(iconoFlojo[0][0], 0.12 * LADO_ICONO),
     ...iconoFlojo,
-    ...salida(iconoFlojo[3][3], 4.5, 18, true),
+    ...(alCentro ? [] : salida(iconoFlojo[3][3], 4.5, 18, true)),
   ];
 
   // Un punto cada 5-11 px según el tamaño de la pantalla: suficiente para curvas limpias sin cadenas enormes.
@@ -144,7 +155,7 @@ export function escenaSplash({ ancho, alto, inferior, ancla }: MedidasPantalla):
   return {
     recorrido,
     indiceIcono: recorrido.marcas[iconoTenso.length],
-    puntosIndicador: ANCHO_INDICADOR / recorrido.paso,
+    puntosIndicador: alCentro ? 0 : ANCHO_INDICADOR / recorrido.paso,
     grosor: Math.min(4, Math.max(3, 1.9 * u)),
     logo: {
       left: ox + ITO_LOGOTIPO_CAJA.x * u,
