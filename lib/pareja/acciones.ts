@@ -154,3 +154,52 @@ export async function guardarPerfil(datos: {
   }
   return { ok: true };
 }
+
+/** Valores del paso «¿Cómo os organizáis el dinero?». Los porcentajes son siempre los de quien crea el espacio (m1). */
+export type AjustesDinero = {
+  bote: boolean;
+  /** Solo con bote: aportación fija cada mes o a mano. */
+  rellenoMensual: boolean;
+  aportacionCents: number | null;
+  diaAportacion: number | null;
+  /** % de m1 en el bote (50 = a medias). */
+  pctBoteM1: number;
+  reparto: 'mixed' | 'all_pot' | 'half' | 'proportional';
+  /** % de m1 en los gastos proporcionales. */
+  pctProporcionalM1: number;
+};
+
+const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Guarda los ajustes de dinero. La RLS solo deja editarlos mientras la otra persona no se ha unido: si ya
+ * se unió, el update no toca ninguna fila y se devuelve `codigo: 'pareja_unida'` (la pantalla refresca la fase).
+ */
+export async function guardarDinero(coupleId: string, a: AjustesDinero): Promise<Resultado> {
+  const mensual = a.bote && a.rellenoMensual;
+  const { data, error } = await supabase
+    .from('couple_settings')
+    .update({
+      pot_enabled: a.bote,
+      pot_funding: mensual ? 'monthly' : 'manual',
+      pot_monthly_cents: mensual ? a.aportacionCents : null,
+      pot_day: mensual ? a.diaAportacion : null,
+      pot_started_on: mensual ? hoyLocal() : null,
+      pot_pct_m1: a.bote ? a.pctBoteM1 : 50,
+      default_split: a.reparto,
+      proportional_pct_m1: a.pctProporcionalM1,
+    })
+    .eq('couple_id', coupleId)
+    .select('couple_id');
+  if (error) {
+    registrarError('guardarDinero', error);
+    return { ok: false, mensaje: esErrorDeRed(error) ? SIN_CONEXION : 'No se ha podido guardar. Inténtalo de nuevo.' };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, mensaje: 'Tu pareja ya se ha unido: podréis cambiarlo juntos en Ajustes.', codigo: 'pareja_unida' };
+  }
+  return { ok: true };
+}

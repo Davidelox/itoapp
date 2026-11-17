@@ -18,7 +18,20 @@ import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 import type { ColorPersona } from '@/constants/theme';
 
-export type Fase = 'cargando' | 'sin_sesion' | 'sin_conexion' | 'sin_pareja' | 'sin_perfil' | 'invitar' | 'lista';
+export type Fase = 'cargando' | 'sin_sesion' | 'sin_conexion' | 'sin_pareja' | 'sin_perfil' | 'dinero' | 'invitar' | 'lista';
+
+/**
+ * Vista previa de diseño, solo en desarrollo, con `EXPO_PUBLIC_VISTA_PREVIA` en `.env.local` (no va a git):
+ * `1` fija la fase en `lista` (directo a las pestañas) y el nombre de una fase (`dinero`, `perfil`…) fija esa.
+ * No hay sesión, así que Supabase no devuelve datos (la RLS sigue igual). En producción `__DEV__` es false.
+ */
+const FASES: Fase[] = ['cargando', 'sin_sesion', 'sin_conexion', 'sin_pareja', 'sin_perfil', 'dinero', 'invitar', 'lista'];
+const valorVistaPrevia = process.env.EXPO_PUBLIC_VISTA_PREVIA ?? '';
+const VISTA_PREVIA: Fase | null = !__DEV__
+  ? null
+  : valorVistaPrevia === '1'
+    ? 'lista'
+    : (FASES.find((f) => f === valorVistaPrevia) ?? null);
 
 /**
  * Pantalla de entrada de cada fase. Se usa como `redirectTo` de los `Stack.Protected` (app/_layout.tsx y
@@ -30,6 +43,7 @@ export const ENTRADA_FASE: Record<Fase, Href> = {
   sin_conexion: '/sin-conexion',
   sin_pareja: '/pareja',
   sin_perfil: '/perfil',
+  dinero: '/dinero',
   invitar: '/invitar',
   lista: '/',
 };
@@ -48,7 +62,14 @@ export type Pareja = {
   /** null mientras la otra persona no se ha unido. */
   otra: Miembro | null;
   /** Lo que configuró quien creó el espacio (se muestra a quien se une). */
-  ajustes: { reparto: string; bote: boolean } | null;
+  ajustes: {
+    reparto: string;
+    bote: boolean;
+    /** Aportación fija mensual al bote, si la hay. */
+    aportacionCents: number | null;
+    /** false mientras quien creó el espacio no ha pasado por «¿Cómo os organizáis el dinero?». */
+    configurados: boolean;
+  } | null;
 };
 
 export type EstadoApp = {
@@ -66,7 +87,7 @@ export type EstadoApp = {
 
 const Contexto = createContext<EstadoApp | null>(null);
 
-const FASES_CACHEABLES: Fase[] = ['sin_pareja', 'sin_perfil', 'invitar', 'lista'];
+const FASES_CACHEABLES: Fase[] = ['sin_pareja', 'sin_perfil', 'dinero', 'invitar', 'lista'];
 const ESPERA_SIN_CACHE_MS = 2500;
 const claveInvitacion = (coupleId: string) => `ito.invitacion_vista.${coupleId}`;
 
@@ -81,12 +102,19 @@ type Datos = { pareja: Pareja | null; invitacionVista: boolean };
 
 type FilaMiembro = { couple_id: string; user_id: string; slot: 'm1' | 'm2'; color: ColorPersona | null; left_at: string | null };
 type FilaPerfil = { id: string; display_name: string; avatar_path: string | null };
+type FilaAjustes = {
+  default_split: string;
+  pot_enabled: boolean;
+  pot_funding: 'monthly' | 'manual';
+  pot_monthly_cents: number | null;
+  version: number;
+};
 
 async function leerDatos(userId: string): Promise<Datos | null> {
   const [m, p, s] = await Promise.all([
     supabase.from('couple_members').select('couple_id, user_id, slot, color, left_at'),
     supabase.from('profiles').select('id, display_name, avatar_path'),
-    supabase.from('couple_settings').select('default_split, pot_enabled'),
+    supabase.from('couple_settings').select('default_split, pot_enabled, pot_funding, pot_monthly_cents, version'),
   ]);
   if (m.error || p.error) {
     registrarError('estado.leer', m.error ?? p.error);
@@ -104,7 +132,7 @@ async function leerDatos(userId: string): Promise<Datos | null> {
     avatarPath: perfiles.get(f.user_id)?.avatar_path ?? null,
   });
   const otra = activos.find((f) => f.user_id !== userId);
-  const ajuste = !s.error && s.data && s.data[0] ? (s.data[0] as { default_split: string; pot_enabled: boolean }) : null;
+  const ajuste = !s.error && s.data && s.data[0] ? (s.data[0] as FilaAjustes) : null;
   let invitacionVista = false;
   try {
     invitacionVista = (await AsyncStorage.getItem(claveInvitacion(mio.couple_id))) === '1';
@@ -117,7 +145,15 @@ async function leerDatos(userId: string): Promise<Datos | null> {
       coupleId: mio.couple_id,
       yo: aMiembro(mio),
       otra: otra ? aMiembro(otra) : null,
-      ajustes: ajuste ? { reparto: REPARTOS[ajuste.default_split] ?? 'reparto a medias', bote: ajuste.pot_enabled } : null,
+      ajustes: ajuste
+        ? {
+            reparto: REPARTOS[ajuste.default_split] ?? 'reparto a medias',
+            bote: ajuste.pot_enabled,
+            aportacionCents: ajuste.pot_enabled && ajuste.pot_funding === 'monthly' ? ajuste.pot_monthly_cents : null,
+            // La fila se crea con version = 1 y cada update la sube (trigger private.touch): > 1 = ya se guardó.
+            configurados: ajuste.version > 1,
+          }
+        : null,
     },
   };
 }
@@ -126,6 +162,8 @@ function derivarFase(datos: Datos): Fase {
   const { pareja, invitacionVista } = datos;
   if (!pareja) return 'sin_pareja';
   if (pareja.yo.nombre.trim() === '' || pareja.yo.color === null) return 'sin_perfil';
+  // Solo quien crea el espacio, y solo mientras está solo: después los ajustes se cambian por propuesta.
+  if (pareja.yo.slot === 'm1' && pareja.otra === null && pareja.ajustes && !pareja.ajustes.configurados) return 'dinero';
   if (pareja.yo.slot === 'm1' && pareja.otra === null && !invitacionVista) return 'invitar';
   return 'lista';
 }
@@ -159,7 +197,7 @@ export function EstadoProvider({ children }: { children: ReactNode }) {
   else if (cacheDelUsuario.fase) calculada = cacheDelUsuario.fase;
   else calculada = errorLectura || esperaAgotada ? 'sin_conexion' : 'cargando';
 
-  const fase = bloqueo ?? calculada;
+  const fase = VISTA_PREVIA ?? bloqueo ?? calculada;
   useEffect(() => {
     faseRef.current = fase;
   }, [fase]);

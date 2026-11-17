@@ -108,7 +108,7 @@ export function PantallaInvitar({ modo }: { modo: 'onboarding' | 'inicio' }) {
 
   return (
     <Pantalla
-      paso={modo === 'onboarding' ? 3 : undefined}
+      paso={modo === 'onboarding' ? 4 : undefined}
       titulo="Invita a tu pareja"
       subtitulo="Compárteles este código para que se una a vuestro espacio."
       onAtras={modo === 'inicio' ? () => (router.canGoBack() ? router.back() : router.replace('/')) : undefined}

@@ -73,7 +73,7 @@ export default function Verificar() {
 
   const subtitulo = recuperacion
     ? 'Si hay una cuenta con ese email, te hemos enviado un código para cambiar tu contraseña.'
-    : 'Si el email no tenía cuenta, te hemos enviado un código de 6 cifras.';
+    : 'Si el email no tenía cuenta, te hemos enviado un código de 6 cifras. Si ya tienes cuenta, no te llegará nada: entra con tu contraseña.';
 
   return (
     <Pantalla
@@ -116,7 +116,7 @@ export default function Verificar() {
           deshabilitado={reenvio.restante > 0}
           onPress={reenviar}
         />
-        {!recuperacion && <EnlaceTexto etiqueta="¿Ya está confirmado? Entra" onPress={() => router.replace('/entrar')} />}
+        {!recuperacion && <EnlaceTexto etiqueta="¿Ya tienes cuenta? Entra" onPress={() => router.replace('/entrar')} />}
       </View>
     </Pantalla>
   );

@@ -14,6 +14,7 @@ export default function NuevaContrasena() {
   const [password, setPassword] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cambiada, setCambiada] = useState(false);
 
   // Solo se llega aquí tras verificar el código de recuperación.
   if (flujo.modo !== 'recuperacion') return <Redirect href="/bienvenida" />;
@@ -32,9 +33,22 @@ export default function NuevaContrasena() {
       return;
     }
     setPassword('');
-    // Al terminar el flujo la fase pasa a la que toque (ya hay sesión) y la guarda lleva a la app.
-    flujo.limpiar();
+    // Se muestra la confirmación sin limpiar el flujo: mientras siga en «recuperacion», la guarda no salta.
+    setCambiada(true);
   };
+
+  if (cambiada) {
+    return (
+      <Pantalla
+        titulo="Contraseña actualizada"
+        subtitulo="¡Has cambiado tu contraseña con éxito!"
+        // Al limpiar el flujo la fase pasa a la que toque (ya hay sesión) y la guarda lleva a la app.
+        pie={<BotonPrincipal etiqueta="Continuar" onPress={flujo.limpiar} />}
+      >
+        <View />
+      </Pantalla>
+    );
+  }
 
   return (
     <Pantalla

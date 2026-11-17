@@ -12,6 +12,7 @@ import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { colors } from '@/constants/theme';
 import { FlujoCuentaProvider } from '@/lib/auth/FlujoCuenta';
 import { SesionProvider } from '@/lib/auth/SesionProvider';
+import { QueryProvider } from '@/lib/consultas/QueryProvider';
 import { ENTRADA_FASE, EstadoProvider, useEstado } from '@/lib/pareja/EstadoProvider';
 
 SplashScreen.preventAutoHideAsync();
@@ -28,11 +29,13 @@ export default function RootLayout() {
 
   return (
     <SesionProvider>
-      <FlujoCuentaProvider>
-        <EstadoProvider>
-          <Raiz fuentesListas={fontsLoaded || !!fontError} />
-        </EstadoProvider>
-      </FlujoCuentaProvider>
+      <QueryProvider>
+        <FlujoCuentaProvider>
+          <EstadoProvider>
+            <Raiz fuentesListas={fontsLoaded || !!fontError} />
+          </EstadoProvider>
+        </FlujoCuentaProvider>
+      </QueryProvider>
     </SesionProvider>
   );
 }
@@ -75,7 +78,7 @@ function Navegacion() {
         <Stack.Protected guard={con('sin_sesion')} redirectTo={entrada}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
-        <Stack.Protected guard={con('sin_pareja') || con('sin_perfil') || con('invitar')} redirectTo={entrada}>
+        <Stack.Protected guard={con('sin_pareja') || con('sin_perfil') || con('dinero') || con('invitar')} redirectTo={entrada}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
         <Stack.Protected guard={con('sin_conexion')} redirectTo={entrada}>
@@ -84,6 +87,13 @@ function Navegacion() {
         <Stack.Protected guard={con('lista')} redirectTo={entrada}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="pareja/invitar" />
+          <Stack.Screen name="gastos/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="gastos/[id]" />
+          <Stack.Screen name="gastos/editar/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="gastos/historial" />
+          <Stack.Screen name="gastos/pago/[id]" />
+          <Stack.Screen name="gastos/bote" />
+          <Stack.Screen name="gastos/movimiento/[id]" />
           <Stack.Screen name="laboratorio/index" />
           {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
           <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />

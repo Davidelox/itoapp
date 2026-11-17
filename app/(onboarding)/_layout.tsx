@@ -19,6 +19,9 @@ export default function OnboardingLayout() {
       <Stack.Protected guard={fase === 'sin_perfil'} redirectTo={entrada}>
         <Stack.Screen name="perfil" />
       </Stack.Protected>
+      <Stack.Protected guard={fase === 'dinero'} redirectTo={entrada}>
+        <Stack.Screen name="dinero" />
+      </Stack.Protected>
       <Stack.Protected guard={fase === 'invitar'} redirectTo={entrada}>
         <Stack.Screen name="invitar" />
       </Stack.Protected>

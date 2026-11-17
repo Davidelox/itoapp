@@ -4,6 +4,7 @@ import { type ComponentProps } from 'react';
 
 import { TabBarHilo } from '@/components/hilo/TabBarHilo';
 import { colors } from '@/constants/theme';
+import { useTiempoRealGastos } from '@/lib/gastos/useGastos';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -16,6 +17,8 @@ const tabs: { name: string; title: string; icon: IconName }[] = [
 ];
 
 export default function TabsLayout() {
+  // Las pestañas siguen montadas debajo del detalle y del formulario: el canal vive aquí.
+  useTiempoRealGastos();
   return (
     <Tabs
       tabBar={(props) => <TabBarHilo {...props} />}

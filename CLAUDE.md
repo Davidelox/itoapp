@@ -20,10 +20,13 @@ Repos sincronizados: **ito** (GitHub: `Davidelox/itoapp`), **god-breaker** (God 
   hacer `git pull --ff-only` y solo entonces continuar con la petición. Si el pull falla, parar y preguntar.
 
 ## Estado actual
-_Actualizado: 2026-11-15 (Windows)_
+_Actualizado: 2026-11-17 (Mac)_
 
-- **Último trabajo**: animaciones del "hilo" (saldar cuentas, tarjetas cosidas, transición «tirar del hilo», splash),
-  y pantallas de auth (`app/(auth)`: verificar, nueva contraseña; `app/auth/callback`) y onboarding (`app/(onboarding)`).
-- **Docs de referencia**: `docs/concepto.md`, `docs/modelo-datos.md`, `docs/plan-onboarding.md`, `docs/revision-diseno.md`.
-- **Pendiente**: sin anotar todavía; completar en el próximo "update repos".
-- **Decisiones**: el `.env` nunca va a git (se pasa a mano entre equipos); la clave `service_role` de Supabase solo en servidor.
+- **Hecho**: onboarding completo (paso «Dinero» con bote/reparto; «Salir/Eliminar el espacio» en Inicio para retestear),
+  emails con logo (`supabase/plantillas-email/`), y **Gastos fases 1–3**: alta/edición/historial/totales, saldar y pedir borrar
+  con tarjetas en Inicio, bote común (aportar, «Los dos», reembolsar, movimientos del mes). Cada fase revisada por el arquitecto.
+- **Docs**: `docs/plan-gastos.md`, `plan-gastos-fase2.md`, `plan-gastos-fase3.md` (§8: notas I4/M3/M6/M8 para Ajustes).
+- **Migraciones**: se aplican a mano en el SQL Editor. Confirmar que `20261117010000_saldar_seguro.sql` está aplicada.
+- **Pendiente**: fase 4 (pagos recurrentes) y pantalla de Ajustes (propuestas de cambio, incluir notas de §8 fase 3).
+- **Decisiones**: operaciones rápidas (aportar, saldar, confirmar, borrar) en hoja inferior (`components/gastos/Hoja.tsx`), no en
+  página nueva. `.env` nunca a git; `service_role` solo en servidor. Vista previa de desarrollo con `EXPO_PUBLIC_VISTA_PREVIA` en `.env.local`.

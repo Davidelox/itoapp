@@ -2,8 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts } from '@/constants/theme';
 
-/** Pasos del primer uso. «Cómo os organizáis el dinero» se añadirá más adelante y subirá el total a 4. */
-export const TOTAL_PASOS = 3;
+/** Pasos del primer uso de quien crea el espacio: espacio, perfil, dinero e invitar. */
+export const TOTAL_PASOS = 4;
 
 export function IndicadorPaso({ paso, total = TOTAL_PASOS }: { paso: number; total?: number }) {
   return (

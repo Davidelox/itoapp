@@ -38,9 +38,7 @@ export function Pantalla({ titulo, subtitulo, onAtras, paso, pie, children }: Pr
               <Pressable accessibilityRole="button" accessibilityLabel="Atrás" onPress={onAtras} style={styles.atras}>
                 <Ionicons name="chevron-back" size={22} color={colors.text} />
               </Pressable>
-            ) : (
-              <View style={styles.atras} />
-            )}
+            ) : null}
             {paso ? <IndicadorPaso paso={paso} /> : null}
           </View>
         )}

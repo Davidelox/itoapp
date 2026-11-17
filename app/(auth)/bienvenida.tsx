@@ -21,7 +21,7 @@ export default function Bienvenida() {
         <Text accessibilityRole="header" style={styles.logo}>
           ito
         </Text>
-        <Text style={styles.lema}>No perdais el hilo<br></br>de vuestro plan</Text>
+        <Text style={styles.lema}>No perdais el hilo{'\n'}de vuestro plan</Text>
         <Text style={styles.descripcion}>
           Gastos, calendario, lugares de interés y viajes compartidos en un solo espacio.
         </Text>

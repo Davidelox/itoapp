@@ -10,6 +10,7 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Pantalla } from '@/components/onboarding/Pantalla';
 import { SelectorColor } from '@/components/onboarding/SelectorColor';
 import { COLORES_PERSONA, type ColorPersona, colors, fonts, personColors, radius } from '@/constants/theme';
+import { formatearEuros } from '@/lib/dinero/importe';
 import { registrarError } from '@/lib/registro';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { guardarPerfil } from '@/lib/pareja/acciones';
@@ -93,7 +94,12 @@ export default function Perfil() {
           <Text style={styles.invitacionTitulo}>{quienEs} te ha invitado</Text>
           <Text style={styles.invitacionTexto}>
             {quienEs} ha configurado: {pareja?.ajustes?.reparto ?? 'reparto a medias'} ·{' '}
-            {pareja?.ajustes?.bote ? 'con bote común' : 'sin bote común'}. Podrás proponer cambios en Ajustes.
+            {pareja?.ajustes?.bote
+              ? pareja.ajustes.aportacionCents
+                ? `bote común con ${formatearEuros(pareja.ajustes.aportacionCents)}/mes`
+                : 'con bote común'
+              : 'sin bote común'}
+            . Podrás proponer cambios en Ajustes.
           </Text>
         </View>
       ) : null}
