@@ -3,7 +3,7 @@
  * Mismas reglas que `private.run_daily_jobs` y `private.clamp_day` en la base de datos.
  */
 import type { Categoria } from '@/lib/gastos/categorias';
-import { aISO, deISO } from '@/lib/gastos/fechas';
+import { aISO, ayerISO, deISO, hoyISO } from '@/lib/gastos/fechas';
 import type { Hueco } from '@/lib/gastos/reparto';
 
 export type AjustesBote = {
@@ -44,8 +44,8 @@ export function diaDelMes(anio: number, mes0: number, dia: number): string {
 export function proximaAportacion(a: AjustesBote, hoy = new Date()): string | null {
   const cobro = siguienteCobro(a);
   if (!cobro) return null;
-  const hoyISO = aISO(hoy);
-  return cobro < hoyISO ? hoyISO : cobro;
+  const hoyIso = hoyISO(hoy);
+  return cobro < hoyIso ? hoyIso : cobro;
 }
 
 /**
@@ -73,9 +73,17 @@ function siguienteCobro(a: AjustesBote): string | null {
 export function aportacionRetrasada(a: AjustesBote, hoy = new Date()): string | null {
   const cobro = siguienteCobro(a);
   if (!cobro) return null;
-  const ayer = aISO(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1));
+  const ayer = ayerISO(hoy);
   return cobro < ayer ? cobro : null;
 }
+
+/**
+ * Con el bote desactivado, ¿queda algo por cuadrar? (revisión M6): deudas del bote o saldo en negativo.
+ * Mientras tanto la tarjeta y la pantalla del bote siguen visibles para reembolsar o aportar. Un saldo
+ * positivo no cuenta: se queda en el bote (se ve en Ajustes) hasta que lo volváis a activar.
+ */
+export const boteConPendiente = (s: { pot_balance_cents: number; pot_owes_me_cents: number; pot_owes_partner_cents: number }) =>
+  s.pot_balance_cents < 0 || s.pot_owes_me_cents !== 0 || s.pot_owes_partner_cents !== 0;
 
 /** Reparto de la aportación mensual, como el job: m1 = round(importe × % / 100), m2 = el resto. */
 export function repartoAportacion(cents: number, pctM1: number) {

@@ -3,6 +3,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 import type { ColorPersona } from '@/constants/theme';
 import { esErrorDeRed, type Resultado } from '@/lib/auth/errores';
+import { hoyISO } from '@/lib/gastos/fechas';
 import { normalizarCodigo } from '@/lib/pareja/codigo';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
@@ -22,13 +23,35 @@ const ERRORES_UNIRSE: Record<string, string> = {
 
 /** Crea el espacio (create_couple). Un doble toque provoca 23505: se trata como éxito. */
 export async function crearEspacio(): Promise<Resultado> {
-  const { error } = await supabase.rpc('create_couple');
+  const { data, error } = await supabase.rpc('create_couple');
+  if (!error && typeof data === 'string') guardarZonaDelMovil(data);
   if (!error || esUnica(error) || (error as { code?: string }).code === 'TW002') return { ok: true };
   registrarError('crearEspacio', error);
   return {
     ok: false,
     mensaje: esErrorDeRed(error) ? SIN_CONEXION : 'No se ha podido crear vuestro espacio. Inténtalo de nuevo.',
   };
+}
+
+/**
+ * La zona horaria del espacio (para «hoy», cobros y aportaciones) es la del móvil de quien lo crea
+ * (docs/plan-ajustes.md, decisión 5). Sin bloquear: si falla o la zona no vale, se queda Europe/Madrid.
+ */
+function guardarZonaDelMovil(coupleId: string) {
+  let zona: string | undefined;
+  try {
+    zona = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    zona = undefined;
+  }
+  if (!zona || zona === 'Europe/Madrid') return;
+  supabase
+    .from('couples')
+    .update({ time_zone: zona })
+    .eq('id', coupleId)
+    .then(({ error }) => {
+      if (error) registrarError('crearEspacio.zona', error);
+    });
 }
 
 /**
@@ -112,6 +135,8 @@ export async function guardarPerfil(datos: {
   color: ColorPersona;
   foto?: FotoElegida | null;
   avatarAnterior?: string | null;
+  /** Ajustes → Editar perfil: quitar la foto actual (sin subir otra). */
+  quitarFoto?: boolean;
 }): Promise<Resultado> {
   let ruta: string | null | undefined;
   if (datos.foto) {
@@ -129,8 +154,9 @@ export async function guardarPerfil(datos: {
     }
   }
 
-  const cambios: { display_name: string; avatar_path?: string } = { display_name: datos.nombre.trim() };
+  const cambios: { display_name: string; avatar_path?: string | null } = { display_name: datos.nombre.trim() };
   if (ruta) cambios.avatar_path = ruta;
+  else if (datos.quitarFoto) cambios.avatar_path = null;
   const perfil = await supabase.from('profiles').update(cambios).eq('id', datos.userId);
   if (perfil.error) {
     registrarError('guardarPerfil.perfil', perfil.error);
@@ -146,7 +172,7 @@ export async function guardarPerfil(datos: {
     return { ok: false, mensaje: esErrorDeRed(miembro.error) ? SIN_CONEXION : 'No se ha podido guardar. Inténtalo de nuevo.' };
   }
 
-  if (ruta && datos.avatarAnterior) {
+  if ((ruta || datos.quitarFoto) && datos.avatarAnterior) {
     // Sin bloquear: si falla, solo queda un archivo huérfano en la carpeta propia.
     supabase.storage.from('avatars').remove([datos.avatarAnterior]).then(({ error }) => {
       if (error) registrarError('guardarPerfil.borrarAnterior', error);
@@ -169,11 +195,6 @@ export type AjustesDinero = {
   pctProporcionalM1: number;
 };
 
-const hoyLocal = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
 /**
  * Guarda los ajustes de dinero. La RLS solo deja editarlos mientras la otra persona no se ha unido: si ya
  * se unió, el update no toca ninguna fila y se devuelve `codigo: 'pareja_unida'` (la pantalla refresca la fase).
@@ -187,7 +208,8 @@ export async function guardarDinero(coupleId: string, a: AjustesDinero): Promise
       pot_funding: mensual ? 'monthly' : 'manual',
       pot_monthly_cents: mensual ? a.aportacionCents : null,
       pot_day: mensual ? a.diaAportacion : null,
-      pot_started_on: mensual ? hoyLocal() : null,
+      // «Hoy» en la zona de la pareja (M3); el servidor lo sube a hoy si llega antes (I4).
+      pot_started_on: mensual ? hoyISO() : null,
       pot_pct_m1: a.bote ? a.pctBoteM1 : 50,
       default_split: a.reparto,
       proportional_pct_m1: a.pctProporcionalM1,

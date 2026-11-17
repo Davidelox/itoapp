@@ -11,7 +11,7 @@ import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboa
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { formatearImporte, leerEuros } from '@/lib/dinero/importe';
-import { aportacionRetrasada, efectoEnBote, limitesMes, moverMes, nombreMovimiento, proximaAportacion, repartoAportacion, resumenMes } from '@/lib/gastos/bote';
+import { aportacionRetrasada, boteConPendiente, efectoEnBote, limitesMes, moverMes, nombreMovimiento, proximaAportacion, repartoAportacion, resumenMes } from '@/lib/gastos/bote';
 import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { ErrorGasto, aportar, reembolsar } from '@/lib/gastos/consultas';
 import { MESES, deISO, fechaCorta, hoyISO } from '@/lib/gastos/fechas';
@@ -59,7 +59,9 @@ export default function Bote() {
   }
   const a = ajustes.data;
   const s = saldo.data;
-  if (!a?.activo || !s) {
+  // Desactivado con saldo o deudas (revisión M6): se sigue viendo para poder reembolsar, sin aportar.
+  const desactivado = !!a && !a.activo;
+  if (!a || !s || (desactivado && !boteConPendiente(s))) {
     return (
       <View style={styles.raiz}>
         {cabecera}
@@ -98,7 +100,11 @@ export default function Bote() {
             <Text style={styles.aviso}>El bote está en negativo: ha pagado más de lo que tenía. Aportad para cuadrarlo.</Text>
           ) : null}
           <Text style={styles.sub}>
-            {retrasada
+            {desactivado
+              ? s.pot_balance_cents < 0
+                ? 'El bote está desactivado. Aportad lo que falta y reembolsad lo que debe; podéis volver a activarlo en Ajustes.'
+                : 'El bote está desactivado. Reembolsad lo que debe; el saldo se queda en el bote por si lo volvéis a activar.'
+              : retrasada
               ? `La aportación del ${fechaCorta(retrasada).toLowerCase()} aún no se ha generado.`
               : proxima && a.aportacionCents
                 ? `Próxima aportación: ${fechaCorta(proxima).toLowerCase()} · ${formatearImporte(a.aportacionCents)}`
@@ -106,7 +112,7 @@ export default function Bote() {
           </Text>
         </View>
 
-        {a.mensual && reparto ? (
+        {!desactivado && a.mensual && reparto ? (
           <View style={styles.tarjeta}>
             <Text style={styles.cajaTitulo}>Aportación automática</Text>
             <Text style={styles.sub}>
@@ -124,7 +130,10 @@ export default function Bote() {
           </View>
         ) : null}
 
-        <BotonPrincipal etiqueta="Aportar ahora" onPress={() => setHoja({ tipo: 'aportar' })} />
+        {/* Desactivado: solo se aporta si está en negativo (si no, no habría forma de cuadrarlo, M6). */}
+        {!desactivado || s.pot_balance_cents < 0 ? (
+          <BotonPrincipal etiqueta="Aportar ahora" onPress={() => setHoja({ tipo: 'aportar' })} />
+        ) : null}
 
         {hecho ? (
           <View style={styles.hecho} accessibilityLiveRegion="polite">

@@ -80,9 +80,23 @@ export async function pedirRecuperacion(email: string): Promise<Resultado> {
   return error ? fallo('pedirRecuperacion', error) : { ok: true };
 }
 
-export async function cambiarContrasena(password: string): Promise<Resultado> {
-  const { error } = await supabase.auth.updateUser({ password });
+/**
+ * Cambia la contraseña de la sesión actual. Con «Secure password change» activado en Supabase, si la sesión
+ * tiene más de 24 h el servidor pide un código (`codigo: 'reautenticar'`): se pide con `pedirCodigoReautenticacion`
+ * y se vuelve a llamar con él (`nonce`).
+ */
+export async function cambiarContrasena(password: string, nonce?: string): Promise<Resultado> {
+  const { error } = await supabase.auth.updateUser(nonce ? { password, nonce } : { password });
+  if (error?.code === 'reauthentication_needed') {
+    return { ok: false, mensaje: 'Por seguridad, te enviamos un código a tu email.', codigo: 'reautenticar' };
+  }
   return error ? fallo('cambiarContrasena', error) : { ok: true };
+}
+
+/** Envía el código para confirmar un cambio de contraseña (plantilla «Reauthentication» de Supabase). */
+export async function pedirCodigoReautenticacion(): Promise<Resultado> {
+  const { error } = await supabase.auth.reauthenticate();
+  return error ? fallo('pedirCodigoReautenticacion', error) : { ok: true };
 }
 
 /** Cierra solo la sesión de este dispositivo. */

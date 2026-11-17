@@ -10,13 +10,18 @@ import type { Party, RepartoPorDefecto, SplitMode } from '@/lib/gastos/reparto';
 import type { AjustesBote, Movimiento } from '@/lib/gastos/bote';
 import type { MetodoPago, Pago } from '@/lib/gastos/saldar';
 import { formatearImporte } from '@/lib/dinero/importe';
+import type { FilaAjustes } from '@/lib/ajustes/ajustes';
+import { leerPropuesta, type Propuesta } from '@/lib/ajustes/consultas';
+import { ErrorGasto } from '@/lib/gastos/error';
+import { leerCobro } from '@/lib/gastos/consultasRecurrentes';
+import type { Cobro, Recurrente } from '@/lib/gastos/recurrentes';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 
 export { soloCambios };
 
 export const COLUMNAS =
-  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, version, created_at, liquidacion:settlements(id, status, method, created_at)';
+  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, version, created_at, liquidacion:settlements(id, status, method, created_at)';
 
 export type Gasto = {
   id: string;
@@ -33,6 +38,8 @@ export type Gasto = {
   share_pot_cents: number;
   visible_to_partner: boolean;
   settlement_id: string | null;
+  /** Cobro de un pago recurrente del que viene (fase 4), si lo hay. */
+  recurring_occurrence_id: string | null;
   version: number;
   created_at: string;
   /** Pago que lo cubre (si lo hay). */
@@ -58,6 +65,8 @@ export type AjustesGastos = {
   pctProporcionalM1: number;
   /** Valor inicial de «Visible para tu pareja» en lo tuyo (couple_members.share_personal_expenses). */
   compartirPersonales: boolean;
+  /** Lo mismo para los pagos recurrentes personales (fase 4). */
+  compartirRecurrentes: boolean;
 };
 
 export type Filtros = { categoria: Categoria | null; texto: string };
@@ -93,7 +102,7 @@ export async function leerSaldo(): Promise<Saldo | null> {
 export async function leerAjustes(userId: string): Promise<AjustesGastos | null> {
   const [s, m] = await Promise.all([
     supabase.from('couple_settings').select('default_split, pot_enabled, pot_categories, proportional_pct_m1').maybeSingle(),
-    supabase.from('couple_members').select('share_personal_expenses').eq('user_id', userId).is('left_at', null).maybeSingle(),
+    supabase.from('couple_members').select('share_personal_expenses, share_personal_recurring').eq('user_id', userId).is('left_at', null).maybeSingle(),
   ]);
   if (s.error) fallo('gastos.ajustes', s.error);
   if (!s.data) return null;
@@ -103,6 +112,7 @@ export async function leerAjustes(userId: string): Promise<AjustesGastos | null>
     categoriasBote: (s.data.pot_categories ?? []) as Categoria[],
     pctProporcionalM1: s.data.proportional_pct_m1,
     compartirPersonales: m.data?.share_personal_expenses ?? false,
+    compartirRecurrentes: m.data?.share_personal_recurring ?? false,
   };
 }
 
@@ -181,16 +191,14 @@ export type DatosGasto = {
   split_mode: SplitMode;
   split_pct_m1: number | null;
   visible_to_partner: boolean;
+  /** Solo al poner el importe de un cobro variable: enlaza el gasto con su cobro. */
+  recurring_occurrence_id?: string;
 };
 
-export class ErrorGasto extends Error {
-  constructor(
-    mensaje: string,
-    readonly codigo?: string,
-  ) {
-    super(mensaje);
-  }
-}
+export { ErrorGasto };
+
+/** Lo que se puede pedir borrar desde Gastos. */
+export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment';
 
 const MENSAJES: Record<string, string> = {
   TW020: 'Algo ha cambiado mientras tanto (un gasto se ha editado, saldado o pedido borrar). Revisa la lista.',
@@ -201,6 +209,8 @@ const MENSAJES: Record<string, string> = {
   TW063: 'Esta solicitud la tiene que aprobar tu pareja.',
   TW070: 'El bote ya no debe tanto (puede que alguien lo haya reembolsado). Revisa el importe.',
   TW071: 'Ya se había guardado otro movimiento. Revisa los movimientos del bote.',
+  TW080: 'Solo se puede saltar un cobro o deshacer el salto.',
+  TW081: 'Este cobro ya está apuntado: borra su gasto para cambiarlo.',
   TW010: 'Este gasto ya está saldado: el importe y el reparto no se pueden cambiar.',
   TW011: 'Un gasto privado tiene que ser solo tuyo y pagado por ti.',
   TW012: 'El bote común ya no está activado. Elige quién pagó.',
@@ -335,7 +345,7 @@ const COLUMNAS_SOLICITUD = 'id, target_id, requested_by, created_at, expires_at'
 /** Solicitud de borrado pendiente y vigente de un gasto, si la hay. */
 export async function leerSolicitudBorrado(
   gastoId: string,
-  tipo: 'expense' | 'pot_movement' = 'expense',
+  tipo: TipoBorrable = 'expense',
 ): Promise<SolicitudBorrado | null> {
   const { data, error } = await supabase
     .from('deletion_requests')
@@ -353,7 +363,7 @@ export async function leerSolicitudBorrado(
 export async function pedirBorrar(
   id: string,
   gastoId: string,
-  tipo: 'expense' | 'pot_movement' = 'expense',
+  tipo: TipoBorrable = 'expense',
 ): Promise<{ borrado: boolean }> {
   const { data, error } = await supabase.rpc('request_deletion', { p_id: id, p_type: tipo, p_target_id: gastoId });
   if (error) throw traducir('gastos.pedirBorrar', error);
@@ -376,6 +386,8 @@ export async function retirarBorrado(id: string): Promise<void> {
 
 export type Pendiente =
   | { tipo: 'pago'; id: string; pago: Pago }
+  | { tipo: 'propuesta'; id: string; propuesta: Propuesta; actual: FilaAjustes }
+  | { tipo: 'cobro'; id: string; cobro: Cobro; recurrente: Recurrente }
   | {
       tipo: 'borrado';
       id: string;
@@ -391,7 +403,7 @@ export async function leerPendientes(): Promise<Pendiente[]> {
   const { data, error } = await supabase
     .from('pending_actions')
     .select('kind, item_id, since, title')
-    .in('kind', ['confirm_settlement', 'approve_deletion'])
+    .in('kind', ['confirm_settlement', 'approve_deletion', 'settings_proposal', 'variable_amount'])
     .order('since', { ascending: false });
   if (error) fallo('gastos.pendientes', error);
   const filas = (data ?? []) as { kind: string; item_id: string; title: string | null }[];
@@ -421,7 +433,13 @@ export async function leerPendientes(): Promise<Pendiente[]> {
 
   const lista: Pendiente[] = [];
   for (const f of filas) {
-    if (f.kind === 'confirm_settlement') {
+    if (f.kind === 'settings_proposal') {
+      const p = await leerPropuesta(f.item_id);
+      if (p) lista.push({ tipo: 'propuesta', id: f.item_id, ...p });
+    } else if (f.kind === 'variable_amount') {
+      const c = await leerCobro(f.item_id);
+      if (c) lista.push({ tipo: 'cobro', id: f.item_id, ...c });
+    } else if (f.kind === 'confirm_settlement') {
       const pago = pagosPorId.get(f.item_id);
       if (pago) lista.push({ tipo: 'pago', id: f.item_id, pago });
     } else {

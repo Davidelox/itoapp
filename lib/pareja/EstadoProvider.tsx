@@ -14,6 +14,7 @@ import type { Href } from 'expo-router';
 
 import { useFlujoCuenta } from '@/lib/auth/FlujoCuenta';
 import { claveFase, useSesion } from '@/lib/auth/SesionProvider';
+import { fijarZonaHoraria } from '@/lib/gastos/fechas';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 import type { ColorPersona } from '@/constants/theme';
@@ -111,11 +112,15 @@ type FilaAjustes = {
 };
 
 async function leerDatos(userId: string): Promise<Datos | null> {
-  const [m, p, s] = await Promise.all([
+  const [m, p, s, c] = await Promise.all([
     supabase.from('couple_members').select('couple_id, user_id, slot, color, left_at'),
     supabase.from('profiles').select('id, display_name, avatar_path'),
     supabase.from('couple_settings').select('default_split, pot_enabled, pot_funding, pot_monthly_cents, version'),
+    supabase.from('couples').select('time_zone'),
   ]);
+  // «Hoy» en la zona de la pareja, la misma que usa el job del servidor (revisión M3).
+  const zona = !c.error && c.data && c.data[0] ? (c.data[0] as { time_zone: string }).time_zone : null;
+  fijarZonaHoraria(zona);
   if (m.error || p.error) {
     registrarError('estado.leer', m.error ?? p.error);
     return null;

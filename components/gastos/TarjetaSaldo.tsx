@@ -80,8 +80,10 @@ export function TarjetaSaldo({ saldo, pareja, onSaldar }: { saldo: Saldo | null;
 export function TarjetaBote({ saldo, onAbrir }: { saldo: Saldo; onAbrir: () => void }) {
   const ajustes = useAjustesBote();
   const proxima = ajustes.data ? proximaAportacion(ajustes.data) : null;
-  const linea =
-    saldo.pot_owes_me_cents > 0
+  const desactivado = !saldo.pot_enabled;
+  const linea = desactivado
+    ? 'Desactivado · queda por cuadrar'
+    : saldo.pot_owes_me_cents > 0
       ? `El bote te debe ${formatearImporte(saldo.pot_owes_me_cents)}`
       : proxima && ajustes.data?.aportacionCents
         ? `Próxima aportación: ${fechaCorta(proxima).toLowerCase()} · ${formatearImporte(ajustes.data.aportacionCents)}`
@@ -94,7 +96,7 @@ export function TarjetaBote({ saldo, onAbrir }: { saldo: Saldo; onAbrir: () => v
         {linea ? <Text style={styles.boteLinea}>{linea}</Text> : null}
       </Pressable>
       <Pressable accessibilityRole="button" onPress={onAbrir} style={({ pressed }) => [styles.aportar, pressed && { backgroundColor: colors.segmented }]}>
-        <Text style={styles.aportarTexto}>Aportar</Text>
+        <Text style={styles.aportarTexto}>{desactivado ? 'Ver' : 'Aportar'}</Text>
       </Pressable>
     </View>
   );

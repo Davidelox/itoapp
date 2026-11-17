@@ -8,7 +8,7 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
-import { ErrorGasto, type Gasto, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
+import { ErrorGasto, type TipoBorrable, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useSolicitudBorrado } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
@@ -17,10 +17,20 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
  * Borrar un gasto (docs/plan-gastos-fase2.md §5). Lo privado (o sin pareja) se borra al momento; lo compartido
  * necesita que la otra persona lo apruebe. Mientras tanto sigue contando en el saldo (decisión 1 de David).
  */
-export function BorrarGasto({ gasto, pareja }: { gasto: Gasto; pareja: Pareja }) {
+export function BorrarGasto({
+  gasto,
+  pareja,
+  tipo = 'expense',
+}: {
+  /** Un gasto, o un pago recurrente (fase 4) con `tipo: 'recurring_payment'`. */
+  gasto: { id: string; visible_to_partner: boolean; liquidacion?: unknown };
+  pareja: Pareja;
+  tipo?: TipoBorrable;
+}) {
   const router = useRouter();
   const invalidar = useInvalidarGastos();
-  const solicitud = useSolicitudBorrado(gasto.id);
+  const solicitud = useSolicitudBorrado(gasto.id, tipo);
+  const cosa = tipo === 'recurring_payment' ? 'pago' : 'gasto';
   const p = personas(pareja);
   const [confirmando, setConfirmando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -70,7 +80,11 @@ export function BorrarGasto({ gasto, pareja }: { gasto: Gasto; pareja: Pareja })
           <Text style={styles.bandaTitulo}>
             Pendiente de borrar · esperando a <Text style={{ color: p.tintaPareja }}>{p.nombrePareja}</Text>
           </Text>
-          <Text style={styles.bandaAyuda}>Sigue en vuestro saldo hasta que {p.nombrePareja} lo apruebe. No se puede saldar mientras tanto.</Text>
+          <Text style={styles.bandaAyuda}>
+            {tipo === 'recurring_payment'
+              ? `Se sigue apuntando hasta que ${p.nombrePareja} lo apruebe.`
+              : `Sigue en vuestro saldo hasta que ${p.nombrePareja} lo apruebe. No se puede saldar mientras tanto.`}
+          </Text>
           <MensajeError texto={error} />
         </View>
         <Pressable accessibilityRole="button" disabled={ocupado} onPress={() => accion(() => retirarBorrado(s.id))} style={styles.bandaBoton}>
@@ -83,9 +97,9 @@ export function BorrarGasto({ gasto, pareja }: { gasto: Gasto; pareja: Pareja })
     return (
       <View style={styles.caja}>
         <Text style={styles.cajaTitulo}>
-          <Text style={{ color: p.tintaPareja }}>{p.nombrePareja}</Text> quiere borrar este gasto
+          <Text style={{ color: p.tintaPareja }}>{p.nombrePareja}</Text> quiere borrar este {cosa}
         </Text>
-        <Text style={styles.bandaAyuda}>Si no respondes en 7 días, el gasto se queda.</Text>
+        <Text style={styles.bandaAyuda}>Si no respondes en 7 días, el {cosa} se queda.</Text>
         <MensajeError texto={error} />
         <BotonPrincipal etiqueta="Aprobar" cargando={ocupado} onPress={() => accion(async () => {
           await responderBorrado(s.id, true);
@@ -101,17 +115,18 @@ export function BorrarGasto({ gasto, pareja }: { gasto: Gasto; pareja: Pareja })
 
   return (
     <View style={styles.pie}>
-      <EnlaceTexto etiqueta={alMomento ? 'Borrar gasto' : 'Pedir borrar este gasto'} onPress={abrirConfirmacion} />
+      <EnlaceTexto etiqueta={alMomento ? `Borrar ${cosa}` : `Pedir borrar este ${cosa}`} onPress={abrirConfirmacion} />
       {!alMomento ? <Text style={styles.nota}>{p.nombrePareja} tendrá que aprobarlo</Text> : null}
       {/* Mockup DetalleGasto: la confirmación es una hoja inferior. */}
       <Hoja
         visible={confirmando}
-        titulo={alMomento ? '¿Borrar este gasto?' : '¿Pedir borrar este gasto?'}
+        titulo={alMomento ? `¿Borrar este ${cosa}?` : `¿Pedir borrar este ${cosa}?`}
         onCerrar={() => setConfirmando(false)}
         bloqueada={ocupado}
       >
         <Text style={styles.cajaTexto}>
-          {alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el gasto se queda.`}
+          {alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el ${cosa} se queda.`}
+          {tipo === 'recurring_payment' ? ' Los gastos que ya se apuntaron se quedan.' : ''}
         </Text>
         <MensajeError texto={error} />
         <View style={styles.dosBotones}>
@@ -122,7 +137,7 @@ export function BorrarGasto({ gasto, pareja }: { gasto: Gasto; pareja: Pareja })
             <BotonPrincipal
               etiqueta={alMomento ? 'Borrar' : 'Enviar solicitud'}
               cargando={ocupado}
-              onPress={() => accion(async () => (await pedirBorrar(idSolicitud, gasto.id)).borrado)}
+              onPress={() => accion(async () => (await pedirBorrar(idSolicitud, gasto.id, tipo)).borrado)}
             />
           </View>
         </View>

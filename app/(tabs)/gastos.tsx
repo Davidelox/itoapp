@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { HojaSaldar } from '@/components/gastos/HojaSaldar';
 import { TarjetaBote, TarjetaSaldo } from '@/components/gastos/TarjetaSaldo';
+import { TarjetaRecurrentes } from '@/components/gastos/TarjetaRecurrentes';
+import { boteConPendiente } from '@/lib/gastos/bote';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { colors, fonts, radius, spacing } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
@@ -111,7 +113,8 @@ export default function Gastos() {
               </View>
             ) : null}
             <TarjetaSaldo saldo={saldo.data ?? null} pareja={pareja} onSaldar={() => setSaldando(true)} />
-            {saldo.data?.pot_enabled ? <TarjetaBote saldo={saldo.data} onAbrir={() => router.push('/gastos/bote')} /> : null}
+            {saldo.data && (saldo.data.pot_enabled || boteConPendiente(saldo.data)) ? <TarjetaBote saldo={saldo.data} onAbrir={() => router.push('/gastos/bote')} /> : null}
+            <TarjetaRecurrentes onAbrir={() => router.push('/gastos/recurrentes')} />
 
             {gastos.length === 0 && !soloSinSaldar ? (
               <View style={styles.vacio}>

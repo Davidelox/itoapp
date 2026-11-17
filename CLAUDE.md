@@ -22,7 +22,8 @@ Repos sincronizados: **ito** (GitHub: `Davidelox/itoapp`), **god-breaker** (God 
 ## Orquestación (subagentes)
 
 La sesión principal es **orquestadora**: clasifica cada petición, la pasa al subagente que toca (`.claude/agents/`),
-y resume el resultado al usuario. No programa ni investiga a fondo ella misma.
+y resume el resultado al usuario. No programa ni investiga a fondo ella misma. La orquestadora corre con **Sonnet**
+(si una sesión arranca con otro modelo, cambiarlo a Sonnet o avisar a David).
 
 | Petición | Subagente | Modelo |
 |---|---|---|
@@ -43,11 +44,8 @@ y resume el resultado al usuario. No programa ni investiga a fondo ella misma.
 ## Estado actual
 _Actualizado: 2026-11-17 (Mac)_
 
-- **Hecho**: onboarding completo (paso «Dinero» con bote/reparto; «Salir/Eliminar el espacio» en Inicio para retestear),
-  emails con logo (`supabase/plantillas-email/`), y **Gastos fases 1–3**: alta/edición/historial/totales, saldar y pedir borrar
-  con tarjetas en Inicio, bote común (aportar, «Los dos», reembolsar, movimientos del mes). Cada fase revisada por el arquitecto.
-- **Docs**: `docs/plan-gastos.md`, `plan-gastos-fase2.md`, `plan-gastos-fase3.md` (§8: notas I4/M3/M6/M8 para Ajustes).
-- **Migraciones**: se aplican a mano en el SQL Editor. Confirmar que `20261117010000_saldar_seguro.sql` está aplicada.
-- **Pendiente**: fase 4 (pagos recurrentes) y pantalla de Ajustes (propuestas de cambio, incluir notas de §8 fase 3).
-- **Decisiones**: operaciones rápidas (aportar, saldar, confirmar, borrar) en hoja inferior (`components/gastos/Hoja.tsx`), no en
-  página nueva. `.env` nunca a git; `service_role` solo en servidor. Vista previa de desarrollo con `EXPO_PUBLIC_VISTA_PREVIA` en `.env.local`.
+- **Hecho**: onboarding completo (incluye paso «Dinero»), emails con logo, **Gastos fases 1–4** (gastos, saldar y pedir borrar, bote común, **pagos recurrentes** con cobros variables y pausa) y **Ajustes** (perfil, pareja, dinero por propuesta que acepta la otra persona, privacidad, cambiar contraseña, salir del espacio, borrar cuenta, cerrar sesión). Cada fase revisada por el arquitecto.
+- **Docs**: `docs/plan-gastos*.md` (fases 1–4), `docs/plan-ajustes.md`, `docs/plan-onboarding.md`, `docs/revision-diseno.md`.
+- **Supabase**: las migraciones y la Edge Function `borrar-cuenta` se aplican a mano. Confirmar que `20261117010000_saldar_seguro.sql` está aplicada. Plantilla de email «Reauthentication» con el logo (en `supabase/plantillas-email/`).
+- **Pendiente**: pestañas Calendario, Mapa y Planificador; avisos push (los avisos de los recurrentes y de Ajustes ya se guardan pero no se envían); «Borrar mi cuenta» sin espacio (Apple lo exige antes de publicar); probar la zona horaria de la pareja en un móvil real; filtrar en `pending_actions` los cobros variables de recurrentes en pausa.
+- **Decisiones**: operaciones rápidas (aportar, saldar, confirmar, borrar, pausar, poner importe) en hoja inferior, no en página nueva. Un recurrente proporcional conserva el % del día en que se creó. Personal = lo paga y es solo de una persona; el resto es compartido. «Proporcional» se oculta si es 50/50 (idéntico a «A medias»). Como mucho un cobro por periodo en los recurrentes. `.env` nunca a git; `service_role` solo en servidor. Orquestación con subagentes (ver sección «Orquestación»), la sesión principal con Sonnet.

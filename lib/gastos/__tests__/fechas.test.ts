@@ -1,4 +1,4 @@
-import { aISO, ayerISO, deISO, fechaCorta, fechaLarga, nombreMes } from '@/lib/gastos/fechas';
+import { aISO, ayerISO, deISO, fechaCorta, fechaLarga, fijarZonaHoraria, hoyISO, nombreMes } from '@/lib/gastos/fechas';
 import { formatearEuros, formatearImporte, leerEuros } from '@/lib/dinero/importe';
 
 const ahora = new Date(2026, 10, 17, 10, 0); // martes 17 nov 2026
@@ -36,5 +36,20 @@ describe('importes', () => {
   it('formatear', () => {
     expect(formatearEuros(3100)).toBe('31 €'.replace(' ', ' '));
     expect(formatearEuros(12345)).toBe('123,45 €');
+  });
+});
+
+describe('zona horaria de la pareja (M3)', () => {
+  afterEach(() => fijarZonaHoraria(null));
+  it('«hoy» es el día en la zona de la pareja, no la del móvil', () => {
+    const instante = new Date(Date.UTC(2026, 10, 17, 23, 30)); // 00:30 del 18 en Madrid; 18:30 del 17 en Nueva York
+    fijarZonaHoraria('Europe/Madrid');
+    expect(hoyISO(instante)).toBe('2026-11-18');
+    fijarZonaHoraria('America/New_York');
+    expect(hoyISO(instante)).toBe('2026-11-17');
+  });
+  it('zona no válida: la del dispositivo', () => {
+    fijarZonaHoraria('No/Existe');
+    expect(hoyISO(ahora)).toBe(aISO(ahora));
   });
 });

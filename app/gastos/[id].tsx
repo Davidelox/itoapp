@@ -13,7 +13,7 @@ import { aISO, fechaLarga } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { COMO_METODO } from '@/lib/gastos/saldar';
 import { etiquetaReparto, fraseResultado, partesDeYo, pctDeYo } from '@/lib/gastos/reparto';
-import { useGasto } from '@/lib/gastos/useGastos';
+import { useGasto, useOrigenRecurrente } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Detalle de un gasto (mockup DetalleGasto). Las partes son las que guardó el servidor, nunca recalculadas. */
@@ -165,9 +165,30 @@ export default function DetalleGasto() {
           </Pressable>
         ) : null}
 
+        <OrigenRecurrente cobroId={gasto.recurring_occurrence_id} />
+
         <BorrarGasto gasto={gasto} pareja={pareja} />
       </ScrollView>
     </View>
+  );
+}
+
+/** «De un pago recurrente: Netflix», que abre el recurrente (fase 4). */
+function OrigenRecurrente({ cobroId }: { cobroId: string | null }) {
+  const router = useRouter();
+  const origen = useOrigenRecurrente(cobroId);
+  if (!cobroId || !origen.data) return null;
+  const r = origen.data;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/gastos/recurrente/[id]', params: { id: r.id } })}
+      style={styles.saldado}
+    >
+      <Ionicons name="repeat-outline" size={20} color={colors.icon} />
+      <Text style={styles.saldadoTexto}>De un pago recurrente: {r.name}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+    </Pressable>
   );
 }
 

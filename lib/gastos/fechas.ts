@@ -19,11 +19,46 @@ export function deISO(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-export const hoyISO = (ahora = new Date()) => aISO(ahora);
+/**
+ * Zona horaria de la pareja (`couples.time_zone`). La fija EstadoProvider al cargar la pareja: así «hoy»
+ * es el mismo día que usa el job del servidor para aportaciones y cobros (revisión M3), aunque el móvil
+ * esté en otra zona. Sin zona (o si el motor no la soporta), se usa la del dispositivo.
+ */
+let zonaPareja: string | null = null;
+// Crear un Intl.DateTimeFormat es caro en Hermes y hoyISO se llama por cada fila de las listas: uno por zona.
+let formato: { zona: string; f: Intl.DateTimeFormat } | null = null;
+export function fijarZonaHoraria(zona: string | null) {
+  zonaPareja = zona;
+}
+
+/** `YYYY-MM-DD` de un instante en la zona de la pareja. */
+export function fechaEnZona(instante: Date): string {
+  if (zonaPareja) {
+    try {
+      if (!formato || formato.zona !== zonaPareja) {
+        formato = {
+          zona: zonaPareja,
+          f: new Intl.DateTimeFormat('en-US', { timeZone: zonaPareja, year: 'numeric', month: '2-digit', day: '2-digit' }),
+        };
+      }
+      const partes = formato.f.formatToParts(instante);
+      const v = (t: string) => partes.find((x) => x.type === t)?.value;
+      const y = v('year');
+      const m = v('month');
+      const d = v('day');
+      if (y && m && d) return `${y}-${m}-${d}`;
+    } catch {
+      // Zona no soportada: la del dispositivo.
+    }
+  }
+  return aISO(instante);
+}
+
+export const hoyISO = (ahora = new Date()) => fechaEnZona(ahora);
 
 export function ayerISO(ahora = new Date()) {
-  const d = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1);
-  return aISO(d);
+  const hoy = deISO(hoyISO(ahora));
+  return aISO(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1));
 }
 
 /** «Hoy», «Ayer» o «Sáb 7 nov» (con el año si no es el actual). */

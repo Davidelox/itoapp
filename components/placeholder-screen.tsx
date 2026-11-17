@@ -4,11 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fonts, fontSizes, spacing } from '@/constants/theme';
 
-export function PlaceholderScreen({ title, children }: { title: string; children?: ReactNode }) {
+export function PlaceholderScreen({ title, accion, children }: { title: string; accion?: ReactNode; children?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.xl }]}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{title}</Text>
+        {accion}
+      </View>
       <Text style={styles.soon}>Próximamente</Text>
       {children}
     </View>
@@ -17,6 +20,7 @@ export function PlaceholderScreen({ title, children }: { title: string; children
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   title: { fontFamily: fonts.title, fontSize: fontSizes.title, color: colors.text },
   soon: {
     fontFamily: fonts.body,

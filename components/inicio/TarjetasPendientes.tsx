@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -5,6 +6,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
+import { textosCambios } from '@/lib/ajustes/ajustes';
+import { responderPropuesta } from '@/lib/ajustes/consultas';
+import { HojaImporte } from '@/components/gastos/HojaImporte';
+import { saltarCobro } from '@/lib/gastos/consultasRecurrentes';
+import { importeRecurrente } from '@/lib/gastos/recurrentes';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, type Pendiente, responderBorrado, responderPago } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
@@ -16,7 +22,7 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 const PAUSA_RESULTADO_MS = 1800;
 
-/** Sección «Pendiente» de Inicio (mockup Main): pagos por confirmar y borrados por aprobar. */
+/** Sección «Pendiente» de Inicio (mockup Main): pagos por confirmar, borrados por aprobar y cambios de ajustes. */
 export function TarjetasPendientes() {
   const { pareja } = useEstado();
   const pendientes = usePendientes();
@@ -75,6 +81,7 @@ function Tarjeta({
   const p = personas(pareja);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [poniendoImporte, setPoniendoImporte] = useState(false);
 
   const responder = async (f: () => Promise<void>, texto: string) => {
     setOcupado(true);
@@ -85,7 +92,7 @@ function Tarjeta({
       invalidar();
     } catch (e) {
       setError(e instanceof ErrorGasto ? e.message : 'No se ha podido completar. Inténtalo de nuevo.');
-      if (e instanceof ErrorGasto && (e.codigo === 'TW021' || e.codigo === 'TW062')) invalidar();
+      if (e instanceof ErrorGasto && ['TW021', 'TW062', 'TW030', 'TW032', 'TW081'].includes(e.codigo ?? '')) invalidar();
     } finally {
       setOcupado(false);
     }
@@ -93,6 +100,7 @@ function Tarjeta({
 
   let texto: React.ReactNode;
   let ayuda: string | null = null;
+  let lineas: string[] = [];
   let si: { etiqueta: string; accion: () => void };
   let no: { etiqueta: string; accion: () => void };
   let abrir: () => void;
@@ -112,6 +120,30 @@ function Tarjeta({
       accion: () => responder(() => responderPago(pendiente.id, false), `Avisaremos a ${p.nombrePareja}`),
     };
     abrir = () => router.push({ pathname: '/gastos/pago/[id]', params: { id: pendiente.id } });
+  } else if (pendiente.tipo === 'cobro') {
+    const r = pendiente.recurrente;
+    texto = (
+      <>
+        Ha llegado <Text style={styles.importe}>{r.name}</Text> ({importeRecurrente(r)}). Pon el importe de la factura.
+      </>
+    );
+    si = { etiqueta: 'Poner importe', accion: () => setPoniendoImporte(true) };
+    no = { etiqueta: 'Este mes no', accion: () => responder(() => saltarCobro(pendiente.id, true), 'Saltado este mes') };
+    abrir = () => router.push({ pathname: '/gastos/recurrente/[id]', params: { id: r.id } });
+  } else if (pendiente.tipo === 'propuesta') {
+    texto = (
+      <>
+        <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text> propone cambiar vuestros ajustes:
+      </>
+    );
+    lineas = textosCambios(pendiente.actual, pendiente.propuesta.changes, p.yo.slot, p.nombrePareja);
+    if (lineas.length === 0) lineas = ['Nada: ya está así'];
+    si = { etiqueta: 'Aceptar', accion: () => responder(() => responderPropuesta(pendiente.id, true), 'Aceptado') };
+    no = {
+      etiqueta: 'Rechazar',
+      accion: () => responder(() => responderPropuesta(pendiente.id, false), `Se queda como estaba · avisaremos a ${p.nombrePareja}`),
+    };
+    abrir = () => router.push('/ajustes');
   } else {
     const g = pendiente.gasto;
     const mov = pendiente.movimiento;
@@ -143,9 +175,20 @@ function Tarjeta({
   return (
     <View style={styles.tarjeta}>
       <Pressable accessibilityRole="button" onPress={abrir} style={styles.cabecera}>
-        <AvatarPersona nombre={p.nombrePareja} color={p.otra?.color ?? null} avatarPath={p.otra?.avatarPath} tamano={32} />
+        {pendiente.tipo === 'cobro' ? (
+          <View style={styles.icono}>
+            <Ionicons name="repeat-outline" size={18} color={colors.icon} />
+          </View>
+        ) : (
+          <AvatarPersona nombre={p.nombrePareja} color={p.otra?.color ?? null} avatarPath={p.otra?.avatarPath} tamano={32} />
+        )}
         <View style={styles.textos}>
           <Text style={styles.texto}>{texto}</Text>
+          {lineas.map((l) => (
+            <Text key={l} style={styles.linea}>
+              · {l}
+            </Text>
+          ))}
           {ayuda ? <Text style={styles.ayuda}>{ayuda}</Text> : null}
         </View>
       </Pressable>
@@ -174,6 +217,19 @@ function Tarjeta({
         </View>
       )}
       <MensajeError texto={error} />
+      {poniendoImporte && pendiente.tipo === 'cobro' ? (
+        <HojaImporte
+          cobro={pendiente.cobro}
+          recurrente={pendiente.recurrente}
+          pareja={pareja}
+          onCerrar={() => setPoniendoImporte(false)}
+          onHecho={() => {
+            setPoniendoImporte(false);
+            onResuelta(pendiente, 'Apuntado');
+            invalidar();
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -190,10 +246,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cabecera: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  icono: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, gap: 3 },
   texto: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.text },
   nombre: { fontFamily: fonts.bodyBold },
   importe: { fontFamily: fonts.bodyBold },
+  linea: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   botones: { flexDirection: 'row', gap: 8 },
   boton: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },

@@ -26,6 +26,8 @@ import {
   partesDeYo,
   pctDeYo,
   puedeSerPrivado,
+  ocultaProporcional,
+  sinProporcionalOculto,
   valoresPorDefecto,
 } from '@/lib/gastos/reparto';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
@@ -59,7 +61,15 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const editando = !!inicial;
 
   const desdeDatos = inicial ? deDatos(yo, inicial) : null;
-  const porDefecto = valoresPorDefecto(ajustes, inicial?.category ?? null);
+  // Un gasto que ya era proporcional conserva su %, aunque los ajustes hayan cambiado después.
+  const pctProporcionalM1 =
+    inicial?.split_mode === 'proportional' && inicial.split_pct_m1 !== null ? inicial.split_pct_m1 : ajustes.pctProporcionalM1;
+  const sinProporcional = ocultaProporcional(pctProporcionalM1, inicial?.split_mode === 'proportional');
+  const porDefectoDe = (c: Categoria | null) => {
+    const d = valoresPorDefecto(ajustes, c);
+    return { ...d, reparto: sinProporcionalOculto(d.reparto, sinProporcional) };
+  };
+  const porDefecto = porDefectoDe(inicial?.category ?? null);
 
   const [importe, setImporte] = useState(inicial ? importeATexto(inicial.amount_cents) : '');
   const [concepto, setConcepto] = useState(inicial?.concept ?? '');
@@ -81,9 +91,6 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const saldado = !!inicial?.settlement_id;
   const soyQuienLoCreo = !inicial || inicial.created_by === p.yo.userId;
 
-  // Un gasto que ya era proporcional conserva su %, aunque los ajustes hayan cambiado después.
-  const pctProporcionalM1 =
-    inicial?.split_mode === 'proportional' && inicial.split_pct_m1 !== null ? inicial.split_pct_m1 : ajustes.pctProporcionalM1;
   const cents = leerEuros(importe);
   const conceptoLimpio = concepto.trim();
   const datos = aDatos(yo, pagador, reparto, pctYo, pctProporcionalM1);
@@ -103,7 +110,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const elegirCategoria = (c: Categoria) => {
     setCategoria(c);
     if (!repartoTocado) {
-      const d = valoresPorDefecto(ajustes, c);
+      const d = porDefectoDe(c);
       setPagador(d.pagador);
       setReparto(d.reparto);
     }
@@ -120,7 +127,9 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const pctProporcionalYo = pctDeYo(yo, pctProporcionalM1);
   const opcionesReparto: { valor: Reparto; etiqueta: string }[] = [
     { valor: 'medias', etiqueta: 'A medias' },
-    { valor: 'proporcional', etiqueta: `Proporcional ${pctProporcionalYo}/${100 - pctProporcionalYo}` },
+    ...(sinProporcional
+      ? []
+      : [{ valor: 'proporcional' as const, etiqueta: `Proporcional ${pctProporcionalYo}/${100 - pctProporcionalYo}` }]),
     { valor: 'personalizado', etiqueta: 'Personalizado' },
     { valor: 'solo_yo', etiqueta: 'Solo tú' },
     { valor: 'solo_pareja', etiqueta: `Solo ${p.nombrePareja}` },

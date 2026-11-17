@@ -3,9 +3,11 @@ import {
   deDatos,
   efecto,
   fraseResultado,
+  ocultaProporcional,
   partes,
   partesDeYo,
   puedeSerPrivado,
+  sinProporcionalOculto,
   valoresPorDefecto,
 } from '@/lib/gastos/reparto';
 
@@ -139,6 +141,20 @@ describe('valores por defecto según los ajustes', () => {
   });
   it('proporcional', () => {
     expect(valoresPorDefecto({ boteActivo: false, categoriasBote: [], reparto: 'proportional' }, null).reparto).toBe('proporcional');
+  });
+});
+
+describe('chip «Proporcional» redundante con «A medias»', () => {
+  it('se oculta con 50/50, salvo que lo editado ya sea proporcional', () => {
+    expect(ocultaProporcional(50, false)).toBe(true);
+    expect(ocultaProporcional(50, true)).toBe(false);
+    expect(ocultaProporcional(60, false)).toBe(false);
+  });
+  it('con el chip oculto, proporcional pasa a medias y lo demás no cambia', () => {
+    expect(sinProporcionalOculto('proporcional', true)).toBe('medias');
+    expect(sinProporcionalOculto('proporcional', false)).toBe('proporcional');
+    expect(sinProporcionalOculto('bote', true)).toBe('bote');
+    expect(sinProporcionalOculto('personalizado', true)).toBe('personalizado');
   });
 });
 

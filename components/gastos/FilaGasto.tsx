@@ -65,6 +65,12 @@ export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador 
             <Text style={styles.privadoTexto}>Solo lo ves tú</Text>
           </View>
         ) : null}
+        {gasto.recurring_occurrence_id ? (
+          <View style={styles.privado}>
+            <Ionicons name="repeat-outline" size={12} color={colors.textSecondary} />
+            <Text style={styles.privadoTexto}>Recurrente</Text>
+          </View>
+        ) : null}
       </View>
       <Text style={styles.importe}>{formatearImporte(gasto.amount_cents)}</Text>
     </Pressable>

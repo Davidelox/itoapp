@@ -175,6 +175,17 @@ export function valoresPorDefecto(
   }
 }
 
+/**
+ * El chip «Proporcional 50/50» sobra cuando es igual que «A medias»: se oculta si el % es 50,
+ * salvo que lo que se edita ya esté guardado como proporcional (para que quede un chip marcado).
+ */
+export const ocultaProporcional = (pctProporcionalM1: number, guardadoComoProporcional: boolean) =>
+  pctProporcionalM1 === 50 && !guardadoComoProporcional;
+
+/** Con el chip «Proporcional» oculto, el reparto «proporcional» pasa a «a medias». */
+export const sinProporcionalOculto = (reparto: Reparto, oculto: boolean): Reparto =>
+  oculto && reparto === 'proporcional' ? 'medias' : reparto;
+
 /** Solo un gasto pagado por ti y solo tuyo puede ser privado (CHECK de `expenses`). */
 export const puedeSerPrivado = (pagador: Pagador, reparto: Reparto) => pagador === 'yo' && reparto === 'solo_yo';
 

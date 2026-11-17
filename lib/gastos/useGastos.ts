@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import {
   type Filtros,
+  type TipoBorrable,
   leerAbiertos,
   leerAjustesBote,
   leerMesBote,
@@ -20,6 +21,8 @@ import {
   leerTotales,
   leerUltimos,
 } from '@/lib/gastos/consultas';
+import { leerDatosAjustes } from '@/lib/ajustes/consultas';
+import { leerOrigen, leerRecurrente, leerRecurrentes } from '@/lib/gastos/consultasRecurrentes';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
@@ -114,7 +117,7 @@ export function usePendientes() {
   return useQuery({ queryKey: k('pendientes'), queryFn: leerPendientes, enabled: !!pareja });
 }
 
-export function useSolicitudBorrado(gastoId: string | undefined, tipo: 'expense' | 'pot_movement' = 'expense') {
+export function useSolicitudBorrado(gastoId: string | undefined, tipo: TipoBorrable = 'expense') {
   const { pareja } = useEstado();
   const k = useClave();
   return useQuery({
@@ -140,6 +143,32 @@ export function useMovimiento(id: string | undefined) {
   const { pareja } = useEstado();
   const k = useClave();
   return useQuery({ queryKey: k('bote', 'movimiento', id), queryFn: () => leerMovimiento(id as string), enabled: !!pareja && !!id });
+}
+
+/** Pagos recurrentes (fase 4). */
+export function useRecurrentes() {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('recurrentes'), queryFn: leerRecurrentes, enabled: !!pareja });
+}
+
+export function useOrigenRecurrente(cobroId: string | null | undefined) {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('origen', cobroId), queryFn: () => leerOrigen(cobroId as string), enabled: !!pareja && !!cobroId });
+}
+
+export function useRecurrente(id: string | undefined) {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('recurrente', id), queryFn: () => leerRecurrente(id as string), enabled: !!pareja && !!id });
+}
+
+/** Ajustes de la pareja (pantalla Ajustes). Bajo la misma clave: el tiempo real los recarga con lo demás. */
+export function useDatosAjustes() {
+  const { pareja, userId } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('ajustes-pareja'), queryFn: () => leerDatosAjustes(userId as string), enabled: !!pareja && !!userId });
 }
 
 /** Tras guardar: recarga saldo, listas y detalle. */
@@ -178,6 +207,15 @@ export function useTiempoRealGastos() {
         invalidar();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pot_movements', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings_proposals', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_payments', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `couple_id=eq.${coupleId}` }, () => {
         invalidar();
       })
       .subscribe((estado, error) => {
