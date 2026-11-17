@@ -19,6 +19,27 @@ Repos sincronizados: **ito** (GitHub: `Davidelox/itoapp`), **god-breaker** (God 
   antes de cada mensaje. Si hay commits nuevos en GitHub, avisar al usuario de que se van a bajar los cambios del otro equipo,
   hacer `git pull --ff-only` y solo entonces continuar con la petición. Si el pull falla, parar y preguntar.
 
+## Orquestación (subagentes)
+
+La sesión principal es **orquestadora**: clasifica cada petición, la pasa al subagente que toca (`.claude/agents/`),
+y resume el resultado al usuario. No programa ni investiga a fondo ella misma.
+
+| Petición | Subagente | Modelo |
+|---|---|---|
+| Respuestas sencillas y dudas, buscar dónde está algo, resúmenes (solo lectura) | `explorador` | Haiku |
+| Updates (dependencias, docs, Estado actual, "update repos") y cambios pequeños de pocas líneas | `ayudante` | Sonnet |
+| Desarrollar funcionalidades y aplicar planes, soluciones y correcciones del arquitecto | `desarrollador` | Sonnet |
+| Arquitectura, diseño, soluciones a bugs difíciles y revisión | `arquitecto` | Opus |
+| Solo si David lo pide explícitamente ("con el artesano", "con Fable") | `artesano` | Fable |
+
+- **Flujo para funcionalidades**: `arquitecto` planifica → `desarrollador` implementa → `arquitecto` revisa → `desarrollador` aplica
+  las correcciones. Para cambios pequeños basta `ayudante`, sin revisión.
+- **Excepción**: lo que se resuelve en una línea sin abrir archivos (un saludo, una confirmación, una pregunta sobre lo que ya
+  está en la conversación) lo contesta la orquestadora directamente; lanzar un subagente para eso cuesta más de lo que ahorra.
+- En la duda entre dos agentes, elegir el más capaz. Si un agente dice que la tarea le supera, pasarla al siguiente.
+- Al encargar, dar al subagente todo el contexto que necesita (empieza sin ver la conversación): objetivo, archivos y decisiones.
+- Decir al usuario en una línea a qué agente se ha pasado cada tarea.
+
 ## Estado actual
 _Actualizado: 2026-11-17 (Mac)_
 
