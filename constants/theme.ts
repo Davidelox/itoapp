@@ -18,6 +18,8 @@ export const colors = {
   divider: '#EEEAE1',
   inputBorder: '#DED8CC',
   segmented: '#ECE7DD',
+  /** Tinte granate suave que se superpone mientras se mantiene pulsada una celda o una fila (se ve también sobre accentSoft). */
+  pressed: 'rgba(123, 36, 51, 0.14)',
 
   // Eventos
   eventDot: '#3F7099',

@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Cinta } from '@/components/calendario/Cinta';
 import { ALTO_CARRIL, CeldaDia, INICIO_CARRILES } from '@/components/calendario/CeldaDia';
 import { colors, fonts } from '@/constants/theme';
 import { type Elemento, etiquetaDia } from '@/lib/calendario/agrupar';
@@ -9,11 +11,12 @@ import { INICIALES_SEMANA } from '@/lib/calendario/rejilla';
 
 /** Barras de varios días por semana en el Mes (la Semana, que tiene más sitio, usa 3). */
 export const CARRILES_MES = 2;
-const ALTO_BARRA = 6;
+const ALTO_BARRA = 8;
 
 /**
  * Rejilla del mes, de lunes a domingo. Los días de otros meses salen atenuados. Los eventos de varios días
- * se dibujan como barras de 6 px sobre las celdas, partidas por semana; el resto, como marcadores.
+ * se dibujan como barras de 8 px (relleno pastel y contorno oscuro) sobre las celdas, partidas por semana; el resto, como glifos
+ * separados, y los cumpleaños, como un regalo en la esquina.
  */
 export function RejillaMes({
   semanas,
@@ -37,9 +40,21 @@ export function RejillaMes({
   colores: ColoresHuecos;
   onDia: (iso: string) => void;
 }) {
+  // Ancho de una celda: se mide en la fila de las iniciales (siete celdas justas) para que los glifos sean lo más
+  // grandes que caben en este móvil. Hasta entonces, el de un móvil estrecho.
+  const [ancho, setAncho] = useState<number | undefined>();
   return (
     <View style={styles.caja}>
-      <View style={styles.fila} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View
+        style={styles.fila}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        onLayout={(ev) => {
+          // Un ancho 0 (primer layout sin medir) no sirve: se deja el valor por defecto.
+          const medido = Math.floor(ev.nativeEvent.layout.width / 7);
+          if (medido > 0) setAncho(medido);
+        }}
+      >
         {INICIALES_SEMANA.map((l, i) => (
           <Text key={i} style={styles.inicial}>
             {l}
@@ -63,11 +78,16 @@ export function RejillaMes({
                 atenuado={iso.slice(0, 7) !== mes}
                 espacioBarras={espacio}
                 ocultos={ocultosPorDia[iso] ?? 0}
+                ancho={ancho}
                 onPress={onDia}
               />
             ))}
-            {/* Las barras no se tocan: se toca la celda. */}
+            {/* Las barras y las líneas de la cuadrícula no se tocan: se toca la celda. Las líneas van debajo de las barras. */}
             <View pointerEvents="none" style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <View style={styles.lineaH} />
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <View key={i} style={[styles.lineaV, { left: `${(i / 7) * 100}%` }]} />
+              ))}
               {segmentos.map((s) => (
                 <Barra key={s.clave} segmento={s} colores={colores} />
               ))}
@@ -79,9 +99,8 @@ export function RejillaMes({
   );
 }
 
-/** Una barra horizontal: persona = su color; los dos = cinta bicolor (3 px m1 arriba, 3 px m2 abajo). Extremos redondeados solo donde empieza o acaba. */
+/** Una barra horizontal: persona = su color; los dos = cinta bicolor (4 px m1 arriba, 4 px m2 abajo). Extremos redondeados solo donde empieza o acaba. */
 function Barra({ segmento: s, colores }: { segmento: SegmentoBarra; colores: ColoresHuecos }) {
-  const { color, color2 } = colorBarra(s.elemento, colores.m1, colores.m2);
   const columnas = s.colFin - s.colInicio + 1;
   return (
     <View
@@ -96,19 +115,7 @@ function Barra({ segmento: s, colores }: { segmento: SegmentoBarra; colores: Col
         paddingRight: s.termina ? 3 : 0,
       }}
     >
-      <View
-        style={{
-          flex: 1,
-          overflow: 'hidden',
-          borderTopLeftRadius: s.empieza ? ALTO_BARRA / 2 : 0,
-          borderBottomLeftRadius: s.empieza ? ALTO_BARRA / 2 : 0,
-          borderTopRightRadius: s.termina ? ALTO_BARRA / 2 : 0,
-          borderBottomRightRadius: s.termina ? ALTO_BARRA / 2 : 0,
-          backgroundColor: color,
-        }}
-      >
-        {color2 ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: ALTO_BARRA / 2, backgroundColor: color2 }} /> : null}
-      </View>
+      <Cinta color={colorBarra(s.elemento, colores.m1, colores.m2)} grosor={ALTO_BARRA} inicio={s.empieza} fin={s.termina} />
     </View>
   );
 }
@@ -124,7 +131,11 @@ export const estilosCaja = {
 } as const;
 
 const styles = StyleSheet.create({
-  caja: estilosCaja,
+  // Sin `gap`: las filas van pegadas y las separa la cuadrícula.
+  caja: { ...estilosCaja, gap: 0 },
   fila: { flexDirection: 'row' },
-  inicial: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyBold, fontSize: 11, color: colors.textSecondary, paddingBottom: 2 },
+  inicial: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyBold, fontSize: 11, color: colors.textSecondary, paddingBottom: 4 },
+  // Cuadrícula sutil: una línea fina arriba de cada semana y otra entre columnas; al cruzarse no se engrosan (mismo color opaco).
+  lineaH: { position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  lineaV: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: colors.border },
 });

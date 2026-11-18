@@ -13,6 +13,7 @@ import {
   textoImporte,
   textoParteDe,
   textoQuienPago,
+  textoTipoPago,
   totalDias,
 } from '@/lib/calendario/agrupar';
 import { type IconoCalendario, INFO_CATEGORIA_EVENTO, textoAsistentes } from '@/lib/calendario/evento';
@@ -133,7 +134,7 @@ export function lineaSemana(l: LineaDia, ctx: ContextoLinea): PartesLinea {
       derecha: importe,
       tachado,
       secreto: false,
-      etiqueta: ['Pago', e.titulo, importe ? importeHablado(importe) : null, quien, e.estado === 'pending' ? 'falta el importe' : null, pendiente]
+      etiqueta: [textoTipoPago(e), e.titulo, importe ? importeHablado(importe) : null, quien, e.estado === 'pending' ? 'falta el importe' : null, pendiente]
         .filter(Boolean)
         .join(', '),
     };

@@ -15,6 +15,7 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, radius } from '@/constants/theme';
 import { crearEvento, editarEvento } from '@/lib/calendario/consultas';
+import { diaDelEventoNuevo, paramsAlCalendario } from '@/lib/calendario/destino';
 import {
   type Asistentes,
   CATEGORIAS_FORMULARIO,
@@ -158,14 +159,15 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
     const id = inicial?.id ?? idNuevo;
     setTimeout(() => {
       if (editando) router.back();
-      // Un cumpleaños no lleva fecha: el detalle enseña la próxima (la guardada es del año ancla 2000).
-      else router.replace({ pathname: '/calendario/evento/[id]', params: esCumple ? { id } : { id, fecha: f.fecha } });
+      // Un evento nuevo lleva al calendario, con el día de su inicio seleccionado y el evento resaltado. `dismissTo`
+      // cierra el formulario (y, si se vino de «Crear pago», también el del pago) sin apilar otro calendario.
+      else router.dismissTo({ pathname: '/calendario', params: paramsAlCalendario(diaDelEventoNuevo(f, esCumple, hoy), id) });
     }, PAUSA_NUDO_MS);
   };
 
   // Los pagos no se crean aquí: «Crear pago» abre el formulario de Pagos recurrentes con el día elegido
   // (un pago no empieza en el pasado: si el día era pasado, hoy).
-  const crearPago = () => router.push({ pathname: '/gastos/recurrente/nuevo', params: { dia: f.fecha < hoy ? hoy : f.fecha } });
+  const crearPago = () => router.push({ pathname: '/gastos/recurrente/nuevo', params: { dia: f.fecha < hoy ? hoy : f.fecha, origen: 'calendario' } });
 
   const avisos = avisosDisponibles(f.todoElDia || esCumple, f.aviso);
   const quienVa: { valor: Asistentes; etiqueta: string }[] = [

@@ -157,6 +157,16 @@ describe('lineaSemana', () => {
     const p = linea([fila({ kind: 'payment', source_id: 'n', title: 'Netflix', amount_cents: 1299, status: 'scheduled' })], '2026-12-14', 0, { ...ctx, recurrentes });
     expect(p.etiqueta).toBe('Pago, Netflix, 12,99 euros, a medias');
   });
+  it('pago: la etiqueta dice «Pago único» o «Pago recurrente» según el recurrente de origen', () => {
+    const fp = fila({ kind: 'payment', source_id: 'n', title: 'Netflix', status: 'scheduled' });
+    const frecuencia = (f: 'once' | 'monthly' | 'yearly') => {
+      const f1 = filasSemana(DIAS, aElementos([fp], new Map([['n', f]])), opciones).filas.find((x) => x.iso === '2026-12-14')!;
+      return lineaSemana(f1.lineas[0], ctx).etiqueta;
+    };
+    expect(frecuencia('once')).toBe('Pago único, Netflix');
+    expect(frecuencia('monthly')).toBe('Pago recurrente, Netflix');
+    expect(frecuencia('yearly')).toBe('Pago recurrente, Netflix');
+  });
   it('cumpleaños: «Cumple de Carmen · 60» (sin año, solo el nombre)', () => {
     const cumple = { source_id: 'k', title: 'Carmen', occurs_on: '2026-12-14', recurrence: 'yearly', category: 'birthday', attendees: 'm2' };
     const con = linea([fila({ ...cumple, birth_year: 1966 })], '2026-12-14');

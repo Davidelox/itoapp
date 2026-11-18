@@ -183,7 +183,7 @@ export default function DetalleEvento() {
           {cumple && mostrarQuien ? (
             <Fila icono="gift-outline">
               <View style={styles.quien}>
-                <Marcador marcador={marca} tamano={12} />
+                <Marcador marcador={marca} tamano={22} />
                 <Text style={styles.filaTexto}>{quien}</Text>
               </View>
             </Fila>
@@ -191,7 +191,7 @@ export default function DetalleEvento() {
           {!cumple && mostrarQuien ? (
             <Fila icono="people-outline">
               <View style={styles.quien}>
-                <Marcador marcador={marca} tamano={10} />
+                <Marcador marcador={marca} tamano={22} />
                 <View style={styles.avatares}>
                   {vaYo ? (
                     <AvatarPersona nombre={p.yo.nombre} color={p.yo.color} avatarPath={p.yo.avatarPath} tamano={28} />

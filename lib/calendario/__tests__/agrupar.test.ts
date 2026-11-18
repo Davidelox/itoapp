@@ -78,23 +78,100 @@ describe('día, filtros y puntos', () => {
     expect(filtrar(l, 'event')).toHaveLength(2);
     expect(filtrar(l, 'todos')).toHaveLength(3);
   });
-  it('puntos: azul evento, ámbar pago, máximo 3 y un «+»; candado si hay un secreto', () => {
+  it('glifos: máximo 4 y el resto en «+N»; candado si hay un secreto', () => {
     const dia = agruparPorDia(l);
     const d17 = puntosDelDia(dia['2026-11-17']);
     expect(d17.puntos.map((e) => e.tipo)).toEqual(['payment', 'event']);
-    expect(d17).toMatchObject({ mas: false, secreto: false });
+    expect(d17).toMatchObject({ restantes: 0, secreto: false });
     expect(puntosDelDia(dia['2026-11-18']).secreto).toBe(true);
-    const cinco = aElementos(['1', '2', '3', '4', '5'].map((n) => fila({ source_id: n })));
-    const p5 = puntosDelDia(cinco);
-    expect(p5.puntos).toHaveLength(3);
-    expect(p5).toMatchObject({ mas: true, secreto: false });
-    expect(puntosDelDia([])).toEqual({ puntos: [], mas: false, secreto: false });
+    const con = (n: number) => aElementos(Array.from({ length: n }, (_, i) => fila({ source_id: String(i) })));
+    // 1, 2, 3 y 4 se ven enteros (con 4 no hay «+N»); con 5 o más se ven 4 y el resto va al «+N».
+    for (const n of [1, 2, 3, 4]) {
+      const p = puntosDelDia(con(n));
+      expect(p.puntos).toHaveLength(n);
+      expect(p.restantes).toBe(0);
+    }
+    const p5 = puntosDelDia(con(5));
+    expect(p5.puntos).toHaveLength(4);
+    expect(p5).toMatchObject({ restantes: 1, secreto: false });
+    expect(puntosDelDia(con(9))).toMatchObject({ restantes: 5 });
+    expect(puntosDelDia([])).toEqual({ puntos: [], restantes: 0, secreto: false, cumples: 0 });
+  });
+  it('los cumpleaños no son glifos: ni se dibujan ni cuentan en el «+N», solo en `cumples` (el regalo de la esquina)', () => {
+    const cumple = (id: string) => fila({ source_id: id, category: 'birthday', title: id });
+    const eventos = (n: number) => Array.from({ length: n }, (_, i) => fila({ source_id: `e${i}` }));
+    // Solo cumpleaños: el centro queda vacío.
+    expect(puntosDelDia(aElementos([cumple('a')]))).toEqual({ puntos: [], restantes: 0, secreto: false, cumples: 1 });
+    // Dos cumpleaños: `cumples` = 2 (el «+» del regalo); siguen sin ser glifos.
+    expect(puntosDelDia(aElementos([cumple('a'), cumple('b')]))).toMatchObject({ puntos: [], restantes: 0, cumples: 2 });
+    // Con 4 eventos y 3 cumpleaños se ven los 4 eventos y no hay «+N».
+    const mezcla = puntosDelDia(aElementos([...eventos(4), cumple('a'), cumple('b'), cumple('c')]));
+    expect(mezcla.puntos).toHaveLength(4);
+    expect(mezcla.puntos.every((e) => e.categoria !== 'birthday')).toBe(true);
+    expect(mezcla).toMatchObject({ restantes: 0, cumples: 3 });
+    // Con 5 eventos y un cumpleaños, el «+N» es 1: el cumpleaños no suma.
+    expect(puntosDelDia(aElementos([...eventos(5), cumple('a')]))).toMatchObject({ restantes: 1, cumples: 1 });
+    // Los pagos sí son glifos.
+    expect(puntosDelDia(aElementos([fila({ kind: 'payment', source_id: 'p' }), cumple('a')])).puntos.map((e) => e.tipo)).toEqual(['payment']);
+  });
+  it('un cumpleaños secreto cuenta para el regalo y para el candado', () => {
+    const [c] = aElementos([fila({ category: 'birthday', is_secret: true })]);
+    expect(puntosDelDia([c])).toMatchObject({ puntos: [], cumples: 1, secreto: true });
+  });
+  it('las barras ocultas suman al «+N»', () => {
+    const con = (n: number) => aElementos(Array.from({ length: n }, (_, i) => fila({ source_id: String(i) })));
+    expect(puntosDelDia(con(4), 1)).toMatchObject({ restantes: 1 });
+    expect(puntosDelDia(con(6), 2)).toMatchObject({ restantes: 4 });
+    expect(puntosDelDia(con(2), 1)).toMatchObject({ restantes: 1 });
+    expect(puntosDelDia(con(2), 0)).toMatchObject({ restantes: 0 });
   });
   it('etiqueta de accesibilidad', () => {
     const dia = agruparPorDia(l);
     expect(etiquetaDia('2026-11-17', dia['2026-11-17'], '2026-11-17')).toBe('17 de noviembre, hoy: 1 evento; 1 pago');
     expect(etiquetaDia('2026-11-14', [], '2026-11-17')).toBe('14 de noviembre');
     expect(etiquetaDia('2026-11-16', aElementos([fila({}), fila({ source_id: 'x' })]), '2026-11-17')).toBe('16 de noviembre: 2 eventos');
+  });
+});
+
+describe('frecuencia de los pagos', () => {
+  const pago = (id: string) => fila({ kind: 'payment', source_id: id, title: id, status: 'scheduled' });
+  const frecuencias = new Map<string, 'once' | 'monthly' | 'yearly'>([
+    ['unico', 'once'],
+    ['mensual', 'monthly'],
+    ['anual', 'yearly'],
+  ]);
+  it('sale del recurrente de origen (calendar_range no la trae); sin dato o en un evento es null', () => {
+    const l = aElementos([pago('unico'), pago('mensual'), pago('anual'), pago('desconocido'), fila({ source_id: 'unico' })], frecuencias);
+    const de = (id: string, tipo: string) => l.find((e) => e.origenId === id && e.tipo === tipo)?.frecuencia;
+    expect([de('unico', 'payment'), de('mensual', 'payment'), de('anual', 'payment'), de('desconocido', 'payment')]).toEqual([
+      'once',
+      'monthly',
+      'yearly',
+      null,
+    ]);
+    // Un evento con el mismo id que un recurrente no se confunde con un pago.
+    expect(de('unico', 'event')).toBeNull();
+    expect(aElementos([pago('unico')])[0].frecuencia).toBeNull();
+    expect(aElementos([fila({ source_id: 'unico' })], frecuencias)[0].frecuencia).toBeNull();
+  });
+  it('se conserva al agrupar por días', () => {
+    const [e] = aElementos([pago('mensual')], frecuencias);
+    expect(agruparPorDia([e])['2026-11-17'][0].frecuencia).toBe('monthly');
+  });
+  it('accesibilidad: «Pago único», «Pago recurrente» o «Pago» si no se sabe', () => {
+    const l = aElementos([pago('unico'), pago('mensual'), pago('anual'), pago('x')], frecuencias);
+    const [unico, mensual, anual, sin] = ['unico', 'mensual', 'anual', 'x'].map((id) => l.find((e) => e.origenId === id)!);
+    const etiqueta = (e: typeof unico) => etiquetaAccesible(e, lineaElemento(e, ctx), ctx);
+    expect(etiqueta(unico)).toMatch(/\. Pago único$/);
+    expect(etiqueta(mensual)).toMatch(/\. Pago recurrente$/);
+    expect(etiqueta(anual)).toMatch(/\. Pago recurrente$/);
+    expect(etiqueta(sin)).toMatch(/\. Pago$/);
+  });
+  it('el resumen del día los distingue: «1 pago único; 2 pagos recurrentes»', () => {
+    const l = aElementos([pago('unico'), pago('mensual'), pago('anual'), pago('x')], frecuencias);
+    expect(resumenDia(l)).toBe('1 pago único; 2 pagos recurrentes; 1 pago');
+    expect(resumenDia(aElementos([pago('unico')], frecuencias))).toBe('1 pago único');
+    expect(resumenDia(aElementos([pago('mensual')], frecuencias))).toBe('1 pago recurrente');
   });
 });
 
@@ -167,6 +244,87 @@ describe('lista', () => {
     expect(r.conDia).toBe(false);
     expect(r.secciones[0].elementos.map((e) => e.titulo)).toEqual(['Sábado']);
     expect(construirLista({ ...base, vista: 'mes', ancla: '2026-11-17', seleccionado: '2026-11-20' }).vacio).toBe('Nada este día');
+  });
+  describe('info extra del día (cumpleaños y secretos)', () => {
+    const dia = '2026-11-17';
+    const e = (id: string, extra: Partial<FilaRango> = {}) => fila({ source_id: id, title: id, occurs_on: dia, ...extra });
+    const lista = (filas: FilaRango[], filtro: 'todos' | 'birthday' | 'event' = 'todos') =>
+      construirLista({
+        vista: 'mes',
+        ancla: dia,
+        seleccionado: dia,
+        hoy: dia,
+        elementos: filtrar(aElementos(filas), filtro),
+        filtro,
+      });
+    const titulos = (r: ReturnType<typeof lista>) => r.secciones.map((s) => s.elementos.map((x) => x.titulo));
+
+    it('eventos y pagos primero, por hora; después los cumpleaños y los secretos', () => {
+      const r = lista([
+        e('Secreto tarde', { is_secret: true, start_time: '22:00:00' }),
+        e('Cumple A', { category: 'birthday' }),
+        e('Cena', { start_time: '21:00:00' }),
+        e('Cumple B', { category: 'birthday' }),
+        e('Comida', { start_time: '14:00:00' }),
+        e('Secreto pronto', { is_secret: true, start_time: '09:00:00' }),
+        e('Luz', { kind: 'payment' }),
+      ]);
+      expect(r.secciones).toHaveLength(2);
+      // Normales: lo de todo el día primero (el pago), luego por hora.
+      expect(titulos(r)[0]).toEqual(['Luz', 'Comida', 'Cena']);
+      // Extra: cumpleaños (en orden de título) y luego secretos (por hora).
+      expect(titulos(r)[1]).toEqual(['Cumple de Cumple A', 'Cumple de Cumple B', 'Secreto pronto', 'Secreto tarde']);
+      expect(r.secciones[0].extra).toBeUndefined();
+      expect(r.secciones[1]).toMatchObject({ extra: true, cabecera: 'Cumpleaños y secretos', clave: `${dia}:extra` });
+      expect(r.vacio).toBeNull();
+    });
+    it('si el día solo tiene cumpleaños o secretos, salen ellos solos (sin sección normal vacía)', () => {
+      const cumples = lista([e('Ana', { category: 'birthday' })]);
+      expect(cumples.secciones).toHaveLength(1);
+      expect(cumples.secciones[0]).toMatchObject({ extra: true, cabecera: 'Cumpleaños' });
+      expect(cumples.vacio).toBeNull();
+      const uno = lista([e('Sorpresa', { is_secret: true })]);
+      expect(uno.secciones[0]).toMatchObject({ extra: true, cabecera: 'Secreto' });
+      const dos = lista([e('S1', { is_secret: true }), e('S2', { is_secret: true })]);
+      expect(dos.secciones[0].cabecera).toBe('Secretos');
+    });
+    it('un día sin extras queda como antes: una sola sección, sin «extra»; vacío sigue siendo «Nada este día»', () => {
+      const r = lista([e('Cena')]);
+      expect(r.secciones).toHaveLength(1);
+      expect(r.secciones[0].extra).toBeUndefined();
+      const vacio = lista([]);
+      expect(vacio.vacio).toBe('Nada este día');
+      expect(vacio.secciones).toHaveLength(1);
+    });
+    it('un cumpleaños secreto sale una sola vez, entre los cumpleaños', () => {
+      const r = lista([e('Ana', { category: 'birthday', is_secret: true }), e('Sorpresa', { is_secret: true })]);
+      expect(titulos(r)).toEqual([['Cumple de Ana', 'Sorpresa']]);
+    });
+    it('el filtro Cumpleaños sigue enseñando solo cumpleaños (ahora como info extra)', () => {
+      const r = lista([e('Ana', { category: 'birthday' }), e('Cena')], 'birthday');
+      expect(titulos(r)).toEqual([['Cumple de Ana']]);
+    });
+    it('las claves de las secciones y de los elementos siguen siendo únicas, y cada elemento conserva su `inicio`', () => {
+      const viaje = e('Roma', { occurs_on: '2026-11-15', ends_on: '2026-11-19', is_secret: true, category: 'trip' });
+      const r = lista([viaje, e('Ana', { category: 'birthday' }), e('Cena')]);
+      const claves = r.secciones.flatMap((s) => s.elementos.map((x) => x.clave));
+      expect(new Set(claves).size).toBe(claves.length);
+      expect(new Set(r.secciones.map((s) => s.clave)).size).toBe(r.secciones.length);
+      // Un viaje secreto de varios días va a la info extra con el inicio de su repetición (riesgo TW060).
+      const roma = r.secciones[1].elementos.find((x) => x.titulo === 'Roma')!;
+      expect(roma).toMatchObject({ inicio: '2026-11-15', fecha: dia, diaN: 3 });
+    });
+    it('también en la Semana (día seleccionado)', () => {
+      const r = construirLista({
+        vista: 'semana',
+        ancla: dia,
+        seleccionado: dia,
+        hoy: dia,
+        elementos: aElementos([e('Ana', { category: 'birthday' }), e('Cena')]),
+        filtro: 'todos',
+      });
+      expect(titulos(r)).toEqual([['Cena'], ['Cumple de Ana']]);
+    });
   });
   it('un día seleccionado de otro periodo se ignora', () => {
     expect(construirLista({ ...base, vista: 'mes', ancla: '2026-12-10', seleccionado: '2026-11-21' }).titulo).toBe('En diciembre');

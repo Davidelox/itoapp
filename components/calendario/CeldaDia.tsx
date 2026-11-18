@@ -5,22 +5,30 @@ import { Marcador } from '@/components/calendario/Marcador';
 import { colors, fonts } from '@/constants/theme';
 import { type Elemento, puntosDelDia } from '@/lib/calendario/agrupar';
 import { type ColoresHuecos, marcador } from '@/lib/calendario/colores';
+import { ZONA_MINIMA, disposicionGlifos } from '@/lib/calendario/disposicion';
 import { numeroDia } from '@/lib/calendario/rejilla';
 
 /** Texto de los días de otros meses: más suave que el secundario, pero con contraste suficiente sobre blanco. */
 const ATENUADO = '#77706C';
 
-export const ALTO_CELDA = 46;
-/** Lo que crece la fila de una semana por cada carril de barras (6 px de barra y 2 de separación). */
-export const ALTO_CARRIL = 8;
+/** Alto de una celda sin barras: número (30 px) y debajo 54 px libres, donde se centra el bloque de glifos. */
+export const ALTO_CELDA = 84;
+/** Lo que crece la fila de una semana por cada carril de barras (8 px de barra y 2 de separación). */
+export const ALTO_CARRIL = 10;
 /** Dónde empieza el primer carril: bajo el número del día. */
 export const INICIO_CARRILES = 30;
+/** Alto de la zona libre bajo el número (y las barras, que la hacen 1 px menor por el hueco extra): 54 − 1 = 53 px. */
+const ALTO_ZONA = ALTO_CELDA - INICIO_CARRILES - 1;
 
 /**
  * Un día de la rejilla del Mes: número (hoy en granate), un espacio para las barras de varios días (las pinta
- * la fila de la semana), marcadores de lo de un día, «+» y candado si hay un secreto. `elementos`: todo lo que
+ * la fila de la semana), glifos de lo de un día, y en las esquinas de arriba un regalo (cumpleaños, con un «+» si
+ * hay más de uno) a la izquierda y un candado (secreto) a la derecha. Los glifos van separados, sin tocarse, tan
+ * grandes como quepan según cuántos haya (`lib/calendario/disposicion.ts`); con más de 4 se ven 4 y un «+N»
+ * pequeño a la derecha. Los cumpleaños no cuentan como glifos: solo viven en su esquina. `elementos`: todo lo que
  * cae en el día (también lo de varios días, que cuenta para el candado). `ocultos`: barras que no cabían en los
- * carriles y pasan al «+».
+ * carriles y suman al «+N». `ancho`: ancho de la celda en px (lo mide la rejilla; sin él, el de un móvil estrecho).
+ * Mientras se mantiene pulsada, un tinte granate suave cubre la celda (también sobre el día seleccionado).
  */
 export function CeldaDia({
   iso,
@@ -33,6 +41,7 @@ export function CeldaDia({
   alto = ALTO_CELDA,
   espacioBarras = 0,
   ocultos = 0,
+  ancho,
   onPress,
 }: {
   iso: string;
@@ -47,9 +56,11 @@ export function CeldaDia({
   /** Alto reservado a las barras (carriles usados × `ALTO_CARRIL`). */
   espacioBarras?: number;
   ocultos?: number;
+  ancho?: number;
   onPress: (iso: string) => void;
 }) {
-  const { puntos, mas, secreto } = puntosDelDia(elementos);
+  const { puntos, restantes, secreto, cumples } = puntosDelDia(elementos, ocultos);
+  const d = disposicionGlifos(puntos.length, restantes > 0, { ancho: ancho ?? ZONA_MINIMA.ancho, alto: ALTO_ZONA });
   return (
     <Pressable
       accessibilityRole="button"
@@ -58,18 +69,48 @@ export function CeldaDia({
       onPress={() => onPress(iso)}
       style={[styles.celda, { height: alto + espacioBarras }, seleccionado && styles.celdaSeleccionada]}
     >
-      <View style={[styles.numero, esHoy && styles.numeroHoy]}>
-        <Text style={[styles.numeroTexto, atenuado && styles.atenuado, esHoy && styles.numeroTextoHoy]}>{numeroDia(iso)}</Text>
-      </View>
-      {espacioBarras > 0 ? <View style={{ height: espacioBarras }} /> : null}
-      <View style={styles.puntos} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {puntos.map((e) => {
-          const m = marcador(e, colores.m1, colores.m2);
-          return <Marcador key={e.clave} marcador={m} tamano={m.forma === 'anillo' ? 12 : 6} atenuado={atenuado} />;
-        })}
-        {mas || ocultos > 0 ? <Text style={styles.mas}>+</Text> : null}
-        {secreto ? <Ionicons name="lock-closed" size={10} color={colors.textSecondary} /> : null}
-      </View>
+      {({ pressed }) => (
+        <>
+          {/* Tinte de pulsado: debajo del contenido, con las esquinas de la celda; deja ver si es hoy o está seleccionado. */}
+          {pressed ? <View pointerEvents="none" style={styles.pulsado} /> : null}
+          <View style={[styles.numero, esHoy && styles.numeroHoy]}>
+            <Text style={[styles.numeroTexto, atenuado && styles.atenuado, esHoy && styles.numeroTextoHoy]}>{numeroDia(iso)}</Text>
+          </View>
+          {espacioBarras > 0 ? <View style={{ height: espacioBarras }} /> : null}
+          {/* Zona libre bajo el número y las barras: el bloque de glifos va centrado en ella, en horizontal y en vertical. */}
+          <View style={styles.zona}>
+            <View style={{ width: d.ancho, height: d.alto }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              {puntos.map((e, i) => {
+                const h = d.huecos[i];
+                if (!h) return null;
+                return (
+                  <View key={e.clave} style={{ position: 'absolute', left: h.x, top: h.y }}>
+                    <Marcador marcador={marcador(e, colores.m1, colores.m2)} tamano={h.tamano} atenuado={atenuado} />
+                  </View>
+                );
+              })}
+              {d.mas ? (
+                <View style={[styles.mas, { left: d.mas.x }]}>
+                  <Text style={styles.masTexto} numberOfLines={1}>
+                    +{restantes}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+          {cumples > 0 ? (
+            <View style={styles.regalo} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Ionicons name="gift" size={11} color={colors.cumpleMarca} style={atenuado && styles.esquinaAtenuada} />
+              {cumples > 1 ? <Text style={[styles.regaloMas, atenuado && styles.esquinaAtenuada]}>+</Text> : null}
+            </View>
+          ) : null}
+          {secreto ? (
+            <View style={styles.candado} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Ionicons name="lock-closed" size={10} color={colors.textSecondary} />
+            </View>
+          ) : null}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -82,6 +123,16 @@ const styles = StyleSheet.create({
   numeroTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   numeroTextoHoy: { color: colors.white },
   atenuado: { fontFamily: fonts.body, color: ATENUADO },
-  puntos: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, height: 12 },
-  mas: { fontFamily: fonts.bodyBold, fontSize: 11, lineHeight: 12, color: colors.textSecondary },
+  pulsado: { ...StyleSheet.absoluteFill, borderRadius: 10, backgroundColor: colors.pressed },
+  // Ocupa el alto que queda bajo el número (y las barras) y centra el bloque de glifos.
+  zona: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  // El «+N» ocupa todo el alto del bloque, a la derecha de los glifos; sin ancho fijo para que «+10» no se parta.
+  mas: { position: 'absolute', top: 0, bottom: 0, justifyContent: 'center', zIndex: 5 },
+  masTexto: { fontFamily: fonts.bodyBold, fontSize: 9, lineHeight: 12, color: colors.textSecondary },
+  candado: { position: 'absolute', top: 5, right: 3 },
+  // Regalo del cumpleaños en la esquina de arriba a la izquierda (como el candado, que va a la derecha); el «+» de
+  // «más de uno» sube a su esquina de arriba a la derecha, por encima del número.
+  regalo: { position: 'absolute', top: 4, left: 2, width: 17, height: 14 },
+  regaloMas: { position: 'absolute', top: -4, left: 10, fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 11, color: colors.cumpleMarca },
+  esquinaAtenuada: { opacity: 0.55 },
 });

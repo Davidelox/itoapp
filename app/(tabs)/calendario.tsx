@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { type ComponentRef, useCallback, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,12 +14,16 @@ import { colors, fonts } from '@/constants/theme';
 import { type Elemento, type Filtro, agruparPorDia, aElementos, construirLista, filtrar } from '@/lib/calendario/agrupar';
 import { coloresDeHuecos } from '@/lib/calendario/colores';
 import { gastoDeCobro } from '@/lib/calendario/consultas';
+import { type Objetivo, filtroParaVer, leerObjetivo } from '@/lib/calendario/destino';
 import { type Vista, etiquetaPeriodo, mismoPeriodo, mover, rangoVisible, semanaDe, semanasDelMes } from '@/lib/calendario/rejilla';
 import { useBorradosPendientes, useCalendario } from '@/lib/calendario/useCalendario';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { useRecurrentes } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
+
+/** Cuánto se ve resaltada la fila del evento o pago recién guardado. */
+const RESALTADO_MS = 2500;
 
 /** Pestaña Calendario (mockup «Agenda», docs/plan-calendario.md §2): ver, abrir un evento o un pago y añadir eventos. */
 export default function Calendario() {
@@ -33,6 +37,11 @@ export default function Calendario() {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [abriendo, setAbriendo] = useState(false);
+  // Al volver de guardar un evento o un pago llegan `?dia=YYYY-MM-DD&evento=<id>` (en un pago, el id del recurrente):
+  // se consumen una vez (`objetivo`), se limpian de la ruta y el elemento se resalta unos segundos (`resaltado`).
+  const { dia: diaRuta, evento: eventoRuta } = useLocalSearchParams<{ dia?: string; evento?: string }>();
+  const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
+  const [resaltado, setResaltado] = useState<string | null>(null);
   // Al seleccionar un día en la Semana, la pantalla baja hasta su lista (y_lista: dónde empieza, de `onLayout`).
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const yLista = useRef(0);
@@ -58,6 +67,46 @@ export default function Calendario() {
     }, [refetch, recargarRecurrentes, recargarBorrados]),
   );
 
+  // 1) Llega un destino: el mes o la semana de ese día (la vista no cambia) y el día seleccionado. Se ajusta el estado
+  // al renderizar (como en editar evento) y un efecto limpia la ruta, para que no se repita al volver a enfocar.
+  const rutaClave = `${diaRuta ?? ''}|${eventoRuta ?? ''}`;
+  const [rutaVista, setRutaVista] = useState('|');
+  if (rutaClave !== rutaVista) {
+    setRutaVista(rutaClave);
+    const o = leerObjetivo(diaRuta, eventoRuta);
+    if (o) {
+      setObjetivo(o);
+      setAncla(o.dia);
+      setSeleccionado(o.dia);
+      setResaltado(null);
+    }
+  }
+  useEffect(() => {
+    if (diaRuta !== undefined || eventoRuta !== undefined) router.setParams({ dia: undefined, evento: undefined });
+  }, [diaRuta, eventoRuta, router]);
+
+  // 2) Con los datos de ese periodo ya cargados (no los del periodo anterior, ni a medio recargar) se busca el elemento:
+  // si el filtro lo ocultara, pasa a «Todos», y se resalta. Si no aparece, el día queda seleccionado y nada más.
+  if (objetivo && consulta.data && !consulta.isFetching && !consulta.isPlaceholderData) {
+    const elemento = objetivo.evento ? aElementos(consulta.data).find((e) => e.origenId === objetivo.evento) : undefined;
+    setObjetivo(null);
+    if (elemento) {
+      setFiltro(filtroParaVer(filtro, elemento));
+      setResaltado(elemento.origenId);
+    }
+  }
+
+  // 3) Resaltado: baja hasta la lista del día y se apaga solo.
+  useEffect(() => {
+    if (!resaltado) return;
+    const baja = setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, yLista.current - 8), animated: true }), 150);
+    const apaga = setTimeout(() => setResaltado(null), RESALTADO_MS);
+    return () => {
+      clearTimeout(baja);
+      clearTimeout(apaga);
+    };
+  }, [resaltado]);
+
   if (!pareja) return null;
   const p = personas(pareja);
   const recargar = () => {
@@ -66,7 +115,9 @@ export default function Calendario() {
     recargarBorrados();
   };
 
-  const elementos = filtrar(aElementos(consulta.data ?? []), filtro);
+  // `calendar_range` no dice si un pago es único o recurrente: sale de la lista de recurrentes.
+  const frecuencias = new Map((recurrentes.data ?? []).map((r) => [r.id, r.frequency]));
+  const elementos = filtrar(aElementos(consulta.data ?? [], frecuencias), filtro);
   const porDia = agruparPorDia(elementos);
   const lista = construirLista({ vista, ancla, seleccionado, hoy, elementos, filtro });
   const colores = coloresDeHuecos(pareja);
@@ -232,6 +283,7 @@ export default function Calendario() {
                   onPago={abrirPago}
                   onEvento={abrirEvento}
                   onNuevo={filtro === 'payment' ? undefined : nuevoEvento}
+                  resaltado={resaltado}
                 />
               </View>
             ) : null}

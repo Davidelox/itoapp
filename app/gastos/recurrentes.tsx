@@ -40,7 +40,7 @@ export default function Recurrentes() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Añadir pago recurrente"
-        onPress={() => router.push({ pathname: '/gastos/recurrente/nuevo', params: pestana === 'personales' ? { tipo: 'personal' } : {} })}
+        onPress={() => router.push({ pathname: '/gastos/recurrente/nuevo', params: pestana === 'personales' ? { tipo: 'personal', origen: 'gastos' } : { origen: 'gastos' } })}
         style={[styles.redondo, styles.mas]}
       >
         <Ionicons name="add" size={24} color={colors.white} />
@@ -111,7 +111,7 @@ export default function Recurrentes() {
                 ? 'Aquí salen los pagos que son solo de uno, como tu gimnasio.'
                 : 'Suscripciones, facturas y cuotas que pagáis entre los dos o desde el bote.'}
             </Text>
-            <BotonSecundario etiqueta="Añadir pago" onPress={() => router.push({ pathname: '/gastos/recurrente/nuevo', params: pestana === 'personales' ? { tipo: 'personal' } : {} })} />
+            <BotonSecundario etiqueta="Añadir pago" onPress={() => router.push({ pathname: '/gastos/recurrente/nuevo', params: pestana === 'personales' ? { tipo: 'personal', origen: 'gastos' } : { origen: 'gastos' } })} />
           </View>
         ) : (
           <View style={styles.lista}>

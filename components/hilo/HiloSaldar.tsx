@@ -15,7 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
-import { colors, fonts, personColors } from '@/constants/theme';
+import { type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
+import { type Pareja, useEstado } from '@/lib/pareja/EstadoProvider';
 import {
   TRAZO_VACIO,
   type Punto,
@@ -117,6 +118,13 @@ function formasDelHilo(ancho: number) {
   };
 }
 
+/** Colores e inicial de quien ocupa un hueco de la pareja; los de reserva si falta la persona o su color. */
+function personaDeHueco(pareja: Pareja | null, slot: 'm1' | 'm2', reserva: ColorPersona, letra: string) {
+  const miembro = [pareja?.yo, pareja?.otra].find((m) => m?.slot === slot);
+  const paleta = personColors[miembro?.color ?? reserva];
+  return { bg: paleta.bg, ink: paleta.ink, letra: miembro?.nombre.trim().charAt(0).toUpperCase() || letra };
+}
+
 export type HiloSaldarHandle = { desatar: () => void; reiniciar: () => void };
 
 type Props = {
@@ -133,6 +141,10 @@ type Props = {
  */
 export function HiloSaldar({ saldado, ref }: Props) {
   const reducida = useReducedMotion();
+  // Colores e iniciales reales de la pareja (m1 a la izquierda, m2 a la derecha); Menta/Lavanda si aún no hay.
+  const { pareja } = useEstado();
+  const izquierda = personaDeHueco(pareja, 'm1', 'menta', 'D');
+  const derecha = personaDeHueco(pareja, 'm2', 'lavanda', 'M');
   const [interno, setInterno] = useState(false);
   const activo = saldado ?? interno;
   const [ancho, setAncho] = useState(280);
@@ -263,11 +275,11 @@ export function HiloSaldar({ saldado, ref }: Props) {
           <HiloFisico d={dDebajo} grosor={grosor} grosorBase={GROSOR} sombra={elevacion} />
           <HiloFisico d={dEncima} grosor={grosor} grosorBase={GROSOR} sombra={elevacion} />
         </Svg>
-        <Animated.View style={[styles.avatar, { left: MARGEN, backgroundColor: personColors.menta.bg }, izqStyle]}>
-          <Text style={[styles.letra, { color: personColors.menta.ink }]}>D</Text>
+        <Animated.View style={[styles.avatar, { left: MARGEN, backgroundColor: izquierda.bg }, izqStyle]}>
+          <Text style={[styles.letra, { color: izquierda.ink }]}>{izquierda.letra}</Text>
         </Animated.View>
-        <Animated.View style={[styles.avatar, { right: MARGEN, backgroundColor: personColors.lavanda.bg }, derStyle]}>
-          <Text style={[styles.letra, { color: personColors.lavanda.ink }]}>M</Text>
+        <Animated.View style={[styles.avatar, { right: MARGEN, backgroundColor: derecha.bg }, derStyle]}>
+          <Text style={[styles.letra, { color: derecha.ink }]}>{derecha.letra}</Text>
         </Animated.View>
       </View>
       <Animated.Text style={[styles.mensaje, mensajeStyle]}>¡Cuentas a cero!</Animated.Text>

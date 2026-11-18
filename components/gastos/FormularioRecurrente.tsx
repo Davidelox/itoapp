@@ -12,6 +12,7 @@ import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { type Origen, destinoTrasGuardarPago } from '@/lib/calendario/destino';
 import { formatearImporte, leerEuros } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { type AjustesGastos, soloCambios } from '@/lib/gastos/consultas';
@@ -60,10 +61,12 @@ type Props = {
   personalInicial?: boolean;
   /** Al crear desde «Crear pago» del Calendario (`YYYY-MM-DD`): el día de cobro, el mes (anual) y la fecha (una vez) de partida. */
   diaInicial?: string;
+  /** Al crear: desde dónde se abrió. Del calendario se vuelve a él (en el día del primer cobro); de Gastos, a la lista de pagos. */
+  origen?: Origen;
 };
 
 /** Nuevo o editar pago recurrente (mockup NuevoPago, docs/plan-gastos-fase4.md §2). */
-export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuardarEdicion, personalInicial = false, diaInicial }: Props) {
+export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuardarEdicion, personalInicial = false, diaInicial, origen = 'gastos' }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
@@ -202,7 +205,14 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
 
   const alTerminar = () => {
     invalidar();
-    setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/gastos/recurrentes')), PAUSA_NUDO_MS);
+    setTimeout(() => {
+      if (editando) return router.canGoBack() ? router.back() : router.replace('/gastos/recurrentes');
+      // Un pago nuevo vuelve a donde se creó. `dismissTo` cierra el formulario (y el del evento, si se vino de
+      // «Crear pago» del calendario) sin dejarlo en el historial ni apilar otra pantalla igual.
+      const d = destinoTrasGuardarPago(origen, idNuevo, primero);
+      if (d.destino === 'calendario') router.dismissTo({ pathname: '/calendario', params: d.params });
+      else router.dismissTo('/gastos/recurrentes');
+    }, PAUSA_NUDO_MS);
   };
 
   const pagadores = [

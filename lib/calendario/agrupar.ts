@@ -38,7 +38,7 @@ import {
 } from '@/lib/calendario/rejilla';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { MESES } from '@/lib/gastos/fechas';
-import type { Recurrente } from '@/lib/gastos/recurrentes';
+import type { Frecuencia, Recurrente } from '@/lib/gastos/recurrentes';
 import { textoQuien } from '@/lib/gastos/recurrentes';
 import type { Hueco } from '@/lib/gastos/reparto';
 
@@ -99,6 +99,11 @@ export type Elemento = {
   categoria: CategoriaEvento | null;
   /** Cumpleaños: año de nacimiento, si se puso. */
   anioNacimiento: number | null;
+  /**
+   * Pagos: cada cuánto se cobra (único, mensual, anual) según el recurrente de origen; null si no se sabe (los
+   * eventos, o los recurrentes aún sin cargar). `calendar_range` no la devuelve: la pone `aElementos` desde la lista de recurrentes.
+   */
+  frecuencia: Frecuencia | null;
 };
 
 const REPETICIONES: Repeticion[] = ['none', 'weekly', 'monthly', 'yearly'];
@@ -131,8 +136,11 @@ export function ordenar(lista: Elemento[]): Elemento[] {
   return [...lista].sort((a, b) => comparar(a.fecha, b.fecha) || compararMismoDia(a, b));
 }
 
-/** Filas del servidor → elementos. Los planes (`kind = 'plan'`) no se muestran todavía: se descartan. */
-export function aElementos(filas: FilaRango[]): Elemento[] {
+/**
+ * Filas del servidor → elementos. Los planes (`kind = 'plan'`) no se muestran todavía: se descartan.
+ * `frecuencias`: la frecuencia de cada pago recurrente por su id (`calendar_range` no la trae).
+ */
+export function aElementos(filas: FilaRango[], frecuencias?: ReadonlyMap<string, Frecuencia>): Elemento[] {
   const lista: Elemento[] = [];
   for (const f of filas) {
     if (f.kind !== 'event' && f.kind !== 'payment') continue;
@@ -161,6 +169,7 @@ export function aElementos(filas: FilaRango[]): Elemento[] {
       cobroId: f.occurrence_id ?? null,
       categoria,
       anioNacimiento: categoria === 'birthday' && typeof f.birth_year === 'number' ? f.birth_year : null,
+      frecuencia: f.kind === 'payment' ? (frecuencias?.get(f.source_id) ?? null) : null,
     });
   }
   return ordenar(lista);
@@ -204,38 +213,53 @@ export function agruparPorDia(lista: Elemento[]): Record<string, Elemento[]> {
   return dias;
 }
 
-export const MAX_PUNTOS = 3;
+/** Glifos que caben en una celda del Mes; si hay más, se ven estos y un «+N» pequeño al lado. */
+export const MAX_PUNTOS = 4;
+
+/** ¿Es un cumpleaños? Va en la esquina de la celda y en la info extra de la lista del día, no entre los glifos. */
+export const esCumple = (e: Pick<Elemento, 'tipo' | 'categoria'>): boolean => e.tipo === 'event' && e.categoria === 'birthday';
 
 /**
- * Puntos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras), como
- * mucho 3 y un «+». Candado si hay un secreto (también de varios días).
+ * Glifos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras y los
+ * cumpleaños, en la esquina: `cumples`), como mucho 4. `restantes`: los glifos que no caben más las barras ocultas
+ * (`ocultos`, las que no cabían en los carriles); es el N del «+N». Con exactamente 4 elementos se ven los 4 y no
+ * hay «+N». Candado si hay un secreto (también de varios días).
  */
-export function puntosDelDia(lista: Elemento[]): { puntos: Elemento[]; mas: boolean; secreto: boolean } {
-  const sueltos = lista.filter((e) => !esVariosDias(e));
+export function puntosDelDia(
+  lista: Elemento[],
+  ocultos = 0,
+): { puntos: Elemento[]; restantes: number; secreto: boolean; cumples: number } {
+  const sueltos = lista.filter((e) => !esVariosDias(e) && !esCumple(e));
   return {
     puntos: sueltos.slice(0, MAX_PUNTOS),
-    mas: sueltos.length > MAX_PUNTOS,
+    restantes: Math.max(0, sueltos.length - MAX_PUNTOS) + Math.max(0, ocultos),
     secreto: lista.some((e) => e.secreto),
+    cumples: lista.filter(esCumple).length,
   };
 }
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /**
- * Qué hay en un día, para leerlo: «Viaje a Roma, día 2 de 5; 1 cumpleaños; 2 eventos; 1 pago». Los de varios
- * días van por su nombre; el resto, contados. Vacío si no hay nada.
+ * Qué hay en un día, para leerlo: «Viaje a Roma, día 2 de 5; 1 cumpleaños; 2 eventos; 1 pago recurrente». Los de
+ * varios días van por su nombre; el resto, contados (un pago, como único o recurrente si se sabe). Vacío si no hay nada.
  */
 export function resumenDia(lista: Elemento[]): string {
   const varios = lista.filter(esVariosDias).map((e) => `${e.titulo}, día ${e.diaN ?? 1} de ${totalDias(e)}`);
   const sueltos = lista.filter((e) => !esVariosDias(e));
   const cumples = sueltos.filter((e) => e.categoria === 'birthday').length;
-  const pagos = sueltos.filter((e) => e.tipo === 'payment').length;
-  const eventos = sueltos.length - cumples - pagos;
+  const pagos = sueltos.filter((e) => e.tipo === 'payment');
+  const unicos = pagos.filter((e) => e.frecuencia === 'once').length;
+  const recurrentes = pagos.filter((e) => e.frecuencia !== null && e.frecuencia !== 'once').length;
+  const sinDato = pagos.length - unicos - recurrentes;
+  const eventos = sueltos.length - cumples - pagos.length;
   return [
     ...varios,
     cumples ? plural(cumples, 'cumpleaños', 'cumpleaños') : '',
     eventos ? plural(eventos, 'evento', 'eventos') : '',
-    pagos ? plural(pagos, 'pago', 'pagos') : '',
+    unicos ? plural(unicos, 'pago único', 'pagos únicos') : '',
+    recurrentes ? plural(recurrentes, 'pago recurrente', 'pagos recurrentes') : '',
+    sinDato ? plural(sinDato, 'pago', 'pagos') : '',
   ]
     .filter(Boolean)
     .join('; ');
@@ -322,9 +346,13 @@ export function lineaElemento(e: Elemento, ctx: ContextoLinea): string {
     .join(' · ');
 }
 
+/** «Pago único», «Pago recurrente» o, si no se sabe, «Pago»: lo que dice el icono del pago. */
+export const textoTipoPago = (e: Pick<Elemento, 'frecuencia'>): string =>
+  e.frecuencia === 'once' ? 'Pago único' : e.frecuencia ? 'Pago recurrente' : 'Pago';
+
 /** Etiqueta de accesibilidad de una fila: título, línea, categoría y «Vais los dos» (el color no es lo único que lo dice). */
 export function etiquetaAccesible(e: Elemento, linea: string, ctx: ContextoLinea): string {
-  const tipo = e.tipo === 'payment' ? 'Pago' : e.secreto ? 'Secreto, solo tú' : INFO_CATEGORIA_EVENTO[e.categoria ?? 'other'].etiqueta;
+  const tipo = e.tipo === 'payment' ? textoTipoPago(e) : e.secreto ? 'Secreto, solo tú' : INFO_CATEGORIA_EVENTO[e.categoria ?? 'other'].etiqueta;
   const quien =
     e.tipo === 'event' && e.categoria !== 'birthday' && ctx.conPareja !== false && e.asistentes === 'both'
       ? textoAsistentes('both', ctx.yo, ctx.nombrePareja)
@@ -339,6 +367,8 @@ export type Seccion = {
   elementos: Elemento[];
   /** Texto cuando la sección no tiene nada. */
   vacio: string | null;
+  /** Info extra del día (cumpleaños y secretos): va al final de la lista, con un estilo más discreto. */
+  extra?: boolean;
 };
 
 export type Lista = {
@@ -351,9 +381,29 @@ export type Lista = {
 };
 
 /**
+ * Reparte lo de un día en lo normal (eventos y pagos) y la info extra (primero los cumpleaños y luego los
+ * secretos, un elemento solo una vez). Cada bloque conserva el orden de entrada (por hora y título).
+ */
+export function separarExtras(delDia: Elemento[]): { normales: Elemento[]; extras: Elemento[] } {
+  const cumples = delDia.filter(esCumple);
+  const secretos = delDia.filter((e) => e.secreto && !esCumple(e));
+  const extras = new Set<Elemento>([...cumples, ...secretos]);
+  return { normales: delDia.filter((e) => !extras.has(e)), extras: [...cumples, ...secretos] };
+}
+
+/** Título del bloque de info extra según lo que lleva: «Cumpleaños», «Secreto», «Cumpleaños y secretos»… */
+function tituloExtras(extras: Elemento[]): string {
+  const cumples = extras.some(esCumple);
+  const secretos = extras.filter((e) => !esCumple(e)).length;
+  const secreto = secretos > 1 ? 'secretos' : 'secreto';
+  return cumples ? (secretos ? `Cumpleaños y ${secreto}` : 'Cumpleaños') : mayuscula(secreto);
+}
+
+/**
  * Qué lista enseña la pantalla, o null si no toca ninguna. `elementos`: todo lo cargado (un elemento por
  * repetición, sin repartir por días), ya filtrado.
- * - Con un día seleccionado dentro del periodo: ese día (un viaje sale en cada día que dura).
+ * - Con un día seleccionado dentro del periodo: ese día (un viaje sale en cada día que dura). Los eventos y pagos
+ *   van primero y, al final, un bloque de info extra con los cumpleaños y los secretos (`separarExtras`).
  * - Semana sin día seleccionado: ninguna (la vista de la semana ya lo enseña todo), salvo «Nada esta semana».
  * - Mes: «Próximos» (de hoy a fin de mes si es el actual) o el mes entero («En diciembre»). Un viaje sale una
  *   sola vez, en su primer día dentro del mes, mientras no haya terminado.
@@ -371,12 +421,13 @@ export function construirLista(p: {
 
   if (seleccionado && mismoPeriodo(vista, ancla, seleccionado)) {
     const delDia = dias[seleccionado] ?? [];
-    return {
-      titulo: tituloDia(seleccionado),
-      conDia: false,
-      secciones: [{ clave: seleccionado, cabecera: null, elementos: delDia, vacio: null }],
-      vacio: delDia.length === 0 ? 'Nada este día' : null,
-    };
+    const { normales, extras } = separarExtras(delDia);
+    const secciones: Seccion[] = [];
+    if (normales.length > 0 || extras.length === 0) secciones.push({ clave: seleccionado, cabecera: null, elementos: normales, vacio: null });
+    if (extras.length > 0) {
+      secciones.push({ clave: `${seleccionado}:extra`, cabecera: tituloExtras(extras), elementos: extras, vacio: null, extra: true });
+    }
+    return { titulo: tituloDia(seleccionado), conDia: false, secciones, vacio: delDia.length === 0 ? 'Nada este día' : null };
   }
 
   if (vista === 'semana') {

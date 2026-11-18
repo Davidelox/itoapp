@@ -15,6 +15,7 @@ export function ListaDias({
   onPago,
   onEvento,
   onNuevo,
+  resaltado = null,
 }: {
   lista: Lista;
   hoy: string;
@@ -26,6 +27,8 @@ export function ListaDias({
   onEvento: (e: Elemento) => void;
   /** «Añadir evento» bajo el texto de lista vacía; sin él no sale (p. ej. con el filtro «Pagos»). */
   onNuevo?: () => void;
+  /** Id del evento o del pago cuya fila se resalta (el que se acaba de guardar). */
+  resaltado?: string | null;
 }) {
   return (
     <View style={styles.seccion}>
@@ -39,10 +42,15 @@ export function ListaDias({
             {onNuevo ? <BotonSecundario etiqueta="Añadir evento" onPress={onNuevo} /> : null}
           </View>
         ) : null}
-        {lista.secciones.map((s) => (
+        {lista.secciones.map((s, k) => (
           <View key={s.clave}>
+            {/* Info extra (cumpleaños y secretos): al final, tras una línea y con un estilo más discreto. */}
+            {s.extra && k > 0 ? <View style={styles.separadorExtra} /> : null}
             {s.cabecera ? (
-              <Text accessibilityRole="header" style={[styles.cabecera, s.clave === hoy && styles.cabeceraHoy]}>
+              <Text
+                accessibilityRole="header"
+                style={[styles.cabecera, s.extra && styles.cabeceraExtra, s.clave === hoy && styles.cabeceraHoy]}
+              >
                 {s.cabecera}
                 {s.clave === hoy ? ' · hoy' : ''}
               </Text>
@@ -59,6 +67,8 @@ export function ListaDias({
                   conDia={lista.conDia}
                   hoy={hoy}
                   separador={i < s.elementos.length - 1}
+                  discreta={s.extra}
+                  resaltada={resaltado !== null && e.origenId === resaltado}
                   onPress={() => (e.tipo === 'payment' ? onPago(e) : onEvento(e))}
                 />
               );
@@ -85,6 +95,8 @@ const styles = StyleSheet.create({
   vacioCaja: { gap: 12, paddingVertical: 16 },
   vacio: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   cabecera: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text, paddingTop: 12, paddingBottom: 2 },
+  separadorExtra: { height: 1, backgroundColor: colors.divider, marginTop: 4 },
+  cabeceraExtra: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.4, color: colors.textSecondary, paddingTop: 8, paddingBottom: 0 },
   cabeceraHoy: { color: colors.accent },
   nada: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, paddingBottom: 8 },
 });
