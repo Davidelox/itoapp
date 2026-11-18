@@ -28,6 +28,14 @@ export const colors = {
   paymentDot: '#B8901A',
   paymentChip: '#F8EDC4',
   paymentChipText: '#5C4A12',
+
+  // Calendario (docs/plan-calendario-v2.md §2.3): el pago es naranja y cuadrado, el cumpleaños fucsia con anillo.
+  pagoMarca: '#D2691E',
+  pagoChip: '#FBE3D0',
+  pagoChipTexto: '#7A3A0E',
+  cumpleMarca: '#C2185B',
+  cumpleChip: '#FADCE9',
+  cumpleChipTexto: '#8E1446',
 } as const;
 
 /** Colores pastel de persona: solo para avatares, chips y nombres; nunca para estados, botones ni textos de la app. */

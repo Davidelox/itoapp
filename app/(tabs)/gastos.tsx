@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TarjetasPendientes } from '@/components/inicio/TarjetasPendientes';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { HojaSaldar } from '@/components/gastos/HojaSaldar';
 import { TarjetaBote, TarjetaSaldo } from '@/components/gastos/TarjetaSaldo';
@@ -112,6 +113,7 @@ export default function Gastos() {
                 </Pressable>
               </View>
             ) : null}
+            <TarjetasPendientes compacta />
             <TarjetaSaldo saldo={saldo.data ?? null} pareja={pareja} onSaldar={() => setSaldando(true)} />
             {saldo.data && (saldo.data.pot_enabled || boteConPendiente(saldo.data)) ? <TarjetaBote saldo={saldo.data} onAbrir={() => router.push('/gastos/bote')} /> : null}
             <TarjetaRecurrentes onAbrir={() => router.push('/gastos/recurrentes')} />

@@ -1,0 +1,526 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { HojaDiaMes } from '@/components/calendario/HojaDiaMes';
+import { SelectorHora } from '@/components/calendario/SelectorHora';
+import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
+import { BotonFecha, SelectorFecha } from '@/components/gastos/SelectorFecha';
+import { BotonNudo } from '@/components/hilo/BotonNudo';
+import { BotonPrincipal } from '@/components/onboarding/Botones';
+import { MensajeError } from '@/components/onboarding/MensajeError';
+import { Segmentado } from '@/components/onboarding/OpcionRadio';
+import { colors, fonts, radius } from '@/constants/theme';
+import { crearEvento, editarEvento } from '@/lib/calendario/consultas';
+import {
+  type Asistentes,
+  CATEGORIAS_FORMULARIO,
+  type CategoriaEvento,
+  type Evento,
+  type Formulario,
+  MAX_DIAS_VARIOS,
+  MAX_TITULO,
+  REPETICIONES,
+  SIN_ERRORES,
+  aDatos,
+  aDatosNuevo,
+  avisosDisponibles,
+  conCategoria,
+  conDiaMes,
+  conFecha,
+  conFechaFin,
+  conSecreto,
+  conTipo,
+  conTodoElDia,
+  conVariosDias,
+  deEvento,
+  duracionDias,
+  formularioNuevo,
+  hayErrores,
+  motivoRepeticion,
+  preguntarTrasPresupuesto,
+  textoCumplira,
+  textoDuracion,
+  validar,
+} from '@/lib/calendario/evento';
+import { vaAlEvento } from '@/lib/calendario/quienPago';
+import { sumarDias } from '@/lib/calendario/rejilla';
+import { textoRepeticion } from '@/lib/calendario/repeticion';
+import { leerEuros } from '@/lib/dinero/importe';
+import { ErrorGasto, soloCambios } from '@/lib/gastos/consultas';
+import { MESES, deISO, fechaCorta, fechaLarga, hoyISO } from '@/lib/gastos/fechas';
+import { personas } from '@/lib/gastos/personas';
+import { useInvalidarGastos } from '@/lib/gastos/useGastos';
+import type { Pareja } from '@/lib/pareja/EstadoProvider';
+
+const PAUSA_NUDO_MS = 900;
+
+/** Qué se crea: un evento, un cumpleaños o un pago (este último abre el formulario de Pagos recurrentes). */
+export type TipoFormulario = 'evento' | 'cumple' | 'pago';
+
+type Props = {
+  pareja: Pareja;
+  /** Con un evento, el formulario edita (toda la serie si se repite); sin él, crea uno nuevo. */
+  inicial?: Evento;
+  /** Al crear: fecha de partida (la del día seleccionado en el calendario, también si es pasada). */
+  fechaInicial?: string;
+  /** Al crear: el tipo con el que se abre (lo sugiere el filtro del calendario). */
+  tipoInicial?: TipoFormulario;
+  /** Al crear un evento: la categoría con la que se abre (Viajes, Comer fuera u Ocio en el filtro). */
+  categoriaInicial?: CategoriaEvento;
+  alGuardarEdicion?: (enCurso: boolean) => void;
+};
+
+/** Nuevo o editar evento y cumpleaños (mockup NuevoEvento, docs/plan-calendario.md §2 y docs/plan-calendario-v2.md §2.4). */
+export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, alGuardarEdicion }: Props) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const invalidar = useInvalidarGastos();
+  const p = personas(pareja);
+  const yo = p.yo.slot;
+  const editando = !!inicial;
+  const hoy = hoyISO();
+
+  const [tipo, setTipo] = useState<TipoFormulario>(() => (inicial ? (inicial.category === 'birthday' ? 'cumple' : 'evento') : (tipoInicial ?? 'evento')));
+  const [f, setF] = useState<Formulario>(() =>
+    inicial
+      ? deEvento(inicial)
+      : formularioNuevo(fechaInicial ?? hoy, tipoInicial === 'cumple' ? 'birthday' : (categoriaInicial ?? 'other'), yo),
+  );
+  // Si se ha tocado «Varios días», elegir Viaje ya no lo activa solo.
+  const [variosTocado, setVariosTocado] = useState(editando);
+  const [diaMesAbierto, setDiaMesAbierto] = useState(false);
+  const cambiar = (parcial: Partial<Formulario>) => setF((x) => ({ ...x, ...parcial }));
+  // Lo que había en «¿Quién va?» antes de activar «Evento secreto», para volver a ello al desactivarlo.
+  const [asistentesAntes, setAsistentesAntes] = useState<Asistentes>('both');
+  // Si se ha tocado el interruptor de «¿Quién pagó?», ya no se activa solo al poner un presupuesto.
+  const [preguntarTocado, setPreguntarTocado] = useState(editando);
+  const [error, setError] = useState<string | null>(null);
+  const [intentado, setIntentado] = useState(false);
+  // Id del evento nuevo fijado al abrir: un reintento tras un fallo de red no lo duplica.
+  const [idNuevo] = useState(() => Crypto.randomUUID());
+
+  const tienePareja = !!p.otra;
+  const esCumple = tipo === 'cumple';
+  const conPresupuesto = leerEuros(f.presupuesto) !== null;
+  const repite = f.repeticion !== 'none';
+  const duracion = duracionDias(f);
+  const errores = validar(f, hoy);
+  const visibles = intentado ? errores : SIN_ERRORES;
+  // Repeticiones que no caben en un evento de varios días: salen desactivadas, con el motivo.
+  const sinRepeticion = REPETICIONES.map((r) => ({ valor: r.valor, motivo: motivoRepeticion(r.valor, duracion) })).filter((r) => r.motivo);
+  const cambiarTipo = (t: TipoFormulario) => {
+    setTipo(t);
+    if (t === 'cumple' && f.categoria !== 'birthday') setF((x) => conTipo(x, 'cumple', yo));
+    if (t === 'evento' && f.categoria === 'birthday') setF((x) => conTipo(x, 'evento', yo));
+  };
+
+  const ponerSecreto = (v: boolean) => {
+    if (v) setAsistentesAntes(f.asistentes);
+    setF((x) => conSecreto(x, v, yo, asistentesAntes));
+  };
+  const ponerPresupuesto = (texto: string) => {
+    const t = texto.replace(/[^0-9.,]/g, '');
+    setF((x) => ({ ...x, presupuesto: t, preguntarQuienPago: preguntarTrasPresupuesto(x.presupuesto, t, x.preguntarQuienPago, preguntarTocado) }));
+  };
+
+  const guardar = async () => {
+    setIntentado(true);
+    if (hayErrores(errores)) {
+      // El botón dice «No se ha podido guardar»; aquí, el porqué (el primer error).
+      setError(Object.values(errores).find((e) => e !== null) ?? null);
+      throw new Error('incompleto');
+    }
+    setError(null);
+    try {
+      if (inicial) {
+        // Solo lo que ha cambiado; el control de versión avisa si tu pareja lo tocó mientras tanto.
+        const cambios = soloCambios(inicial, aDatos(f, yo));
+        if (Object.keys(cambios).length > 0) {
+          alGuardarEdicion?.(true);
+          await editarEvento(inicial.id, inicial.version, cambios, p.nombrePareja);
+        }
+      } else {
+        await crearEvento(idNuevo, pareja.coupleId, aDatosNuevo(f, yo));
+      }
+    } catch (e) {
+      setError(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar. Inténtalo de nuevo.');
+      alGuardarEdicion?.(false);
+      throw e;
+    }
+  };
+
+  const alTerminar = () => {
+    invalidar();
+    const id = inicial?.id ?? idNuevo;
+    setTimeout(() => {
+      if (editando) router.back();
+      // Un cumpleaños no lleva fecha: el detalle enseña la próxima (la guardada es del año ancla 2000).
+      else router.replace({ pathname: '/calendario/evento/[id]', params: esCumple ? { id } : { id, fecha: f.fecha } });
+    }, PAUSA_NUDO_MS);
+  };
+
+  // Los pagos no se crean aquí: «Crear pago» abre el formulario de Pagos recurrentes con el día elegido
+  // (un pago no empieza en el pasado: si el día era pasado, hoy).
+  const crearPago = () => router.push({ pathname: '/gastos/recurrente/nuevo', params: { dia: f.fecha < hoy ? hoy : f.fecha } });
+
+  const avisos = avisosDisponibles(f.todoElDia || esCumple, f.aviso);
+  const quienVa: { valor: Asistentes; etiqueta: string }[] = [
+    { valor: 'both', etiqueta: 'Los dos' },
+    { valor: yo, etiqueta: 'Solo tú' },
+    { valor: yo === 'm1' ? 'm2' : 'm1', etiqueta: `Solo ${p.nombrePareja}` },
+  ];
+  const deParteDe: { valor: Asistentes; etiqueta: string }[] = [
+    { valor: yo, etiqueta: 'Tuya' },
+    { valor: yo === 'm1' ? 'm2' : 'm1', etiqueta: `De ${p.nombrePareja}` },
+    { valor: 'both', etiqueta: 'De los dos' },
+  ];
+  const ayudaCumple = esCumple ? textoCumplira(f, hoy) : null;
+
+  return (
+    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={() => router.back()} style={styles.cerrar}>
+          <Ionicons name="close" size={22} color={colors.text} />
+        </Pressable>
+        <Text accessibilityRole="header" style={styles.titulo}>
+          {editando ? (esCumple ? 'Editar cumpleaños' : 'Editar evento') : esCumple ? 'Nuevo cumpleaños' : 'Nuevo evento'}
+        </Text>
+        <View style={styles.cerrarHueco} />
+      </View>
+
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.contenido}>
+        {!editando ? (
+          <Grupo etiqueta="Tipo">
+            <Segmentado
+              etiqueta="Tipo"
+              opciones={[
+                { valor: 'evento', etiqueta: 'Evento' },
+                { valor: 'cumple', etiqueta: 'Cumpleaños' },
+                { valor: 'pago', etiqueta: 'Pago' },
+              ]}
+              valor={tipo}
+              onCambiar={cambiarTipo}
+            />
+            {tipo === 'pago' ? <Text style={styles.ayuda}>Los pagos se crean en Pagos recurrentes.</Text> : null}
+          </Grupo>
+        ) : null}
+
+        {tipo !== 'pago' ? (
+          <Grupo etiqueta={esCumple ? '¿Quién cumple?' : 'Título'}>
+            <TextInput
+              accessibilityLabel={esCumple ? '¿Quién cumple?' : 'Título'}
+              value={f.titulo}
+              onChangeText={(t) => cambiar({ titulo: t })}
+              maxLength={MAX_TITULO}
+              placeholder={esCumple ? 'Carmen, la madre de Meri…' : 'Cena, cine, cita, aniversario…'}
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="sentences"
+              returnKeyType="done"
+              style={styles.campo}
+            />
+            <MensajeError texto={visibles.titulo} />
+          </Grupo>
+        ) : null}
+
+        {tipo === 'evento' && !editando ? (
+          <Interruptor
+            titulo="Evento secreto"
+            ayuda="Solo lo verás tú. Ideal para sorpresas"
+            valor={f.secreto}
+            onCambiar={ponerSecreto}
+          />
+        ) : null}
+
+        {tipo === 'evento' ? (
+          <Grupo etiqueta="Categoría" rol="radiogroup">
+            <FilaChips>
+              {CATEGORIAS_FORMULARIO.map((c) => (
+                <Chip
+                  key={c.valor}
+                  rol="radio"
+                  etiqueta={c.etiqueta}
+                  icono={c.icono ?? undefined}
+                  activo={f.categoria === c.valor}
+                  onPress={() => setF((x) => conCategoria(x, c.valor, variosTocado))}
+                />
+              ))}
+            </FilaChips>
+          </Grupo>
+        ) : null}
+
+        {esCumple ? (
+          <>
+            <Grupo etiqueta="Día y mes">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Día y mes: ${f.dia} de ${MESES[f.mes - 1].toLowerCase()}`}
+                accessibilityHint="Abre el selector de día y mes"
+                onPress={() => setDiaMesAbierto(true)}
+                style={styles.boton}
+              >
+                <Ionicons name="gift-outline" size={20} color={colors.icon} />
+                <Text style={styles.botonTexto}>
+                  {f.dia} de {MESES[f.mes - 1].toLowerCase()}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+              </Pressable>
+              <HojaDiaMes
+                visible={diaMesAbierto}
+                dia={f.dia}
+                mes={f.mes}
+                onCambiar={(dia, mes) => setF((x) => conDiaMes(x, dia, mes))}
+                onCerrar={() => setDiaMesAbierto(false)}
+              />
+            </Grupo>
+
+            <Grupo etiqueta="Año de nacimiento (opcional)">
+              <TextInput
+                accessibilityLabel="Año de nacimiento"
+                value={f.anioNacimiento}
+                onChangeText={(t) => cambiar({ anioNacimiento: t.replace(/[^0-9]/g, '').slice(0, 4) })}
+                placeholder="1966"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                maxLength={4}
+                style={styles.campo}
+              />
+              {ayudaCumple && !visibles.anioNacimiento ? (
+                <Text style={styles.ayuda} accessibilityLiveRegion="polite">
+                  {ayudaCumple}
+                </Text>
+              ) : null}
+              <MensajeError texto={visibles.anioNacimiento} />
+            </Grupo>
+
+            {tienePareja ? (
+              <Grupo etiqueta="¿De parte de quién?" rol="radiogroup">
+                <FilaChips>
+                  {deParteDe.map((o) => (
+                    <Chip key={o.valor} rol="radio" etiqueta={o.etiqueta} activo={f.asistentes === o.valor} onPress={() => cambiar({ asistentes: o.valor })} />
+                  ))}
+                </FilaChips>
+              </Grupo>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Grupo etiqueta={tipo === 'pago' ? 'Día del primer cobro' : f.variosDias ? 'Desde' : 'Fecha'} rol="radiogroup">
+              <SelectorFecha valor={f.fecha} onCambiar={(fecha) => setF((x) => conFecha(x, fecha))} modo={tipo === 'pago' ? 'futuras' : 'todas'} />
+            </Grupo>
+
+            {tipo === 'evento' ? (
+              <>
+                <Interruptor
+                  titulo="Varios días"
+                  ayuda={f.variosDias ? 'De todo el día, hasta 31 días' : 'Un viaje, unas vacaciones…'}
+                  valor={f.variosDias}
+                  onCambiar={(v) => {
+                    setVariosTocado(true);
+                    setF((x) => conVariosDias(x, v));
+                  }}
+                />
+                {f.variosDias ? (
+                  <Grupo etiqueta="Hasta">
+                    <BotonFecha
+                      valor={f.fechaFin}
+                      texto={`${fechaCorta(f.fechaFin, deISO(hoy))} · ${textoDuracion(duracion)}`}
+                      etiqueta={`Hasta: ${fechaLarga(f.fechaFin, deISO(hoy))}, ${textoDuracion(duracion)}`}
+                      minimo={sumarDias(f.fecha, 1)}
+                      maximo={sumarDias(f.fecha, MAX_DIAS_VARIOS - 1)}
+                      rangoDesde={f.fecha}
+                      onCambiar={(fin) => setF((x) => conFechaFin(x, fin))}
+                    />
+                    <MensajeError texto={visibles.fecha} />
+                  </Grupo>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        )}
+
+        {tipo === 'evento' ? (
+          <>
+            {f.variosDias ? null : (
+              <Grupo etiqueta="Hora">
+                {f.todoElDia ? null : <SelectorHora valor={f.hora} onCambiar={(hora) => cambiar({ hora })} />}
+                <Interruptor
+                  titulo="Todo el día"
+                  ayuda={f.todoElDia ? 'Sin hora' : 'Con hora de inicio'}
+                  valor={f.todoElDia}
+                  onCambiar={(v) => setF((x) => conTodoElDia(x, v))}
+                />
+              </Grupo>
+            )}
+
+            <Grupo etiqueta="Repetir" rol="radiogroup">
+              <FilaChips>
+                {REPETICIONES.map((r) => {
+                  const motivo = motivoRepeticion(r.valor, duracion);
+                  return (
+                    <Chip
+                      key={r.valor}
+                      rol="radio"
+                      etiqueta={r.etiqueta}
+                      activo={f.repeticion === r.valor}
+                      deshabilitado={!!motivo}
+                      pista={motivo ?? undefined}
+                      onPress={() => cambiar({ repeticion: r.valor })}
+                    />
+                  );
+                })}
+              </FilaChips>
+              {sinRepeticion.length > 0 ? <Text style={styles.ayuda}>{sinRepeticion.map((r) => r.motivo).join('. ')}.</Text> : null}
+              {/* Sin esperar al intento de guardar: la repetición elegida ya no cabe en la duración. */}
+              <MensajeError texto={errores.repeticion} />
+              {repite ? (
+                <Text style={styles.ayuda} accessibilityLiveRegion="polite">
+                  {textoRepeticion(f.repeticion, f.fecha)}
+                  {editando ? '. Al editar se cambia toda la serie.' : ''}
+                </Text>
+              ) : null}
+            </Grupo>
+
+            {tienePareja ? (
+              <Grupo etiqueta="¿Quién va?" rol="radiogroup">
+                <FilaChips>
+                  {quienVa.map((o) => (
+                    <Chip key={o.valor} rol="radio" etiqueta={o.etiqueta} activo={f.asistentes === o.valor} onPress={() => cambiar({ asistentes: o.valor })} />
+                  ))}
+                </FilaChips>
+              </Grupo>
+            ) : null}
+
+            <Grupo etiqueta="Presupuesto (opcional)">
+              <View style={styles.importeFila}>
+                <TextInput
+                  accessibilityLabel="Presupuesto en euros"
+                  value={f.presupuesto}
+                  onChangeText={ponerPresupuesto}
+                  placeholder="0,00"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                  inputMode="decimal"
+                  style={[styles.campo, styles.importe]}
+                />
+                <Text style={styles.euro}>€</Text>
+              </View>
+              <MensajeError texto={visibles.presupuesto} />
+              {repite || !vaAlEvento(f.asistentes, yo) ? null : (
+                <Interruptor
+                  titulo="Preguntar «¿Quién pagó?» al terminar"
+                  ayuda={
+                    conPresupuesto
+                      ? 'Cuando pase, te preguntaremos quién pagó para guardar el gasto.'
+                      : 'Pon un presupuesto para activarlo.'
+                  }
+                  valor={conPresupuesto && f.preguntarQuienPago}
+                  deshabilitado={!conPresupuesto}
+                  onCambiar={(v) => {
+                    setPreguntarTocado(true);
+                    cambiar({ preguntarQuienPago: v });
+                  }}
+                />
+              )}
+            </Grupo>
+          </>
+        ) : null}
+
+        {tipo !== 'pago' ? (
+          <>
+            <Grupo etiqueta="Aviso" rol="radiogroup">
+              <FilaChips>
+                {avisos.map((a) => (
+                  <Chip key={a.etiqueta} rol="radio" etiqueta={a.etiqueta} activo={f.aviso === a.valor} onPress={() => cambiar({ aviso: a.valor })} />
+                ))}
+              </FilaChips>
+              <Text style={styles.ayuda}>Los avisos llegarán cuando ito tenga notificaciones.</Text>
+            </Grupo>
+
+            <Grupo etiqueta="Notas">
+              <TextInput
+                accessibilityLabel="Notas"
+                value={f.notas}
+                onChangeText={(t) => cambiar({ notas: t })}
+                maxLength={1000}
+                multiline
+                placeholder={esCumple ? 'Ideas de regalo, talla…' : 'Reserva, qué llevar…'}
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="sentences"
+                textAlignVertical="top"
+                style={[styles.campo, styles.notas]}
+              />
+            </Grupo>
+          </>
+        ) : null}
+
+        <MensajeError texto={error} />
+      </ScrollView>
+
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+        {tipo === 'pago' ? (
+          <BotonPrincipal etiqueta="Crear pago" onPress={crearPago} />
+        ) : (
+          <BotonNudo
+            label={editando ? 'Guardar cambios' : esCumple ? 'Guardar cumpleaños' : 'Guardar evento'}
+            labelHecho="Guardado"
+            labelError="No se ha podido guardar"
+            onPress={guardar}
+            onHecho={alTerminar}
+          />
+        )}
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  raiz: { flex: 1, backgroundColor: colors.background },
+  cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
+  cerrar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cerrarHueco: { width: 44 },
+  titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
+  contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
+  campo: {
+    height: 50,
+    paddingHorizontal: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.white,
+    fontFamily: fonts.body,
+    fontSize: 16,
+    color: colors.text,
+  },
+  notas: { height: undefined, minHeight: 96, paddingTop: 14, paddingBottom: 14 },
+  boton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 50,
+    paddingHorizontal: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.white,
+  },
+  botonTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
+  importeFila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  importe: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 18 },
+  euro: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.text },
+  ayuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
+  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
+});

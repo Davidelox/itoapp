@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { type ReactNode, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BarraPorcentaje, Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
+import { BarraPorcentaje, Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
 import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -17,7 +17,7 @@ import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categor
 import { type AjustesGastos, soloCambios } from '@/lib/gastos/consultas';
 import { type DatosRecurrente, crearRecurrente, editarRecurrente } from '@/lib/gastos/consultasRecurrentes';
 import { ErrorGasto } from '@/lib/gastos/error';
-import { deISO, hoyISO } from '@/lib/gastos/fechas';
+import { aISO, deISO, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { type Frecuencia, type Recurrente, esPersonal, fechaCobro, proximoCobro, textoFrecuencia } from '@/lib/gastos/recurrentes';
 import {
@@ -58,10 +58,12 @@ type Props = {
   alGuardarEdicion?: (enCurso: boolean) => void;
   /** Al crear desde la pestaña Personales, empieza como pago personal. */
   personalInicial?: boolean;
+  /** Al crear desde «Crear pago» del Calendario (`YYYY-MM-DD`): el día de cobro, el mes (anual) y la fecha (una vez) de partida. */
+  diaInicial?: string;
 };
 
 /** Nuevo o editar pago recurrente (mockup NuevoPago, docs/plan-gastos-fase4.md §2). */
-export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuardarEdicion, personalInicial = false }: Props) {
+export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuardarEdicion, personalInicial = false, diaInicial }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
@@ -85,9 +87,11 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
   const [variable, setVariable] = useState(inicial?.is_variable ?? false);
   const [categoria, setCategoria] = useState<Categoria>(inicial?.category ?? 'subscriptions');
   const [frecuencia, setFrecuencia] = useState<Frecuencia>(inicial?.frequency ?? 'monthly');
-  const [dia, setDia] = useState(inicial?.day_of_month ?? deISO(hoy).getDate());
-  const [mes, setMes] = useState(inicial?.month_of_year ?? deISO(hoy).getMonth() + 1);
-  const [fecha, setFecha] = useState(inicial?.frequency === 'once' ? inicial.start_date : hoy);
+  // Fecha de partida: la que llega de «Crear pago» (si es una fecha de verdad) o hoy; un cobro único no puede ser pasado.
+  const partida = diaInicial && aISO(deISO(diaInicial)) === diaInicial ? diaInicial : hoy;
+  const [dia, setDia] = useState(inicial?.day_of_month ?? deISO(partida).getDate());
+  const [mes, setMes] = useState(inicial?.month_of_year ?? deISO(partida).getMonth() + 1);
+  const [fecha, setFecha] = useState(inicial?.frequency === 'once' ? inicial.start_date : partida < hoy ? hoy : partida);
   // Personal: lo paga una persona y es solo suyo (sin «¿Quién paga?» ni «¿De quién es?»).
   const [personal, setPersonal] = useState(inicial ? esPersonal(inicial) : personalInicial);
   const [pagador, setPagador] = useState<Pagador>(
@@ -463,35 +467,6 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
         />
       </View>
     </KeyboardAvoidingView>
-  );
-}
-
-function Interruptor({
-  titulo,
-  ayuda,
-  valor,
-  onCambiar,
-}: {
-  titulo: string;
-  ayuda: string;
-  valor: boolean;
-  onCambiar: (v: boolean) => void;
-}) {
-  return (
-    <View style={styles.tarjeta}>
-      <View style={styles.flex}>
-        <Text style={styles.tarjetaTitulo}>{titulo}</Text>
-        <Text style={styles.ayuda}>{ayuda}</Text>
-      </View>
-      <Switch
-        accessibilityLabel={titulo}
-        value={valor}
-        onValueChange={onCambiar}
-        trackColor={{ true: colors.accent, false: '#CFC8BB' }}
-        thumbColor={colors.white}
-        {...{ activeThumbColor: colors.white }}
-      />
-    </View>
   );
 }
 

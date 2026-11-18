@@ -7,6 +7,7 @@ import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { IconoCategoria, textoPagador } from '@/components/gastos/FilaGasto';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { colors, fonts, radius } from '@/constants/theme';
+import { useEvento } from '@/lib/calendario/useCalendario';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { aISO, fechaLarga } from '@/lib/gastos/fechas';
@@ -167,6 +168,8 @@ export default function DetalleGasto() {
 
         <OrigenRecurrente cobroId={gasto.recurring_occurrence_id} />
 
+        <OrigenEvento eventoId={gasto.event_id} titulo={gasto.event_title_snapshot} />
+
         <BorrarGasto gasto={gasto} pareja={pareja} />
       </ScrollView>
     </View>
@@ -189,6 +192,38 @@ function OrigenRecurrente({ cobroId }: { cobroId: string | null }) {
       <Text style={styles.saldadoTexto}>De un pago recurrente: {r.name}</Text>
       <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
     </Pressable>
+  );
+}
+
+/**
+ * «Evento: Cena en Taberna», que abre el evento. Si ya no existe, o es un secreto que no ves (la consulta
+ * devuelve null), el título que guardó el servidor, como texto y sin enlace. El servidor no copia el título de
+ * un secreto en gastos compartidos: sin título guardado no se enseña nada (el gasto no revela el evento).
+ */
+function OrigenEvento({ eventoId, titulo }: { eventoId: string | null; titulo: string | null }) {
+  const router = useRouter();
+  const evento = useEvento(eventoId ?? undefined);
+  if (eventoId && evento.isLoading) return null;
+  if (evento.data) {
+    const id = evento.data.id;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: '/calendario/evento/[id]', params: { id } })}
+        style={styles.saldado}
+      >
+        <Ionicons name="calendar-outline" size={20} color={colors.icon} />
+        <Text style={styles.saldadoTexto}>Evento: {evento.data.title}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+      </Pressable>
+    );
+  }
+  if (!titulo) return null;
+  return (
+    <View style={styles.saldado} accessible>
+      <Ionicons name="calendar-outline" size={20} color={colors.icon} />
+      <Text style={styles.saldadoTexto}>Evento: {titulo}</Text>
+    </View>
   );
 }
 

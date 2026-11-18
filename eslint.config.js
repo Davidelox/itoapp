@@ -5,7 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'supabase/functions/*'],
+    ignores: ['dist/*', 'supabase/functions/*', '.expo/*'],
   },
   {
     // Nada de console en la app: los errores pasan por lib/registro.ts (docs/plan-onboarding.md §5.1).

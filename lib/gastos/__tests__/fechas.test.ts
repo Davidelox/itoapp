@@ -1,4 +1,4 @@
-import { aISO, ayerISO, deISO, fechaCorta, fechaLarga, fijarZonaHoraria, hoyISO, nombreMes } from '@/lib/gastos/fechas';
+import { aISO, ayerISO, deISO, fechaCorta, fechaLarga, fijarZonaHoraria, horaEnZona, hoyISO, nombreMes } from '@/lib/gastos/fechas';
 import { formatearEuros, formatearImporte, leerEuros } from '@/lib/dinero/importe';
 
 const ahora = new Date(2026, 10, 17, 10, 0); // martes 17 nov 2026
@@ -19,6 +19,17 @@ describe('fechas', () => {
   it('fecha larga y mes', () => {
     expect(fechaLarga('2026-11-07', ahora)).toBe('Sábado 7 nov');
     expect(nombreMes('2026-11-07')).toBe('Noviembre 2026');
+  });
+});
+
+describe('horaEnZona', () => {
+  afterEach(() => fijarZonaHoraria(null));
+  it('hora de pared de la pareja, no la del dispositivo', () => {
+    fijarZonaHoraria('Europe/Madrid');
+    expect(horaEnZona('2026-11-20T22:00:00Z')).toBe('23:00');
+    expect(horaEnZona(new Date('2026-07-20T22:30:00Z'))).toBe('00:30');
+    fijarZonaHoraria('Atlantic/Canary');
+    expect(horaEnZona('2026-11-20T22:00:00Z')).toBe('22:00');
   });
 });
 

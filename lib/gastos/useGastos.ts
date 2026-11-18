@@ -111,18 +111,27 @@ export function usePagoRechazado() {
   return useQuery({ queryKey: k('rechazado'), queryFn: () => leerPagoRechazado(userId as string), enabled: !!pareja && !!userId });
 }
 
+/** Mientras la app está en primer plano se vuelve a preguntar: «¿Quién pagó?» aparece por el paso del tiempo. */
+const REFRESCO_PENDIENTES_MS = 5 * 60_000;
+
 export function usePendientes() {
   const { pareja } = useEstado();
   const k = useClave();
-  return useQuery({ queryKey: k('pendientes'), queryFn: leerPendientes, enabled: !!pareja });
+  return useQuery({
+    queryKey: k('pendientes'),
+    queryFn: () => leerPendientes((pareja as NonNullable<typeof pareja>).yo.slot),
+    enabled: !!pareja,
+    refetchInterval: REFRESCO_PENDIENTES_MS,
+  });
 }
 
-export function useSolicitudBorrado(gastoId: string | undefined, tipo: TipoBorrable = 'expense') {
+/** `fecha`: solo para eventos repetidos, la repetición concreta; null = la solicitud de la serie (o del gasto, el pago…). */
+export function useSolicitudBorrado(gastoId: string | undefined, tipo: TipoBorrable = 'expense', fecha: string | null = null) {
   const { pareja } = useEstado();
   const k = useClave();
   return useQuery({
-    queryKey: k('solicitud', tipo, gastoId),
-    queryFn: () => leerSolicitudBorrado(gastoId as string, tipo),
+    queryKey: k('solicitud', tipo, gastoId, fecha ?? 'todo'),
+    queryFn: () => leerSolicitudBorrado(gastoId as string, tipo, fecha),
     enabled: !!pareja && !!gastoId,
   });
 }
@@ -175,7 +184,13 @@ export function useDatosAjustes() {
 export function useInvalidarGastos() {
   const cliente = useQueryClient();
   const { pareja } = useEstado();
-  return () => cliente.invalidateQueries({ queryKey: clave(pareja?.coupleId) });
+  return async (): Promise<void> => {
+    await Promise.all([
+      cliente.invalidateQueries({ queryKey: clave(pareja?.coupleId) }),
+      // El calendario también enseña pagos recurrentes y gastos: se recarga con lo demás.
+      cliente.invalidateQueries({ queryKey: ['calendario', pareja?.coupleId ?? 'ninguna'] }),
+    ]);
+  };
 }
 
 /**
@@ -216,6 +231,16 @@ export function useTiempoRealGastos() {
         invalidar();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      // Calendario: la RLS filtra por suscriptor (un evento secreto solo le llega a quien lo ve).
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_exceptions', filter: `couple_id=eq.${coupleId}` }, () => {
+        invalidar();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'plans', filter: `couple_id=eq.${coupleId}` }, () => {
         invalidar();
       })
       .subscribe((estado, error) => {

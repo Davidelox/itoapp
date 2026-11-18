@@ -98,6 +98,9 @@ function Navegacion() {
           <Stack.Screen name="gastos/recurrentes" />
           <Stack.Screen name="gastos/recurrente/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="gastos/recurrente/[id]" />
+          <Stack.Screen name="calendario/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="calendario/evento/[id]" />
+          <Stack.Screen name="calendario/editar/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="laboratorio/index" />
           {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
           <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />

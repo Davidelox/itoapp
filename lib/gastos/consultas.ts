@@ -15,13 +15,15 @@ import { leerPropuesta, type Propuesta } from '@/lib/ajustes/consultas';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { leerCobro } from '@/lib/gastos/consultasRecurrentes';
 import type { Cobro, Recurrente } from '@/lib/gastos/recurrentes';
+import { COLUMNAS_EVENTO, type Evento, type FilaEvento, type Hueco as HuecoEvento, aEvento } from '@/lib/calendario/evento';
+import { vaAlEvento } from '@/lib/calendario/quienPago';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 
 export { soloCambios };
 
 export const COLUMNAS =
-  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, version, created_at, liquidacion:settlements(id, status, method, created_at)';
+  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, event_id, event_title_snapshot, version, created_at, liquidacion:settlements(id, status, method, created_at)';
 
 export type Gasto = {
   id: string;
@@ -40,6 +42,10 @@ export type Gasto = {
   settlement_id: string | null;
   /** Cobro de un pago recurrente del que viene (fase 4), si lo hay. */
   recurring_occurrence_id: string | null;
+  /** Evento del calendario del que viene (la pregunta «¿Quién pagó?»), si lo hay y sigue existiendo. */
+  event_id: string | null;
+  /** Título del evento, guardado por el servidor al borrarlo (no en gastos compartidos de un secreto). */
+  event_title_snapshot: string | null;
   version: number;
   created_at: string;
   /** Pago que lo cubre (si lo hay). */
@@ -193,12 +199,14 @@ export type DatosGasto = {
   visible_to_partner: boolean;
   /** Solo al poner el importe de un cobro variable: enlaza el gasto con su cobro. */
   recurring_occurrence_id?: string;
+  /** Solo al apuntar «¿Quién pagó?» de un evento: el servidor cierra la pregunta al crear el gasto. */
+  event_id?: string;
 };
 
 export { ErrorGasto };
 
-/** Lo que se puede pedir borrar desde Gastos. */
-export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment';
+/** Lo que se puede pedir borrar (desde Gastos y desde el Calendario). */
+export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event';
 
 const MENSAJES: Record<string, string> = {
   TW020: 'Algo ha cambiado mientras tanto (un gasto se ha editado, saldado o pedido borrar). Revisa la lista.',
@@ -216,13 +224,24 @@ const MENSAJES: Record<string, string> = {
   TW012: 'El bote común ya no está activado. Elige quién pagó.',
   TW013: 'Solo quien apuntó el gasto puede cambiar su visibilidad.',
   TW014: 'La moneda del gasto no es la de vuestro espacio.',
+  // Eventos (calendario).
+  TW050: 'El evento no puede terminar antes de empezar. Revisa la fecha y la hora.',
+  TW051: 'Un evento compartido no se puede volver secreto.',
+  TW052: 'El rango de fechas del calendario no es válido.',
 };
 
-function traducir(contexto: string, error: unknown): ErrorGasto {
+/** Mensajes de TW060 cuando lo que se pide borrar es un evento (en gastos significa «este gasto ya no existe»). */
+const MENSAJES_EVENTO: Record<string, string> = {
+  TW060: 'Este evento ya no existe, o no ocurre ese día. Revisa el calendario.',
+};
+
+/** Error de Supabase → `ErrorGasto` con un mensaje listo para mostrar. `mensajes` pisa los generales. */
+export function traducir(contexto: string, error: unknown, mensajes?: Record<string, string>): ErrorGasto {
   registrarError(contexto, error);
   const codigo = (error as { code?: string } | null)?.code;
   if (esErrorDeRed(error)) return new ErrorGasto(SIN_CONEXION, 'red');
-  return new ErrorGasto((codigo && MENSAJES[codigo]) || 'No se ha podido guardar. Inténtalo de nuevo.', codigo);
+  const texto = codigo ? (mensajes?.[codigo] ?? MENSAJES[codigo]) : undefined;
+  return new ErrorGasto(texto || 'No se ha podido guardar. Inténtalo de nuevo.', codigo);
 }
 
 /** Alta idempotente: el id lo genera la app, así un reintento no duplica el gasto. */
@@ -339,34 +358,51 @@ export async function leerPagoRechazado(userId: string): Promise<Pago | null> {
   return (despues.data ?? []).length ? null : rechazado;
 }
 
-export type SolicitudBorrado = { id: string; target_id: string; requested_by: string | null; created_at: string; expires_at: string };
-const COLUMNAS_SOLICITUD = 'id, target_id, requested_by, created_at, expires_at';
+export type SolicitudBorrado = {
+  id: string;
+  target_id: string;
+  /** Solo en los eventos: la fecha concreta que se pide borrar. null = toda la serie (o el gasto, el pago…). */
+  occurrence_date: string | null;
+  requested_by: string | null;
+  created_at: string;
+  expires_at: string;
+};
+const COLUMNAS_SOLICITUD = 'id, target_id, occurrence_date, requested_by, created_at, expires_at';
 
-/** Solicitud de borrado pendiente y vigente de un gasto, si la hay. */
+/**
+ * Solicitud de borrado pendiente y vigente de un gasto (o evento, pago…), si la hay. `fecha`: la de un evento
+ * repetido; sin ella se busca la de toda la serie (una solicitud de «solo este día» no cuenta como esa).
+ */
 export async function leerSolicitudBorrado(
   gastoId: string,
   tipo: TipoBorrable = 'expense',
+  fecha: string | null = null,
 ): Promise<SolicitudBorrado | null> {
-  const { data, error } = await supabase
+  const q = supabase
     .from('deletion_requests')
     .select(COLUMNAS_SOLICITUD)
     .eq('target_type', tipo)
     .eq('target_id', gastoId)
     .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
+    .gt('expires_at', new Date().toISOString());
+  const { data, error } = await (fecha ? q.eq('occurrence_date', fecha) : q.is('occurrence_date', null)).maybeSingle();
   if (error) fallo('gastos.solicitudBorrado', error);
   return (data as SolicitudBorrado | null) ?? null;
 }
 
-/** Pide borrar (o borra al momento si es privado o estás sin pareja). Devuelve si ya se ha borrado. */
+/**
+ * Pide borrar (o borra al momento si es privado o estás sin pareja). Devuelve si ya se ha borrado.
+ * `fecha`: solo para un evento repetido («solo este día»); sin ella se borra todo.
+ */
 export async function pedirBorrar(
   id: string,
   gastoId: string,
   tipo: TipoBorrable = 'expense',
+  fecha?: string | null,
 ): Promise<{ borrado: boolean }> {
-  const { data, error } = await supabase.rpc('request_deletion', { p_id: id, p_type: tipo, p_target_id: gastoId });
-  if (error) throw traducir('gastos.pedirBorrar', error);
+  const params = { p_id: id, p_type: tipo, p_target_id: gastoId, ...(fecha ? { p_occurrence_date: fecha } : {}) };
+  const { data, error } = await supabase.rpc('request_deletion', params);
+  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : undefined);
   const estado = (data as { status?: string } | null)?.status;
   if (estado === 'deleted' || estado === 'approved') return { borrado: true };
   if (estado === 'pending') return { borrado: false };
@@ -388,6 +424,8 @@ export type Pendiente =
   | { tipo: 'pago'; id: string; pago: Pago }
   | { tipo: 'propuesta'; id: string; propuesta: Propuesta; actual: FilaAjustes }
   | { tipo: 'cobro'; id: string; cobro: Cobro; recurrente: Recurrente }
+  /** «¿Quién pagó {evento}?» (vista `pending_actions`, tipo `who_paid`; `id` es el del evento). */
+  | { tipo: 'quienPago'; id: string; evento: Evento }
   | {
       tipo: 'borrado';
       id: string;
@@ -396,27 +434,43 @@ export type Pendiente =
       gasto: Gasto | null;
       /** Si lo que se pide borrar es un movimiento del bote. */
       movimiento: Movimiento | null;
+      /** Qué se pide borrar. Con un evento, `fecha` es la repetición concreta (null = toda la serie). */
+      objetivo: TipoBorrable;
+      objetivoId: string;
+      fecha: string | null;
     };
 
-/** Tarjetas de Inicio (vista pending_actions): pagos por confirmar y borrados por aprobar. */
-export async function leerPendientes(): Promise<Pendiente[]> {
+const BORRABLES_EN_TARJETA: TipoBorrable[] = ['expense', 'pot_movement', 'event', 'recurring_payment'];
+
+/**
+ * Tarjetas de Inicio (vista pending_actions): pagos por confirmar, borrados por aprobar, cobros variables,
+ * cambios de ajustes y «¿Quién pagó?». `yo`: tu hueco; «¿Quién pagó?» solo se enseña a quien va al evento (la
+ * migración 20261120000000 también lo filtra en el servidor, pero hasta que se aplique lo hace el cliente).
+ */
+export async function leerPendientes(yo: HuecoEvento): Promise<Pendiente[]> {
   const { data, error } = await supabase
     .from('pending_actions')
     .select('kind, item_id, since, title')
-    .in('kind', ['confirm_settlement', 'approve_deletion', 'settings_proposal', 'variable_amount'])
+    .in('kind', ['confirm_settlement', 'approve_deletion', 'settings_proposal', 'variable_amount', 'who_paid'])
     .order('since', { ascending: false });
   if (error) fallo('gastos.pendientes', error);
   const filas = (data ?? []) as { kind: string; item_id: string; title: string | null }[];
   const idsPago = filas.filter((f) => f.kind === 'confirm_settlement').map((f) => f.item_id);
   const idsBorrado = filas.filter((f) => f.kind === 'approve_deletion').map((f) => f.item_id);
-  const [pagos, solicitudes] = await Promise.all([
+  const idsEvento = filas.filter((f) => f.kind === 'who_paid').map((f) => f.item_id);
+  const [pagos, solicitudes, eventos] = await Promise.all([
     idsPago.length ? supabase.from('settlements').select(COLUMNAS_PAGO).in('id', idsPago) : Promise.resolve({ data: [], error: null }),
     idsBorrado.length
       ? supabase.from('deletion_requests').select(`${COLUMNAS_SOLICITUD}, target_type`).in('id', idsBorrado)
       : Promise.resolve({ data: [], error: null }),
+    idsEvento.length
+      ? supabase.from('events').select(COLUMNAS_EVENTO).in('id', idsEvento)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (pagos.error) fallo('gastos.pendientesPagos', pagos.error);
   if (solicitudes.error) fallo('gastos.pendientesBorrados', solicitudes.error);
+  if (eventos.error) fallo('gastos.pendientesEventos', eventos.error);
+  const eventosPorId = new Map(((eventos.data ?? []) as unknown as FilaEvento[]).map((x) => [x.id, aEvento(x)]));
   const sols = (solicitudes.data ?? []) as (SolicitudBorrado & { target_type: string })[];
   const idsGasto = sols.filter((s) => s.target_type === 'expense').map((s) => s.target_id);
   const idsMov = sols.filter((s) => s.target_type === 'pot_movement').map((s) => s.target_id);
@@ -439,13 +493,16 @@ export async function leerPendientes(): Promise<Pendiente[]> {
     } else if (f.kind === 'variable_amount') {
       const c = await leerCobro(f.item_id);
       if (c) lista.push({ tipo: 'cobro', id: f.item_id, ...c });
+    } else if (f.kind === 'who_paid') {
+      const evento = eventosPorId.get(f.item_id);
+      if (evento && vaAlEvento(evento.attendees, yo)) lista.push({ tipo: 'quienPago', id: f.item_id, evento });
     } else if (f.kind === 'confirm_settlement') {
       const pago = pagosPorId.get(f.item_id);
       if (pago) lista.push({ tipo: 'pago', id: f.item_id, pago });
     } else {
       const solicitud = solsPorId.get(f.item_id);
-      // Por ahora gastos y movimientos del bote: sitios, eventos y planes llegarán con sus pestañas.
-      if (solicitud && (solicitud.target_type === 'expense' || solicitud.target_type === 'pot_movement')) {
+      // Gastos, movimientos del bote, eventos y pagos recurrentes: sitios y planes llegarán con sus pestañas.
+      if (solicitud && BORRABLES_EN_TARJETA.includes(solicitud.target_type as TipoBorrable)) {
         lista.push({
           tipo: 'borrado',
           id: f.item_id,
@@ -453,6 +510,9 @@ export async function leerPendientes(): Promise<Pendiente[]> {
           etiqueta: f.title ?? '',
           gasto: porId.get(solicitud.target_id) ?? null,
           movimiento: movPorId.get(solicitud.target_id) ?? null,
+          objetivo: solicitud.target_type as TipoBorrable,
+          objetivoId: solicitud.target_id,
+          fecha: solicitud.occurrence_date,
         });
       }
     }

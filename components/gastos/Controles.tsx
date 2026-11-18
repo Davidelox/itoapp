@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { ComponentProps, ReactNode } from 'react';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { colors, fonts, radius } from '@/constants/theme';
 
@@ -10,20 +10,31 @@ export function Chip({
   activo,
   onPress,
   rol = 'button',
+  icono,
+  deshabilitado = false,
+  pista,
 }: {
   etiqueta: string;
   activo: boolean;
   onPress: () => void;
   rol?: 'button' | 'radio';
+  /** Icono de Ionicons a la izquierda del texto. */
+  icono?: ComponentProps<typeof Ionicons>['name'];
+  /** No se puede elegir (atenuado). `pista` dice por qué a los lectores de pantalla. */
+  deshabilitado?: boolean;
+  pista?: string;
 }) {
   return (
     <Pressable
       accessibilityRole={rol}
       accessibilityLabel={etiqueta}
-      accessibilityState={rol === 'radio' ? { checked: activo } : { selected: activo }}
+      accessibilityHint={pista}
+      accessibilityState={rol === 'radio' ? { checked: activo, disabled: deshabilitado } : { selected: activo, disabled: deshabilitado }}
+      disabled={deshabilitado}
       onPress={onPress}
-      style={[styles.chip, activo ? styles.chipActivo : styles.chipNormal]}
+      style={[styles.chip, activo ? styles.chipActivo : styles.chipNormal, deshabilitado && styles.chipDeshabilitado]}
     >
+      {icono ? <Ionicons name={icono} size={15} color={activo ? colors.white : colors.text} /> : null}
       <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]}>{etiqueta}</Text>
     </Pressable>
   );
@@ -41,6 +52,40 @@ export function Grupo({ etiqueta, children, rol }: { etiqueta: string; children:
 
 export function FilaChips({ children }: { children: ReactNode }) {
   return <View style={styles.filaChips}>{children}</View>;
+}
+
+/** Tarjeta con título, una línea de ayuda y un interruptor (Evento secreto, Mostrar en el calendario…). */
+export function Interruptor({
+  titulo,
+  ayuda,
+  valor,
+  onCambiar,
+  deshabilitado = false,
+}: {
+  titulo: string;
+  ayuda: string;
+  valor: boolean;
+  onCambiar: (v: boolean) => void;
+  deshabilitado?: boolean;
+}) {
+  return (
+    <View style={styles.interruptor}>
+      <View style={styles.interruptorTextos}>
+        <Text style={styles.interruptorTitulo}>{titulo}</Text>
+        <Text style={styles.interruptorAyuda}>{ayuda}</Text>
+      </View>
+      <Switch
+        accessibilityLabel={titulo}
+        value={valor}
+        disabled={deshabilitado}
+        onValueChange={onCambiar}
+        trackColor={{ true: colors.accent, false: '#CFC8BB' }}
+        thumbColor={colors.white}
+        // En web la bolita usa activeThumbColor (react-native-web); en nativo basta thumbColor.
+        {...{ activeThumbColor: colors.white }}
+      />
+    </View>
+  );
 }
 
 /** Barra «Tú X % · Pareja Y %» con −/+ de 5 en 5 (del 0 al 100) e importes de cada uno. */
@@ -110,7 +155,24 @@ const styles = StyleSheet.create({
   grupo: { gap: 6 },
   grupoEtiqueta: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   filaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.full, justifyContent: 'center' },
+  interruptor: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingLeft: 16,
+    paddingRight: 10,
+    borderRadius: radius.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  interruptorTextos: { flex: 1, gap: 1 },
+  interruptorTitulo: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
+  interruptorAyuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  chipDeshabilitado: { opacity: 0.4 },
   chipNormal: { borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white },
   chipActivo: { backgroundColor: colors.text },
   chipTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },

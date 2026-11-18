@@ -8,13 +8,18 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
 import { textosCambios } from '@/lib/ajustes/ajustes';
 import { responderPropuesta } from '@/lib/ajustes/consultas';
+import { HojaQuienPago } from '@/components/calendario/HojaQuienPago';
 import { HojaImporte } from '@/components/gastos/HojaImporte';
+import { descartarQuienPago } from '@/lib/calendario/consultas';
+import { lineaQuienPago } from '@/lib/calendario/quienPago';
+import { fechaCorta } from '@/lib/gastos/fechas';
 import { saltarCobro } from '@/lib/gastos/consultasRecurrentes';
 import { importeRecurrente } from '@/lib/gastos/recurrentes';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, type Pendiente, responderBorrado, responderPago } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
-import { nombreMovimiento } from '@/lib/gastos/bote';
+import { contarPendientes, cosaBorrada, descripcionBorrado } from '@/lib/gastos/pendientes';
+import { RecuadroPendientes } from '@/components/inicio/RecuadroPendientes';
 import { COMO_METODO } from '@/lib/gastos/saldar';
 import { useInvalidarGastos, usePendientes } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
@@ -22,8 +27,11 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 const PAUSA_RESULTADO_MS = 1800;
 
-/** Sección «Pendiente» de Inicio (mockup Main): pagos por confirmar, borrados por aprobar y cambios de ajustes. */
-export function TarjetasPendientes() {
+/**
+ * Sección «Pendiente» (Inicio y Gastos): pagos por confirmar, borrados por aprobar (gastos, movimientos del bote, eventos y pagos recurrentes), cobros variables, cambios de ajustes y «¿Quién pagó?» de eventos.
+ * Con 2 o más avisos se agrupan en un recuadro que se despliega al tocarlo.
+ */
+export function TarjetasPendientes({ compacta = false }: { /** Sin margen superior grande (Gastos ya separa sus bloques). */ compacta?: boolean }) {
   const { pareja } = useEstado();
   const pendientes = usePendientes();
   // Al volver a Inicio se vuelve a preguntar: los avisos no dependen solo del tiempo real.
@@ -47,16 +55,28 @@ export function TarjetasPendientes() {
       PAUSA_RESULTADO_MS,
     );
   };
-  const lista = [...(pendientes.data ?? []).filter((p) => !resueltas.has(p.id)), ...[...resueltas.values()].map((r) => r.pendiente)];
+  // Plegado/desplegado del grupo: estado local, plegado por defecto; no se pliega solo al responder un aviso.
+  const [expandido, setExpandido] = useState(false);
+  const reales = (pendientes.data ?? []).filter((p) => !resueltas.has(p.id));
+  const lista = [...reales, ...[...resueltas.values()].map((r) => r.pendiente)];
   if (!pareja || lista.length === 0) return null;
+  const tarjetas = lista.map((p) => (
+    <Tarjeta key={p.id} pendiente={p} pareja={pareja} resultado={resueltas.get(p.id)?.texto ?? null} onResuelta={resolver} />
+  ));
+  // El conteo solo incluye los pendientes de verdad: con 1 (o solo respondidos) se muestran las tarjetas directamente.
+  const agrupar = contarPendientes(pendientes.data ?? [], new Set(resueltas.keys())) >= 2;
   return (
-    <View style={styles.seccion}>
+    <View style={[styles.seccion, compacta && styles.seccionCompacta]}>
       <Text accessibilityRole="header" style={styles.titulo}>
         PENDIENTE
       </Text>
-      {lista.map((p) => (
-        <Tarjeta key={p.id} pendiente={p} pareja={pareja} resultado={resueltas.get(p.id)?.texto ?? null} onResuelta={resolver} />
-      ))}
+      {agrupar ? (
+        <RecuadroPendientes avisos={reales} pareja={pareja} expandido={expandido} onAlternar={() => setExpandido((e) => !e)}>
+          {tarjetas}
+        </RecuadroPendientes>
+      ) : (
+        tarjetas
+      )}
     </View>
   );
 }
@@ -82,6 +102,7 @@ function Tarjeta({
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [poniendoImporte, setPoniendoImporte] = useState(false);
+  const [apuntando, setApuntando] = useState(false);
 
   const responder = async (f: () => Promise<void>, texto: string) => {
     setOcupado(true);
@@ -92,7 +113,7 @@ function Tarjeta({
       invalidar();
     } catch (e) {
       setError(e instanceof ErrorGasto ? e.message : 'No se ha podido completar. Inténtalo de nuevo.');
-      if (e instanceof ErrorGasto && ['TW021', 'TW062', 'TW030', 'TW032', 'TW081'].includes(e.codigo ?? '')) invalidar();
+      if (e instanceof ErrorGasto && ['TW021', 'TW062', 'TW030', 'TW032', 'TW081', 'TW060'].includes(e.codigo ?? '')) invalidar();
     } finally {
       setOcupado(false);
     }
@@ -130,6 +151,17 @@ function Tarjeta({
     si = { etiqueta: 'Poner importe', accion: () => setPoniendoImporte(true) };
     no = { etiqueta: 'Este mes no', accion: () => responder(() => saltarCobro(pendiente.id, true), 'Saltado este mes') };
     abrir = () => router.push({ pathname: '/gastos/recurrente/[id]', params: { id: r.id } });
+  } else if (pendiente.tipo === 'quienPago') {
+    const e = pendiente.evento;
+    texto = (
+      <>
+        ¿Quién pagó <Text style={styles.importe}>{e.title}</Text>?
+      </>
+    );
+    ayuda = lineaQuienPago(fechaCorta(e.start_date), e.budget_cents);
+    si = { etiqueta: 'Apuntar', accion: () => setApuntando(true) };
+    no = { etiqueta: 'No hubo gasto', accion: () => responder(() => descartarQuienPago(e.id), 'Sin gasto') };
+    abrir = () => router.push({ pathname: '/calendario/evento/[id]', params: { id: e.id } });
   } else if (pendiente.tipo === 'propuesta') {
     texto = (
       <>
@@ -145,39 +177,43 @@ function Tarjeta({
     };
     abrir = () => router.push('/ajustes');
   } else {
-    const g = pendiente.gasto;
-    const mov = pendiente.movimiento;
-    const que = g
-      ? `${g.concept} · ${formatearImporte(g.amount_cents)}`
-      : mov
-        ? `${nombreMovimiento(mov, p.yo.slot, p.nombrePareja)} · ${formatearImporte(mov.amount_cents)}`
-        : pendiente.etiqueta;
+    const que = descripcionBorrado(pendiente, p.yo.slot, p.nombrePareja);
     texto = (
       <>
         <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text> quiere borrar «{que}»
       </>
     );
     const dias = diasHasta(pendiente.solicitud.expires_at);
-    ayuda = `Caduca en ${dias} ${dias === 1 ? 'día' : 'días'}. Si no respondes, ${mov ? 'el movimiento' : 'el gasto'} se queda.`;
+    ayuda = `Caduca en ${dias} ${dias === 1 ? 'día' : 'días'}. Si no respondes, ${cosaBorrada(pendiente)} se queda.`;
     si = { etiqueta: 'Aprobar', accion: () => responder(() => responderBorrado(pendiente.id, true), 'Borrado') };
     no = {
       etiqueta: 'Rechazar',
       accion: () => responder(() => responderBorrado(pendiente.id, false), `Se queda · avisaremos a ${p.nombrePareja}`),
     };
-    abrir = () =>
-      g
-        ? router.push({ pathname: '/gastos/[id]', params: { id: g.id } })
-        : mov
-          ? router.push({ pathname: '/gastos/movimiento/[id]', params: { id: mov.id } })
-          : undefined;
+    abrir = () => {
+      const g = pendiente.gasto;
+      const mov = pendiente.movimiento;
+      if (pendiente.objetivo === 'event') {
+        router.push({
+          pathname: '/calendario/evento/[id]',
+          params: { id: pendiente.objetivoId, ...(pendiente.fecha ? { fecha: pendiente.fecha } : {}) },
+        });
+      } else if (pendiente.objetivo === 'recurring_payment') {
+        router.push({ pathname: '/gastos/recurrente/[id]', params: { id: pendiente.objetivoId } });
+      } else if (g) {
+        router.push({ pathname: '/gastos/[id]', params: { id: g.id } });
+      } else if (mov) {
+        router.push({ pathname: '/gastos/movimiento/[id]', params: { id: mov.id } });
+      }
+    };
   }
 
   return (
     <View style={styles.tarjeta}>
       <Pressable accessibilityRole="button" onPress={abrir} style={styles.cabecera}>
-        {pendiente.tipo === 'cobro' ? (
+        {pendiente.tipo === 'cobro' || pendiente.tipo === 'quienPago' ? (
           <View style={styles.icono}>
-            <Ionicons name="repeat-outline" size={18} color={colors.icon} />
+            <Ionicons name={pendiente.tipo === 'cobro' ? 'repeat-outline' : 'wallet-outline'} size={18} color={colors.icon} />
           </View>
         ) : (
           <AvatarPersona nombre={p.nombrePareja} color={p.otra?.color ?? null} avatarPath={p.otra?.avatarPath} tamano={32} />
@@ -230,12 +266,32 @@ function Tarjeta({
           }}
         />
       ) : null}
+      {apuntando && pendiente.tipo === 'quienPago' ? (
+        <HojaQuienPago
+          evento={{
+            id: pendiente.evento.id,
+            title: pendiente.evento.title,
+            budget_cents: pendiente.evento.budget_cents,
+            is_secret: pendiente.evento.is_secret,
+            fecha: pendiente.evento.start_date,
+            category: pendiente.evento.category,
+          }}
+          pareja={pareja}
+          modo="pregunta"
+          onCerrar={() => setApuntando(false)}
+          onHecho={(r) => {
+            setApuntando(false);
+            onResuelta(pendiente, r === 'gasto' ? 'Gasto apuntado' : 'Sin gasto');
+          }}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   seccion: { marginTop: 20, gap: 8 },
+  seccionCompacta: { marginTop: 0 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   tarjeta: {
     backgroundColor: colors.white,

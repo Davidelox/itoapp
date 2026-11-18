@@ -56,6 +56,31 @@ export function fechaEnZona(instante: Date): string {
 
 export const hoyISO = (ahora = new Date()) => fechaEnZona(ahora);
 
+let formatoHora: { zona: string; f: Intl.DateTimeFormat } | null = null;
+
+/** `HH:MM` de un instante en la zona de la pareja («23:00»); sin zona (o no soportada), la del dispositivo. */
+export function horaEnZona(instante: Date | string): string {
+  const d = typeof instante === 'string' ? new Date(instante) : instante;
+  if (zonaPareja) {
+    try {
+      if (!formatoHora || formatoHora.zona !== zonaPareja) {
+        formatoHora = {
+          zona: zonaPareja,
+          f: new Intl.DateTimeFormat('en-US', { timeZone: zonaPareja, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+        };
+      }
+      const partes = formatoHora.f.formatToParts(d);
+      const v = (t: string) => partes.find((x) => x.type === t)?.value;
+      const h = v('hour');
+      const m = v('minute');
+      if (h && m) return `${h === '24' ? '00' : h}:${m}`;
+    } catch {
+      // Zona no soportada: la del dispositivo.
+    }
+  }
+  return `${dos(d.getHours())}:${dos(d.getMinutes())}`;
+}
+
 export function ayerISO(ahora = new Date()) {
   const hoy = deISO(hoyISO(ahora));
   return aISO(new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1));

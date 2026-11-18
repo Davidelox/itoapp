@@ -9,7 +9,7 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 export default function NuevoRecurrente() {
   const { pareja } = useEstado();
   const ajustes = useAjustesGastos();
-  const { tipo } = useLocalSearchParams<{ tipo?: string }>();
+  const { tipo, dia } = useLocalSearchParams<{ tipo?: string; dia?: string }>();
   if (!pareja || !ajustes.data) {
     return (
       <View style={styles.cargando}>
@@ -17,7 +17,7 @@ export default function NuevoRecurrente() {
       </View>
     );
   }
-  return <FormularioRecurrente pareja={pareja} ajustes={ajustes.data} personalInicial={tipo === 'personal'} />;
+  return <FormularioRecurrente pareja={pareja} ajustes={ajustes.data} personalInicial={tipo === 'personal'} diaInicial={dia} />;
 }
 
 const styles = StyleSheet.create({
