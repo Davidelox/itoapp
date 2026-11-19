@@ -14,6 +14,13 @@ export const colors = {
   textSecondary: '#625C5A',
   icon: '#4F4946',
 
+  /** Tinte cálido de los fines de semana en la rejilla del Mes (docs/plan-cabeceras-calendario.md §5). */
+  finde: '#FAF6EE',
+  /** Fondo gris cálido de los días de otros meses en la rejilla del Mes (por encima del tinte de fin de semana). */
+  fueraDeMes: '#F2F0EC',
+  /** Número de los días de otros meses: más suave que el secundario, ≥ 4,5:1 sobre blanco, `finde` y `fueraDeMes`. */
+  diaAtenuado: '#6B6460',
+
   border: '#E6E1D6',
   divider: '#EEEAE1',
   inputBorder: '#DED8CC',

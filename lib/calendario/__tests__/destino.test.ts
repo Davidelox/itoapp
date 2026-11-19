@@ -29,6 +29,7 @@ const base: Elemento = {
   categoria: 'eating_out',
   anioNacimiento: null,
   frecuencia: null,
+  duenoSolo: null,
 };
 
 describe('origenDe', () => {
@@ -68,23 +69,24 @@ describe('leerObjetivo', () => {
 });
 
 describe('filtroParaVer', () => {
-  it('mantiene el filtro si deja pasar el elemento', () => {
-    expect(filtroParaVer('todos', base)).toBe('todos');
-    expect(filtroParaVer('eating_out', base)).toBe('eating_out');
-    expect(filtroParaVer('event', base)).toBe('event');
+  const pago: Elemento = { ...base, tipo: 'payment', categoria: null };
+  it('sin filtros se queda sin filtros', () => {
+    expect(filtroParaVer([], base)).toEqual([]);
   });
-  it('cambia a «Todos» si el filtro lo oculta', () => {
-    expect(filtroParaVer('payment', base)).toBe('todos');
-    expect(filtroParaVer('trip', base)).toBe('todos');
-    expect(filtroParaVer('birthday', base)).toBe('todos');
-    expect(filtroParaVer('event', { ...base, categoria: 'birthday' })).toBe('todos');
-    expect(filtroParaVer('event', { ...base, tipo: 'payment', categoria: null })).toBe('todos');
+  it('mantiene los filtros si dejan pasar el elemento', () => {
+    expect(filtroParaVer(['eating_out'], base)).toEqual(['eating_out']);
+    expect(filtroParaVer(['trip', 'eating_out'], base)).toEqual(['trip', 'eating_out']);
+    expect(filtroParaVer(['payment'], pago)).toEqual(['payment']);
   });
-  it('un pago pasa el filtro «Pagos»', () => {
-    expect(filtroParaVer('payment', { ...base, tipo: 'payment', categoria: null })).toBe('payment');
+  it('si lo ocultan, AÑADE su opción (no sustituye) en el orden del menú', () => {
+    expect(filtroParaVer(['payment'], base)).toEqual(['eating_out', 'payment']);
+    expect(filtroParaVer(['trip'], base)).toEqual(['trip', 'eating_out']);
+    expect(filtroParaVer(['birthday'], { ...base, categoria: 'leisure' })).toEqual(['leisure', 'birthday']);
+    expect(filtroParaVer(['trip', 'birthday'], pago)).toEqual(['trip', 'birthday', 'payment']);
+    expect(filtroParaVer(['trip'], { ...base, categoria: null })).toEqual(['trip', 'other']);
   });
-  it('sin elemento no toca el filtro', () => {
-    expect(filtroParaVer('payment', undefined)).toBe('payment');
+  it('sin elemento no toca los filtros', () => {
+    expect(filtroParaVer(['payment'], undefined)).toEqual(['payment']);
   });
 });
 

@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { textoPagador } from '@/components/gastos/FilaGasto';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
@@ -64,7 +65,7 @@ export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
   );
 
   if (!pareja || abiertos.isLoading) {
-    return envolver(<ActivityIndicator color={colors.accent} style={{ marginVertical: 40 }} />);
+    return envolver(<CargandoHilo color={colors.accent} style={{ marginVertical: 40 }} />);
   }
 
   const p = personas(pareja);

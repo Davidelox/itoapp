@@ -1,7 +1,8 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput } from 'react-native';
+import { StyleSheet, Text, TextInput } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { ControlesReparto } from '@/components/gastos/ControlesReparto';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -58,7 +59,7 @@ export function HojaQuienPago(props: Props) {
         {ajustes.isError ? (
           <Text style={styles.ayuda}>No se han podido cargar los ajustes. Cierra e inténtalo de nuevo.</Text>
         ) : (
-          <ActivityIndicator color={colors.accent} />
+          <CargandoHilo color={colors.accent} />
         )}
       </Hoja>
     );

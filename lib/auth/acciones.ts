@@ -11,10 +11,10 @@ export const normalizarEmail = (email: string) => email.trim().toLowerCase();
 
 export const emailValido = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizarEmail(email));
 
-/** Misma política que el servidor: 10 a 72 bytes (límite de bcrypt), con letras y números. */
+/** Misma política que el servidor: 8 a 72 bytes (límite de bcrypt), con letras y números. */
 export function contrasenaValida(password: string): boolean {
   const bytes = new TextEncoder().encode(password).length;
-  return password.length >= 10 && bytes <= 72 && /\p{L}/u.test(password) && /\d/.test(password);
+  return password.length >= 8 && bytes <= 72 && /\p{L}/u.test(password) && /\d/.test(password);
 }
 
 const fallo = (contexto: string, error: unknown): Resultado => {

@@ -160,7 +160,7 @@ describe('lineaSemana', () => {
   it('pago: la etiqueta dice «Pago único» o «Pago recurrente» según el recurrente de origen', () => {
     const fp = fila({ kind: 'payment', source_id: 'n', title: 'Netflix', status: 'scheduled' });
     const frecuencia = (f: 'once' | 'monthly' | 'yearly') => {
-      const f1 = filasSemana(DIAS, aElementos([fp], new Map([['n', f]])), opciones).filas.find((x) => x.iso === '2026-12-14')!;
+      const f1 = filasSemana(DIAS, aElementos([fp], new Map([['n', { frecuencia: f, duenoSolo: null }]])), opciones).filas.find((x) => x.iso === '2026-12-14')!;
       return lineaSemana(f1.lineas[0], ctx).etiqueta;
     };
     expect(frecuencia('once')).toBe('Pago único, Netflix');

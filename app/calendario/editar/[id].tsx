@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioEvento } from '@/components/calendario/FormularioEvento';
 import { colors, fonts, radius } from '@/constants/theme';
 import type { Evento } from '@/lib/calendario/evento';
@@ -28,7 +29,7 @@ export default function EditarEvento() {
   if (!pareja || (evento.isLoading && !copia)) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

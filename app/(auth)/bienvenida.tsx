@@ -58,7 +58,9 @@ export default function Bienvenida() {
 const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
-  logo: { fontFamily: fonts.brand, fontSize: 96, lineHeight: 110, color: colors.accent },
+  // Damion es cursiva: el trazo de la «o» sobresale de la caja medida del Text y iOS lo recorta. El relleno
+  // simétrico ensancha la caja sin descentrar el logo.
+  logo: { fontFamily: fonts.brand, fontSize: 96, lineHeight: 110, color: colors.accent, paddingHorizontal: 16 },
   lema: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   descripcion: {
     fontFamily: fonts.body,

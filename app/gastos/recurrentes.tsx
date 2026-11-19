@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, radius } from '@/constants/theme';
@@ -52,7 +53,7 @@ export default function Recurrentes() {
     return (
       <View style={styles.raiz}>
         {cabecera}
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        <CargandoHilo size="large" color={colors.accent} style={{ marginTop: 40 }} />
       </View>
     );
   }

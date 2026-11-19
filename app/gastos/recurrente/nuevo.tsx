@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioRecurrente } from '@/components/gastos/FormularioRecurrente';
 import { colors } from '@/constants/theme';
 import { origenDe } from '@/lib/calendario/destino';
@@ -15,7 +16,7 @@ export default function NuevoRecurrente() {
   if (!pareja || !ajustes.data) {
     return (
       <View style={styles.cargando}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

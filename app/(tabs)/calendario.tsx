@@ -1,21 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
+import Animated, { Extrapolation, FadeIn, interpolate, useAnimatedRef, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
-import { FiltrosTipo } from '@/components/calendario/FiltrosTipo';
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
+import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
+import { BarraPeriodo } from '@/components/calendario/BarraPeriodo';
 import { ListaDias } from '@/components/calendario/ListaDias';
 import { RejillaMes } from '@/components/calendario/RejillaMes';
 import { SemanaDetallada } from '@/components/calendario/SemanaDetallada';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts } from '@/constants/theme';
-import { type Elemento, type Filtro, agruparPorDia, aElementos, construirLista, filtrar } from '@/lib/calendario/agrupar';
+import { type Elemento, type Filtros, agruparPorDia, aElementos, construirLista, filtrar, infoPagos } from '@/lib/calendario/agrupar';
 import { coloresDeHuecos } from '@/lib/calendario/colores';
 import { gastoDeCobro } from '@/lib/calendario/consultas';
+import { DESPLAZAMIENTO_SALIDA, decidirDeslizamiento } from '@/lib/calendario/deslizar';
 import { type Objetivo, filtroParaVer, leerObjetivo } from '@/lib/calendario/destino';
-import { type Vista, etiquetaPeriodo, mismoPeriodo, mover, rangoVisible, semanaDe, semanasDelMes } from '@/lib/calendario/rejilla';
+import { sugerenciaNuevo } from '@/lib/calendario/filtros';
+import { type Vista, mismoPeriodo, mover, rangoVisible, semanaDe, semanasDelMes } from '@/lib/calendario/rejilla';
+import { dentroDeLimites, direccionSalto } from '@/lib/calendario/selectorMes';
 import { useBorradosPendientes, useCalendario } from '@/lib/calendario/useCalendario';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
@@ -24,17 +30,19 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Cuánto se ve resaltada la fila del evento o pago recién guardado. */
 const RESALTADO_MS = 2500;
+/** Tras arrastrar la rejilla, los toques se ignoran este rato (en web el `click` puede llegar al soltar). */
+const IGNORAR_TOQUE_MS = 250;
 
 /** Pestaña Calendario (mockup «Agenda», docs/plan-calendario.md §2): ver, abrir un evento o un pago y añadir eventos. */
 export default function Calendario() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { onScroll, sombra } = useScrollCabecera();
   const { pareja } = useEstado();
   const hoy = hoyISO();
   const [vista, setVista] = useState<Vista>('mes');
   // Un día cualquiera del periodo que se ve (el mes o la semana que lo contiene).
   const [ancla, setAncla] = useState(hoy);
-  const [filtro, setFiltro] = useState<Filtro>('todos');
+  const [filtros, setFiltros] = useState<Filtros>([]);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [abriendo, setAbriendo] = useState(false);
   // Al volver de guardar un evento o un pago llegan `?dia=YYYY-MM-DD&evento=<id>` (en un pago, el id del recurrente):
@@ -43,7 +51,7 @@ export default function Calendario() {
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
   const [resaltado, setResaltado] = useState<string | null>(null);
   // Al seleccionar un día en la Semana, la pantalla baja hasta su lista (y_lista: dónde empieza, de `onLayout`).
-  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const yLista = useRef(0);
   // Hay que bajar a la lista en cuanto se mida (el día seleccionado acaba de aparecer y su lista aún no está pintada).
   const bajarPendiente = useRef(false);
@@ -86,12 +94,12 @@ export default function Calendario() {
   }, [diaRuta, eventoRuta, router]);
 
   // 2) Con los datos de ese periodo ya cargados (no los del periodo anterior, ni a medio recargar) se busca el elemento:
-  // si el filtro lo ocultara, pasa a «Todos», y se resalta. Si no aparece, el día queda seleccionado y nada más.
+  // si los filtros lo ocultaran, se añade su opción, y se resalta. Si no aparece, el día queda seleccionado y nada más.
   if (objetivo && consulta.data && !consulta.isFetching && !consulta.isPlaceholderData) {
     const elemento = objetivo.evento ? aElementos(consulta.data).find((e) => e.origenId === objetivo.evento) : undefined;
     setObjetivo(null);
     if (elemento) {
-      setFiltro(filtroParaVer(filtro, elemento));
+      setFiltros(filtroParaVer(filtros, elemento));
       setResaltado(elemento.origenId);
     }
   }
@@ -105,7 +113,87 @@ export default function Calendario() {
       clearTimeout(baja);
       clearTimeout(apaga);
     };
-  }, [resaltado]);
+  }, [resaltado, scrollRef]);
+
+  // Deslizar la rejilla para cambiar de periodo (docs/plan-cabeceras-calendario.md §4). `x` es lo que se ha movido la
+  // rejilla (en el hilo de UI); `entrada` dice hacia dónde ha cambiado el periodo (-1 / 1) para que el nuevo entre
+  // deslizando desde ese lado; `ultimoArrastre`, cuándo acabó el último arrastre (para ignorar el toque que lo suelta).
+  const x = useSharedValue(0);
+  const anchoRejilla = useSharedValue(375);
+  const entrada = useRef(0);
+  const ultimoArrastre = useRef(0);
+  // 1 mientras el gesto de deslizar está activo: las celdas y filas apagan su feedback de pulsación al instante.
+  const arrastre = useSharedValue(0);
+  const reducida = useReducedMotion();
+  const ir = (n: number) => {
+    const nueva = mover(vista, ancla, n);
+    // Se para en los límites del selector (2000–2100): ni las flechas ni el gesto llevan más allá.
+    // Si el gesto ya había sacado la rejilla, `x` vuelve a 0 (el periodo no cambia, así que nada más la recolocaría).
+    if (!dentroDeLimites(nueva)) {
+      x.set(withTiming(0, { duration: 160 }));
+      return;
+    }
+    entrada.current = n;
+    setAncla(nueva);
+    setSeleccionado(null);
+  };
+  // Salto desde el desplegable del periodo: entra desde el lado del que viene (o sin movimiento si es el mismo).
+  const saltarA = (nueva: string) => {
+    entrada.current = direccionSalto(vista, ancla, nueva);
+    setAncla(nueva);
+    setSeleccionado(null);
+  };
+  const marcarArrastre = () => {
+    ultimoArrastre.current = Date.now();
+  };
+  const cambiarPorGesto = (d: number) => {
+    marcarArrastre();
+    ir(d);
+  };
+  const arrastrando = () => Date.now() - ultimoArrastre.current < IGNORAR_TOQUE_MS;
+  const deslizar = usePanGesture({
+    activeOffsetX: [-16, 16],
+    failOffsetY: [-12, 12],
+    onActivate: () => {
+      'worklet';
+      arrastre.set(1);
+      scheduleOnRN(marcarArrastre);
+    },
+    onUpdate: (e) => {
+      'worklet';
+      x.set(e.translationX * 0.35);
+    },
+    onDeactivate: (e) => {
+      'worklet';
+      arrastre.set(0);
+      scheduleOnRN(marcarArrastre);
+      const d = e.canceled ? 0 : decidirDeslizamiento(e.translationX, e.velocityX, anchoRejilla.get());
+      if (d === 0) {
+        x.set(withTiming(0, { duration: 160 }));
+        return;
+      }
+      // Sale hacia el lado del gesto y, ya fuera, cambia el periodo: la nueva rejilla entra desde el lado contrario.
+      x.set(
+        withTiming(-d * DESPLAZAMIENTO_SALIDA, { duration: 110 }, (fin) => {
+          if (fin) scheduleOnRN(cambiarPorGesto, d);
+        }),
+      );
+    },
+  });
+  // El periodo nuevo se pinta ya con el valor de salida y se desliza hasta su sitio. En `useLayoutEffect` para que
+  // el cambio llegue después de pintar el periodo nuevo (sin un fotograma del viejo entrando). Escribe un valor
+  // compartido, no estado.
+  useLayoutEffect(() => {
+    const d = entrada.current;
+    if (!d) return;
+    entrada.current = 0;
+    x.set(d * DESPLAZAMIENTO_SALIDA);
+    x.set(withTiming(0, { duration: 180 }));
+  }, [vista, ancla, x]);
+  const estiloRejilla = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.get() }],
+    opacity: interpolate(Math.abs(x.get()), [0, DESPLAZAMIENTO_SALIDA], [1, 0.25], Extrapolation.CLAMP),
+  }));
 
   if (!pareja) return null;
   const p = personas(pareja);
@@ -115,11 +203,10 @@ export default function Calendario() {
     recargarBorrados();
   };
 
-  // `calendar_range` no dice si un pago es único o recurrente: sale de la lista de recurrentes.
-  const frecuencias = new Map((recurrentes.data ?? []).map((r) => [r.id, r.frequency]));
-  const elementos = filtrar(aElementos(consulta.data ?? [], frecuencias), filtro);
+  // `calendar_range` no dice si un pago es único o recurrente, ni si es en solitario: sale de la lista de recurrentes.
+  const elementos = filtrar(aElementos(consulta.data ?? [], infoPagos(recurrentes.data ?? [])), filtros);
   const porDia = agruparPorDia(elementos);
-  const lista = construirLista({ vista, ancla, seleccionado, hoy, elementos, filtro });
+  const lista = construirLista({ vista, ancla, seleccionado, hoy, elementos, filtros });
   const colores = coloresDeHuecos(pareja);
   const contexto = {
     yo: p.yo.slot,
@@ -129,10 +216,6 @@ export default function Calendario() {
     pendientesDeBorrar: borrados.data,
   };
 
-  const ir = (n: number) => {
-    setAncla(mover(vista, ancla, n));
-    setSeleccionado(null);
-  };
   const irAHoy = () => {
     setAncla(hoy);
     setSeleccionado(null);
@@ -143,6 +226,7 @@ export default function Calendario() {
     if (seleccionado) setAncla(seleccionado);
   };
   const tocarDia = (iso: string) => {
+    if (arrastrando()) return;
     if (iso === seleccionado) {
       bajarPendiente.current = false;
       setSeleccionado(null);
@@ -150,7 +234,8 @@ export default function Calendario() {
     }
     setSeleccionado(iso);
     // Un día de otro mes cambia de mes.
-    if (vista === 'mes' && iso.slice(0, 7) !== ancla.slice(0, 7)) setAncla(iso);
+    // (los días grises de fuera de los límites, dic 1999 o ene 2101, se seleccionan pero no cambian de mes).
+    if (vista === 'mes' && iso.slice(0, 7) !== ancla.slice(0, 7) && dentroDeLimites(iso)) setAncla(iso);
     // En la Semana la lista del día sale debajo de las 7 filas y la pantalla baja hasta ella: ya medida (había otro
     // día seleccionado), al momento; si no, en cuanto se pinte y mida (`onLayout` de la lista).
     if (vista === 'semana') {
@@ -159,20 +244,22 @@ export default function Calendario() {
     }
   };
 
-  // «Añadir evento»: con el día seleccionado, también si es pasado (si no, hoy); y el filtro activo elige el
+  // «Añadir evento»: con el día seleccionado, también si es pasado (si no, hoy); y un único filtro activo elige el
   // tipo: Cumpleaños → cumpleaños, Pagos → pago, Viajes / Comer fuera / Ocio → un evento de esa categoría.
   const nuevoEvento = () => {
     const params: Record<string, string> = {};
     if (seleccionado) params.fecha = seleccionado;
-    if (filtro === 'birthday') params.tipo = 'cumple';
-    else if (filtro === 'payment') params.tipo = 'pago';
-    else if (filtro === 'trip' || filtro === 'eating_out' || filtro === 'leisure') params.categoria = filtro;
+    Object.assign(params, sugerenciaNuevo(filtros));
     router.push({ pathname: '/calendario/nuevo', params });
   };
   // La repetición se identifica por su INICIO, no por el día que se ha tocado: un viaje repartido por sus días
   // abre su detalle con la fecha en que empieza, o el servidor rechazaría «solo esta vez» (TW060).
   const abrirEvento = (e: Elemento) => router.push({ pathname: '/calendario/evento/[id]', params: { id: e.origenId, fecha: e.inicio } });
-  const abrirLinea = (e: Elemento) => (e.tipo === 'payment' ? abrirPago(e) : abrirEvento(e));
+  const abrirLinea = (e: Elemento) => {
+    if (arrastrando()) return;
+    if (e.tipo === 'payment') abrirPago(e);
+    else abrirEvento(e);
+  };
 
   // Pago cobrado → su gasto; previsto o pendiente (o si el gasto no se ve) → el recurrente.
   const abrirPago = async (e: Elemento) => {
@@ -189,47 +276,36 @@ export default function Calendario() {
 
   const cargando = consulta.isLoading || consulta.isPlaceholderData;
   const enPeriodoActual = mismoPeriodo(vista, ancla, hoy);
+  // Con solo «Pagos» no se puede añadir un evento desde la lista.
+  const soloPagos = filtros.length === 1 && filtros[0] === 'payment';
 
   return (
     <View style={styles.raiz}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.contenido, { paddingTop: insets.top + 16 }]}
-        refreshControl={<RefreshControl refreshing={consulta.isRefetching} onRefresh={recargar} tintColor={colors.accent} />}
-      >
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Calendario
-        </Text>
-
-        <View style={styles.periodo}>
-          <View style={styles.navegacion}>
-            <Pressable accessibilityRole="button" accessibilityLabel={vista === 'mes' ? 'Mes anterior' : 'Semana anterior'} onPress={() => ir(-1)} style={styles.flecha}>
-              <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
-            </Pressable>
-            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={styles.etiqueta} numberOfLines={1}>
-              {etiquetaPeriodo(vista, ancla, Number(hoy.slice(0, 4)))}
-            </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={vista === 'mes' ? 'Mes siguiente' : 'Semana siguiente'} onPress={() => ir(1)} style={styles.flecha}>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </Pressable>
-          </View>
-          {enPeriodoActual ? null : (
-            <Pressable accessibilityRole="button" accessibilityLabel={vista === 'mes' ? 'Ir al mes actual' : 'Ir a la semana actual'} onPress={irAHoy} style={styles.hoy}>
+      <CabeceraPestana
+        titulo="Calendario"
+        sombra={sombra}
+        accion={
+          enPeriodoActual ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={vista === 'mes' ? 'Ir al mes actual' : 'Ir a la semana actual'}
+              onPress={irAHoy}
+              hitSlop={4}
+              style={styles.hoy}
+            >
               <Text style={styles.hoyTexto}>Hoy</Text>
             </Pressable>
-          )}
-        </View>
-
-        <Segmentado
-          etiqueta="Vista del calendario"
-          opciones={[
-            { valor: 'mes', etiqueta: 'Mes' },
-            { valor: 'semana', etiqueta: 'Semana' },
-          ]}
-          valor={vista}
-          onCambiar={cambiarVista}
-        />
-        <FiltrosTipo valor={filtro} onCambiar={setFiltro} />
+          )
+        }
+      />
+      <Animated.ScrollView
+        ref={scrollRef}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.contenido}
+        refreshControl={<RefreshControl refreshing={consulta.isRefetching} onRefresh={recargar} tintColor={colors.accent} />}
+      >
+        <BarraPeriodo vista={vista} ancla={ancla} hoy={hoy} filtros={filtros} onVista={cambiarVista} onMover={ir} onSaltar={saltarA} onFiltros={setFiltros} />
 
         {consulta.isError && !consulta.data ? (
           <View style={styles.error}>
@@ -237,34 +313,41 @@ export default function Calendario() {
             <BotonSecundario etiqueta="Reintentar" onPress={recargar} />
           </View>
         ) : consulta.isLoading ? (
-          <ActivityIndicator color={colors.accent} style={styles.cargando} />
+          <CargandoHilo color={colors.accent} style={styles.cargando} />
         ) : (
           <>
-            {vista === 'mes' ? (
-              <RejillaMes
-                semanas={semanasDelMes(ancla)}
-                mes={ancla.slice(0, 7)}
-                hoy={hoy}
-                seleccionado={seleccionado}
-                porDia={porDia}
-                elementos={elementos}
-                colores={colores}
-                onDia={tocarDia}
-              />
-            ) : (
-              <SemanaDetallada
-                dias={semanaDe(ancla)}
-                hoy={hoy}
-                seleccionado={seleccionado}
-                elementos={elementos}
-                colores={colores}
-                contexto={contexto}
-                onDia={tocarDia}
-                onLinea={abrirLinea}
-              />
-            )}
+            {/* `touchAction` (solo web táctil): sin él RNGH pone `touch-action: none` y no se podría hacer scroll vertical sobre la rejilla. */}
+            <GestureDetector gesture={deslizar} touchAction="pan-y">
+              <Animated.View style={estiloRejilla} onLayout={(ev) => anchoRejilla.set(ev.nativeEvent.layout.width)}>
+                {vista === 'mes' ? (
+                  <RejillaMes
+                    semanas={semanasDelMes(ancla)}
+                    mes={ancla.slice(0, 7)}
+                    hoy={hoy}
+                    seleccionado={seleccionado}
+                    porDia={porDia}
+                    elementos={elementos}
+                    colores={colores}
+                    arrastre={arrastre}
+                    onDia={tocarDia}
+                  />
+                ) : (
+                  <SemanaDetallada
+                    dias={semanaDe(ancla)}
+                    hoy={hoy}
+                    seleccionado={seleccionado}
+                    elementos={elementos}
+                    colores={colores}
+                    contexto={contexto}
+                    arrastre={arrastre}
+                    onDia={tocarDia}
+                    onLinea={abrirLinea}
+                  />
+                )}
+              </Animated.View>
+            </GestureDetector>
             {cargando ? (
-              <ActivityIndicator color={colors.accent} style={styles.cargando} />
+              <CargandoHilo color={colors.accent} style={styles.cargando} />
             ) : lista ? (
               <View
                 onLayout={(ev) => {
@@ -275,21 +358,24 @@ export default function Calendario() {
                   }
                 }}
               >
-                <ListaDias
-                  lista={lista}
-                  hoy={hoy}
-                  contexto={contexto}
-                  colores={colores}
-                  onPago={abrirPago}
-                  onEvento={abrirEvento}
-                  onNuevo={filtro === 'payment' ? undefined : nuevoEvento}
-                  resaltado={resaltado}
-                />
+                {/* Al elegir otro día (o volver al periodo) la lista entra con un fundido. */}
+                <Animated.View key={seleccionado ?? 'periodo'} entering={reducida ? undefined : FadeIn.duration(180)}>
+                  <ListaDias
+                    lista={lista}
+                    hoy={hoy}
+                    contexto={contexto}
+                    colores={colores}
+                    onPago={abrirPago}
+                    onEvento={abrirEvento}
+                    onNuevo={soloPagos ? undefined : nuevoEvento}
+                    resaltado={resaltado}
+                  />
+                </Animated.View>
               </View>
             ) : null}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <Pressable
         accessibilityRole="button"
@@ -305,14 +391,9 @@ export default function Calendario() {
 
 const styles = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: colors.background },
-  contenido: { paddingHorizontal: 20, paddingBottom: 120, gap: 12 },
-  titulo: { fontFamily: fonts.title, fontSize: 30, color: colors.text, marginBottom: 4 },
-  periodo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
-  navegacion: { flexDirection: 'row', alignItems: 'center', marginLeft: -12, flexShrink: 1 },
-  flecha: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  etiqueta: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text, flexShrink: 1 },
+  contenido: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120, gap: 12 },
   hoy: {
-    minHeight: 44,
+    minHeight: 36,
     paddingHorizontal: 16,
     borderRadius: 999,
     borderWidth: 1.5,
@@ -321,6 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hoyTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
+  // En web, que arrastrar con el ratón no seleccione texto.
   cargando: { marginTop: 24 },
   error: { alignItems: 'center', gap: 8, paddingVertical: 32, paddingHorizontal: 12 },
   mas: {

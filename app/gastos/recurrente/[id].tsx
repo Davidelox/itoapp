@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { FormularioRecurrente } from '@/components/gastos/FormularioRecurrente';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -41,7 +42,7 @@ export default function EditarRecurrente() {
   if (!pareja || ajustes.isLoading || (consulta.isLoading && !copia)) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

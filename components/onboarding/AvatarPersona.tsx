@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
 import { useUrlAvatar } from '@/lib/avatar';
 
@@ -42,7 +43,7 @@ export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44
       )}
       {cargando && (
         <View style={styles.velo}>
-          <ActivityIndicator color={colors.white} />
+          <CargandoHilo color={colors.white} />
         </View>
       )}
     </View>

@@ -13,7 +13,7 @@ export default function Screen() {
   const { pareja } = useEstado();
   const sinPareja = useDatosAjustes().data?.sinPareja;
   return (
-    <PlaceholderScreen title="Inicio" accion={<AvataresCabecera />}>
+    <PlaceholderScreen title="Inicio" accion={<AvataresCabecera />} proximamente={false}>
       <TarjetasPendientes />
       {pareja && pareja.otra === null && sinPareja?.estado !== 'borrada' ? (
         <View style={styles.aviso}>

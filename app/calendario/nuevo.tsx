@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioEvento, type TipoFormulario } from '@/components/calendario/FormularioEvento';
 import { colors } from '@/constants/theme';
 import type { CategoriaEvento } from '@/lib/calendario/evento';
@@ -20,7 +21,7 @@ export default function NuevoEvento() {
   if (!pareja) {
     return (
       <View style={styles.cargando}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { colors } from '@/constants/theme';
@@ -27,16 +28,19 @@ export default function RootLayout() {
     DMSans_700Bold,
   });
 
+  // GestureHandlerRootView: los gestos (deslizar el calendario para cambiar de periodo) lo necesitan en la raíz.
   return (
-    <SesionProvider>
-      <QueryProvider>
-        <FlujoCuentaProvider>
-          <EstadoProvider>
-            <Raiz fuentesListas={fontsLoaded || !!fontError} />
-          </EstadoProvider>
-        </FlujoCuentaProvider>
-      </QueryProvider>
-    </SesionProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SesionProvider>
+        <QueryProvider>
+          <FlujoCuentaProvider>
+            <EstadoProvider>
+              <Raiz fuentesListas={fontsLoaded || !!fontError} />
+            </EstadoProvider>
+          </FlujoCuentaProvider>
+        </QueryProvider>
+      </SesionProvider>
+    </GestureHandlerRootView>
   );
 }
 

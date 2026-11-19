@@ -1,12 +1,13 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { colors } from '@/constants/theme';
 
 /** Se muestra un instante al entrar, mientras se lee el espacio de la pareja. */
 export default function Cargando() {
   return (
-    <View style={styles.centro} accessibilityLabel="Cargando" accessibilityRole="progressbar">
-      <ActivityIndicator color={colors.accent} />
+    <View style={styles.centro}>
+      <CargandoHilo size="large" color={colors.accent} />
     </View>
   );
 }

@@ -1,5 +1,6 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioGasto } from '@/components/gastos/FormularioGasto';
 import { colors } from '@/constants/theme';
 import { useAjustesGastos } from '@/lib/gastos/useGastos';
@@ -11,7 +12,7 @@ export default function NuevoGasto() {
   if (!pareja || !ajustes.data) {
     return (
       <View style={styles.cargando}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

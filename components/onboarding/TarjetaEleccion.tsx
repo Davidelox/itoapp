@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { colors, fonts, radius } from '@/constants/theme';
 
 type Props = {
@@ -35,7 +36,7 @@ export function TarjetaEleccion({ icono, titulo, detalle, onPress, principal = f
           <Text style={styles.detalle}>{detalle}</Text>
         </View>
         {cargando ? (
-          <ActivityIndicator color={colors.textSecondary} />
+          <CargandoHilo color={colors.textSecondary} />
         ) : (
           <Ionicons name="chevron-forward" size={22} color={colors.textSecondary} />
         )}

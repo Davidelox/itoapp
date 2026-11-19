@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
@@ -48,7 +49,7 @@ export default function DetalleMovimiento() {
     return (
       <View style={styles.raiz}>
         {cabecera}
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        <CargandoHilo size="large" color={colors.accent} style={{ marginTop: 40 }} />
       </View>
     );
   }

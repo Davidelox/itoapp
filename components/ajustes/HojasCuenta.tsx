@@ -187,7 +187,7 @@ export function HojaContrasena({ onCerrar }: { onCerrar: () => void }) {
         etiqueta="Contraseña nueva"
         value={password}
         onChangeText={setPassword}
-        ayuda="Al menos 10 caracteres, con letras y números."
+        ayuda="Al menos 8 caracteres, con letras y números."
         contrasena
         autoCapitalize="none"
         autoCorrect={false}

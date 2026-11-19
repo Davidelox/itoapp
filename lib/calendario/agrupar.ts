@@ -39,7 +39,7 @@ import {
 import { formatearImporte } from '@/lib/dinero/importe';
 import { MESES } from '@/lib/gastos/fechas';
 import type { Frecuencia, Recurrente } from '@/lib/gastos/recurrentes';
-import { textoQuien } from '@/lib/gastos/recurrentes';
+import { esPersonal, textoQuien } from '@/lib/gastos/recurrentes';
 import type { Hueco } from '@/lib/gastos/reparto';
 
 /** Fila tal como la devuelve `calendar_range` (lo marcado como opcional puede faltar en un servidor sin migrar). */
@@ -64,8 +64,10 @@ export type FilaRango = {
 };
 
 export type Tipo = 'event' | 'payment';
-/** Un filtro a la vez. «event» = todos los eventos menos los cumpleaños; «Otros» no tiene chip (va en Eventos). */
-export type Filtro = 'todos' | 'event' | 'trip' | 'eating_out' | 'leisure' | 'birthday' | 'payment';
+/** Una opción del menú de filtros: opciones que no se solapan y que juntas lo cubren todo («other» = el resto de eventos). */
+export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'other' | 'birthday' | 'payment';
+/** Filtros activos en el orden de `OPCIONES_FILTRO`; vacío = todo. Semántica O entre los elegidos. */
+export type Filtros = readonly Filtro[];
 export type EstadoPago = 'scheduled' | 'pending' | 'paid';
 
 export type Elemento = {
@@ -104,7 +106,22 @@ export type Elemento = {
    * eventos, o los recurrentes aún sin cargar). `calendar_range` no la devuelve: la pone `aElementos` desde la lista de recurrentes.
    */
   frecuencia: Frecuencia | null;
+  /**
+   * Pagos: de quién es el pago si es en solitario (lo paga y es solo de una persona, `esPersonal`); null si es
+   * compartido, del bote o no se sabe. Lo pone `aElementos` desde la lista de recurrentes.
+   */
+  duenoSolo: Hueco | null;
 };
+
+/** Lo que `calendar_range` no dice de un pago y sale de su recurrente de origen. */
+export type InfoPago = { frecuencia: Frecuencia; duenoSolo: Hueco | null };
+
+/** Mapa recurrente → `InfoPago` para `aElementos`: frecuencia y, si es en solitario, de quién es. */
+export function infoPagos(recurrentes: Pick<Recurrente, 'id' | 'frequency' | 'split_mode' | 'paid_by'>[]): Map<string, InfoPago> {
+  return new Map(
+    recurrentes.map((r) => [r.id, { frecuencia: r.frequency, duenoSolo: esPersonal(r) && r.paid_by !== 'pot' ? r.paid_by : null }]),
+  );
+}
 
 const REPETICIONES: Repeticion[] = ['none', 'weekly', 'monthly', 'yearly'];
 const ESTADOS: EstadoPago[] = ['scheduled', 'pending', 'paid'];
@@ -138,9 +155,9 @@ export function ordenar(lista: Elemento[]): Elemento[] {
 
 /**
  * Filas del servidor → elementos. Los planes (`kind = 'plan'`) no se muestran todavía: se descartan.
- * `frecuencias`: la frecuencia de cada pago recurrente por su id (`calendar_range` no la trae).
+ * `pagos`: la frecuencia y el dueño en solitario de cada pago recurrente por su id (`calendar_range` no los trae).
  */
-export function aElementos(filas: FilaRango[], frecuencias?: ReadonlyMap<string, Frecuencia>): Elemento[] {
+export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoPago>): Elemento[] {
   const lista: Elemento[] = [];
   for (const f of filas) {
     if (f.kind !== 'event' && f.kind !== 'payment') continue;
@@ -169,24 +186,25 @@ export function aElementos(filas: FilaRango[], frecuencias?: ReadonlyMap<string,
       cobroId: f.occurrence_id ?? null,
       categoria,
       anioNacimiento: categoria === 'birthday' && typeof f.birth_year === 'number' ? f.birth_year : null,
-      frecuencia: f.kind === 'payment' ? (frecuencias?.get(f.source_id) ?? null) : null,
+      frecuencia: f.kind === 'payment' ? (pagos?.get(f.source_id)?.frecuencia ?? null) : null,
+      duenoSolo: f.kind === 'payment' ? (pagos?.get(f.source_id)?.duenoSolo ?? null) : null,
     });
   }
   return ordenar(lista);
 }
 
-/** Qué elementos pasan un filtro. «Eventos» no incluye cumpleaños; cada categoría es solo la suya. */
-export function filtrar(lista: Elemento[], filtro: Filtro): Elemento[] {
-  switch (filtro) {
-    case 'todos':
-      return lista;
-    case 'payment':
-      return lista.filter((e) => e.tipo === 'payment');
-    case 'event':
-      return lista.filter((e) => e.tipo === 'event' && e.categoria !== 'birthday');
-    default:
-      return lista.filter((e) => e.tipo === 'event' && e.categoria === filtro);
-  }
+const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'birthday']);
+
+/** A qué opción pertenece un elemento: un pago, «Pagos»; un evento, su categoría (desconocida o sin ella, «Otros»). */
+export function claveFiltro(e: Pick<Elemento, 'tipo' | 'categoria'>): Filtro {
+  if (e.tipo === 'payment') return 'payment';
+  return e.categoria && CATEGORIAS_FILTRO.has(e.categoria) ? (e.categoria as Filtro) : 'other';
+}
+
+/** Qué elementos pasan los filtros: los de cualquiera de las opciones elegidas; sin ninguna, todos. */
+export function filtrar(lista: Elemento[], filtros: Filtros): Elemento[] {
+  if (filtros.length === 0) return lista;
+  return lista.filter((e) => filtros.includes(claveFiltro(e)));
 }
 
 /** Lo máximo que se reparte un evento (el servidor ya limita a 31 días): por si llegara algo raro. */
@@ -414,9 +432,9 @@ export function construirLista(p: {
   seleccionado: string | null;
   hoy: string;
   elementos: Elemento[];
-  filtro: Filtro;
+  filtros: Filtros;
 }): Lista | null {
-  const { vista, ancla, seleccionado, hoy, elementos, filtro } = p;
+  const { vista, ancla, seleccionado, hoy, elementos, filtros } = p;
   const dias = agruparPorDia(elementos);
 
   if (seleccionado && mismoPeriodo(vista, ancla, seleccionado)) {
@@ -460,7 +478,7 @@ export function construirLista(p: {
         ? null
         : delMes.length > 0
           ? 'No queda nada este mes'
-          : filtro === 'todos'
+          : filtros.length === 0
             ? 'Aún no hay nada en el calendario'
             : 'Nada de este tipo este mes',
   };

@@ -154,7 +154,7 @@ type Resultado = { ok: true } | { ok: false; mensaje: string; reintentarEn?: num
 | `email_not_confirmed` | Lleva a Verificar: «Confirma tu email para entrar. Te enviamos un código.» Solo aparece con la contraseña correcta, así que no delata nada (comprobarlo en el paso 4). |
 | Registro con un email que ya existe | Supabase no da error con la confirmación activa (devuelve un usuario sin `identities`). La app actúa **igual que con un email nuevo**: «Revisa tu correo. Si el email no tenía cuenta, te hemos enviado un código.» y un enlace «¿Ya tienes cuenta? Entra». |
 | Recuperación | Siempre «Si hay una cuenta con ese email, te llegará un código.» |
-| `weak_password` | «Tu contraseña necesita al menos 10 caracteres, con letras y números.» |
+| `weak_password` | «Tu contraseña necesita al menos 8 caracteres, con letras y números.» |
 | `otp_expired`, código no válido | «El código no es válido o ha caducado. Pide uno nuevo.» |
 | 429, `over_email_send_rate_limit`, `over_request_rate_limit` | «Has hecho demasiados intentos. Espera unos minutos.» |
 | Error de red | «No hay conexión. Inténtalo de nuevo.» |
@@ -162,7 +162,7 @@ type Resultado = { ok: true } | { ok: false; mensaje: string; reintentarEn?: num
 
 ### 3.4 Contraseña y límites de intentos
 
-- **Política en el servidor** (panel, §7): mínimo 10 caracteres, con letras y números. El cliente valida lo mismo antes de enviar: de 10 a 72 caracteres (bcrypt no admite más de 72 bytes).
+- **Política en el servidor** (panel, §7): mínimo 8 caracteres, con letras y números. El cliente valida lo mismo antes de enviar: de 8 a 72 caracteres (bcrypt no admite más de 72 bytes).
 - Un solo campo con «Mostrar / Ocultar». No se bloquea pegar, para que funcionen los gestores de contraseñas. `textContentType` y `autoComplete`: `username` y `email` en el email; `newPassword` y `new-password` al crear la cuenta; `password` al entrar.
 - **Límites reales en el servidor** (Authentication → Rate Limits): inicios de sesión y registros por IP, verificaciones de código por IP y envío de emails. Con 6 cifras y el límite por defecto de verificaciones (del orden de 30 cada 5 minutos por IP), acertar un código en su hora de vida tiene una probabilidad del 0,04 %.
 - **En el cliente**, solo para la experiencia: tras 5 fallos seguidos al entrar, el botón se bloquea 30 s con cuenta atrás. «Reenviar código» se bloquea 60 s, como el servidor.
@@ -408,7 +408,7 @@ Siempre en segunda persona, con los colores de la especificación §3 y los patr
 | Pantalla | Contenido y textos | Carga | Error | Vacío o particular |
 |---|---|---|---|---|
 | **Bienvenida** | Logotipo, «Dos vidas, un hilo.», «Los gastos, el calendario, los sitios y los viajes de los dos, en un solo sitio.», [Proveedores], **Usar mi email** y «Ya tengo cuenta» | — | — | Sin la línea de términos mientras no existan (§12) |
-| **Crear cuenta** | «Crea tu cuenta», campos Email y Contraseña (+ Mostrar), ayuda «Al menos 10 caracteres, con letras y números», **Crear cuenta** | El botón muestra «Creando…» y queda desactivado | Línea bajo el campo afectado, anunciada al lector | — |
+| **Crear cuenta** | «Crea tu cuenta», campos Email y Contraseña (+ Mostrar), ayuda «Al menos 8 caracteres, con letras y números», **Crear cuenta** | El botón muestra «Creando…» y queda desactivado | Línea bajo el campo afectado, anunciada al lector | — |
 | **Verificar** | «Revisa tu correo», «Si el email no tenía cuenta, te hemos enviado un código de 6 cifras.», campo Código, «Reenviar código (0:59)», «¿Ya está confirmado? Entra» | «Comprobando…» | «El código no es válido o ha caducado. Pide uno nuevo.» | Se envía solo al completar 6 cifras |
 | **Entrar** | Email, Contraseña, **Entrar**, «¿Has olvidado tu contraseña?» | «Entrando…» | Tabla de §3.3; tras 5 fallos, «Espera 30 s» | — |
 | **Recuperar / Nueva contraseña** | «Te enviaremos un código para cambiar tu contraseña.» / «Elige una contraseña nueva» | ídem | ídem | — |

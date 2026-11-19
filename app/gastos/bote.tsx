@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Hoja } from '@/components/gastos/Hoja';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
@@ -53,7 +54,7 @@ export default function Bote() {
     return (
       <View style={styles.raiz}>
         {cabecera}
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        <CargandoHilo size="large" color={colors.accent} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -198,7 +199,7 @@ export default function Bote() {
         </View>
 
         {delMes.isLoading ? (
-          <ActivityIndicator color={colors.accent} />
+          <CargandoHilo color={colors.accent} />
         ) : delMes.isError || !resumen || !delMes.data ? (
           <BotonSecundario etiqueta="Reintentar" onPress={() => delMes.refetch()} />
         ) : (

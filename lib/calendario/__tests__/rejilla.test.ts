@@ -3,9 +3,11 @@ import {
   diaDeMes,
   diasEntre,
   etiquetaPeriodo,
+  etiquetaPeriodoCorta,
   etiquetaSemana,
   inicioSemana,
   mismoPeriodo,
+  modoBarra,
   mover,
   moverMes,
   moverSemana,
@@ -14,6 +16,7 @@ import {
   semanaDe,
   semanasDelMes,
   tituloDia,
+  tramoFueraDeMes,
 } from '@/lib/calendario/rejilla';
 
 describe('semanas del mes (de lunes a domingo)', () => {
@@ -99,5 +102,74 @@ describe('día corto y rango corto', () => {
   it('«14 – 18 nov» y, si cambia el mes, «28 oct – 3 nov»', () => {
     expect(rangoCorto('2026-11-14', '2026-11-18')).toBe('14 – 18 nov');
     expect(rangoCorto('2026-10-28', '2026-11-03')).toBe('28 oct – 3 nov');
+  });
+});
+
+describe('etiquetaPeriodoCorta (barra del calendario)', () => {
+  it('mes: el nombre arriba y el año debajo', () => {
+    expect(etiquetaPeriodoCorta('mes', '2026-11-15')).toEqual({ principal: 'Noviembre', secundaria: '2026', accesible: 'Noviembre 2026' });
+  });
+  it('semana del mismo mes: «23–29 nov» con el año debajo', () => {
+    expect(etiquetaPeriodoCorta('semana', '2026-11-25')).toEqual({
+      principal: '23–29 nov',
+      secundaria: '2026',
+      accesible: 'del 23 al 29 de noviembre de 2026',
+    });
+  });
+  it('semana que cruza de mes: «26 oct–1 nov», guion largo y sin espacios', () => {
+    expect(etiquetaPeriodoCorta('semana', '2026-10-28')).toEqual({
+      principal: '26 oct–1 nov',
+      secundaria: '2026',
+      accesible: 'del 26 de octubre al 1 de noviembre de 2026',
+    });
+  });
+  it('semana que cruza de año: «28 dic–3 ene» con «2026–27» debajo', () => {
+    expect(etiquetaPeriodoCorta('semana', '2026-12-30')).toEqual({
+      principal: '28 dic–3 ene',
+      secundaria: '2026–27',
+      accesible: 'del 28 de diciembre de 2026 al 3 de enero de 2027',
+    });
+  });
+  it('septiembre se abrevia «sept», como en el resto del calendario', () => {
+    expect(etiquetaPeriodoCorta('semana', '2026-09-30').principal).toBe('28 sept–4 oct');
+  });
+  it('el principal de cada día de la semana es el mismo', () => {
+    const semana = ['2026-11-23', '2026-11-26', '2026-11-29'].map((d) => etiquetaPeriodoCorta('semana', d).principal);
+    expect(new Set(semana).size).toBe(1);
+  });
+});
+
+describe('modoBarra', () => {
+  it('con texto en un iPhone normal y letra normal', () => {
+    expect(modoBarra(375, 1)).toBe('texto');
+    expect(modoBarra(390, 1.2)).toBe('texto');
+  });
+  it('con iconos si la pantalla es estrecha', () => {
+    expect(modoBarra(320, 1)).toBe('iconos');
+    expect(modoBarra(369, 1)).toBe('iconos');
+    expect(modoBarra(370, 1)).toBe('texto');
+  });
+  it('con iconos si la letra es muy grande', () => {
+    expect(modoBarra(390, 1.35)).toBe('iconos');
+    expect(modoBarra(390, 1.3)).toBe('iconos');
+  });
+});
+
+describe('tramoFueraDeMes', () => {
+  const nov = '2026-11';
+  it('la primera semana de noviembre de 2026 (26 oct–1 nov): de lunes a sábado son de octubre', () => {
+    expect(tramoFueraDeMes(semanaDe('2026-10-26'), nov)).toEqual({ desde: 0, hasta: 5 });
+  });
+  it('una semana entera del mes → null', () => {
+    expect(tramoFueraDeMes(semanaDe('2026-11-10'), nov)).toBeNull();
+  });
+  it('la última (30 nov–6 dic): de martes a domingo son de diciembre', () => {
+    expect(tramoFueraDeMes(semanaDe('2026-11-30'), nov)).toEqual({ desde: 1, hasta: 6 });
+  });
+  it('febrero de 2027 empieza en lunes: la primera semana, null', () => {
+    expect(tramoFueraDeMes(semanaDe('2027-02-01'), '2027-02')).toBeNull();
+  });
+  it('una semana sin ningún día del mes sale entera', () => {
+    expect(tramoFueraDeMes(semanaDe('2026-12-14'), nov)).toEqual({ desde: 0, hasta: 6 });
   });
 });

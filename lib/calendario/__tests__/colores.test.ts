@@ -1,5 +1,5 @@
 import { colors, personColors } from '@/constants/theme';
-import { colorBarra, contraste, marcador, paletaDe } from '@/lib/calendario/colores';
+import { colorBarra, contraste, marcador, marcadorFiltro, paletaDe } from '@/lib/calendario/colores';
 
 const evento = { tipo: 'event' as const, categoria: 'other', asistentes: 'both' as const };
 
@@ -66,6 +66,22 @@ describe('marcador', () => {
     // Los dos son del mismo naranja.
     expect(pago('once')).toMatchObject({ relleno: colors.pagoMarca, tinta: colors.white });
   });
+  it('pago en solitario: cuadrado con el pastel de la persona, contorno y monedas en su tono oscuro', () => {
+    const solo = (duenoSolo: 'm1' | 'm2' | null, m1: Parameters<typeof marcador>[1] = 'menta', m2: Parameters<typeof marcador>[2] = 'lavanda') =>
+      marcador({ tipo: 'payment', categoria: null, asistentes: 'both', frecuencia: 'monthly', duenoSolo }, m1, m2);
+    expect(solo('m1')).toEqual({ forma: 'pago', recurrente: true, relleno: menta.bg, borde: menta.ink, tinta: menta.ink });
+    expect(solo('m2')).toEqual({ forma: 'pago', recurrente: true, relleno: lavanda.bg, borde: lavanda.ink, tinta: lavanda.ink });
+    // Sin color de perfil: el azul de reserva.
+    expect(solo('m1', null, null)).toMatchObject({ relleno: colors.eventChip, borde: colors.eventDot, tinta: colors.eventDot });
+    expect(solo('m2', 'menta', null)).toMatchObject({ relleno: colors.eventChip, tinta: colors.eventDot });
+    // Único en solitario: sigue sin bucle.
+    expect(marcador({ tipo: 'payment', categoria: null, asistentes: 'both', frecuencia: 'once', duenoSolo: 'm1' }, 'menta', 'lavanda').recurrente).toBe(false);
+    // Compartido (null) o sin el dato: naranja con monedas blancas.
+    expect(solo(null)).toMatchObject({ relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.white });
+    expect(marcador({ tipo: 'payment', categoria: null, asistentes: 'both' }, 'menta', 'lavanda')).toMatchObject({ relleno: colors.pagoMarca });
+    // Un evento ignora el dueño.
+    expect(marcador({ ...evento, duenoSolo: 'm1' }, 'menta', 'lavanda').forma).toBe('insignia');
+  });
   it('cumpleaños: regalo fucsia sobre la insignia pastel de la persona (partida si es de los dos)', () => {
     const cumple = { ...evento, categoria: 'birthday' };
     expect(marcador({ ...cumple, asistentes: 'm2' }, 'menta', 'lavanda')).toEqual({
@@ -116,6 +132,27 @@ describe('paletaDe', () => {
   });
 });
 
+describe('marcadorFiltro (menú de filtros)', () => {
+  it('Pagos dibuja las monedas (un pago único, sin bucle)', () => {
+    expect(marcadorFiltro({ icono: 'pago' }, false)).toMatchObject({ forma: 'pago', recurrente: false });
+  });
+  it('el resto, una insignia con su icono («Otros» lleva el calendario)', () => {
+    expect(marcadorFiltro({ icono: 'airplane' }, false)).toMatchObject({ forma: 'insignia', icono: 'airplane' });
+    expect(marcadorFiltro({ icono: 'calendar' }, false)).toMatchObject({ forma: 'insignia', icono: 'calendar' });
+  });
+  it('sin elegir es neutro; elegido usa el granate de la marca', () => {
+    expect(marcadorFiltro({ icono: 'gift' }, false)).toMatchObject({ relleno: colors.surface, borde: colors.icon, tinta: colors.icon });
+    expect(marcadorFiltro({ icono: 'gift' }, true)).toMatchObject({ relleno: colors.accentSoft, borde: colors.accent, tinta: colors.accent });
+    expect(marcadorFiltro({ icono: 'pago' }, true)).toMatchObject({ relleno: colors.accentSoft, borde: colors.accent, tinta: colors.accent });
+  });
+  it('el glifo se ve sobre su fondo, elegido o no (≥ 3:1)', () => {
+    for (const activo of [false, true]) {
+      const m = marcadorFiltro({ icono: 'calendar' }, activo);
+      expect(contraste(m.tinta, m.relleno)).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
+
 describe('contraste (WCAG)', () => {
   it('la cuenta es correcta en los extremos', () => {
     expect(contraste('#000000', '#FFFFFF')).toBeCloseTo(21, 0);
@@ -139,6 +176,13 @@ describe('contraste (WCAG)', () => {
       expect(contraste(colors.cumpleMarca, f)).toBeGreaterThanOrEqual(3);
     }
   });
+  it('las monedas (y el bucle) del pago en solitario se ven sobre su pastel, con cualquier color de perfil (≥ 3:1)', () => {
+    for (const color of [...Object.keys(personColors), null] as (keyof typeof personColors | null)[]) {
+      const m = marcador({ tipo: 'payment', categoria: null, asistentes: 'both', frecuencia: 'monthly', duenoSolo: 'm1' }, color, null);
+      expect(contraste(m.tinta, m.relleno)).toBeGreaterThanOrEqual(3);
+      expect(contraste(m.borde, m.relleno)).toBeGreaterThanOrEqual(3);
+    }
+  });
   it('el icono blanco se ve sobre el naranja del pago (≥ 3:1)', () => {
     expect(contraste(colors.white, colors.pagoMarca)).toBeGreaterThanOrEqual(3);
   });
@@ -151,5 +195,18 @@ describe('contraste (WCAG)', () => {
     expect(contraste(colors.pagoChipTexto, colors.pagoChip)).toBeGreaterThanOrEqual(4.5);
     expect(contraste(colors.cumpleChipTexto, colors.cumpleChip)).toBeGreaterThanOrEqual(4.5);
     expect(contraste(colors.eventChipText, colors.eventChip)).toBeGreaterThanOrEqual(4.5);
+  });
+  it('el número de los días de otros meses se lee sobre el blanco, el tinte de fin de semana y el gris de otros meses (≥ 4,5:1)', () => {
+    expect(contraste(colors.diaAtenuado, colors.white)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(colors.diaAtenuado, colors.finde)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(colors.diaAtenuado, colors.fueraDeMes)).toBeGreaterThanOrEqual(4.5);
+  });
+  it('el texto normal y el secundario se leen sobre el gris de otros meses (≥ 4,5:1)', () => {
+    expect(contraste(colors.text, colors.fueraDeMes)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(colors.textSecondary, colors.fueraDeMes)).toBeGreaterThanOrEqual(4.5);
+  });
+  it('los textos normales y secundarios se leen sobre el tinte de fin de semana (≥ 4,5:1)', () => {
+    expect(contraste(colors.text, colors.finde)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(colors.textSecondary, colors.finde)).toBeGreaterThanOrEqual(4.5);
   });
 });

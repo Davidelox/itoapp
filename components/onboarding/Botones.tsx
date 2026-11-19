@@ -1,5 +1,6 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { colors, fonts, radius } from '@/constants/theme';
 
 type PropsBoton = {
@@ -27,7 +28,7 @@ export function BotonPrincipal({ etiqueta, onPress, cargando = false, etiquetaCa
         inactivo && !cargando && styles.apagado,
       ]}
     >
-      {cargando && <ActivityIndicator color={colors.white} size="small" />}
+      {cargando && <CargandoHilo color={colors.white} size={28} oculto />}
       <Text style={[styles.texto, { color: colors.white }]}>{cargando ? (etiquetaCargando ?? etiqueta) : etiqueta}</Text>
     </Pressable>
   );

@@ -1,8 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
@@ -126,7 +127,7 @@ export function PantallaInvitar({ modo }: { modo: 'onboarding' | 'inicio' }) {
     >
       <View style={styles.cajaCodigo}>
         {carga.estado === 'cargando' || creando ? (
-          <ActivityIndicator color={colors.textSecondary} accessibilityLabel="Cargando el código" />
+          <CargandoHilo color={colors.textSecondary} accessibilityLabel="Cargando el código" />
         ) : carga.estado === 'error' ? (
           <View style={styles.centrado}>
             <Text style={styles.caducado}>No se ha podido cargar el código.</Text>

@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius } from '@/constants/theme';
+
+type IconoIonic = ComponentProps<typeof Ionicons>['name'];
 
 type PropsOpcion = {
   titulo: string;
@@ -54,31 +56,55 @@ export function GrupoOpciones({ pregunta, ayuda, children }: { pregunta: string;
   );
 }
 
-/** Control segmentado de dos o más valores (fondo beige, la elegida en blanco). */
+/**
+ * Control segmentado de dos o más valores (fondo beige, la elegida en blanco). `compacto`: segmentos de 32 px de alto,
+ * del ancho de su texto (14 px), para una barra de una línea; el toque llega a 44 con `hitSlop`. Con `iconos`, el
+ * segmento pinta el icono de su valor en vez del texto (la etiqueta pasa a ser su `accessibilityLabel`).
+ *
+ * El segmento compacto NO lleva ninguna propiedad `flex*`: en Yoga (nativo) `flex: 1` junto a `flexBasis: 'auto'`
+ * deja la base en 0 y, con `flexGrow: 0`, el segmento mide solo su relleno y el texto desaparece.
+ */
 export function Segmentado<T extends string>({
   opciones,
   valor,
   onCambiar,
   etiqueta,
+  compacto = false,
+  iconos,
 }: {
   opciones: { valor: T; etiqueta: string }[];
   valor: T;
   onCambiar: (v: T) => void;
   etiqueta: string;
+  compacto?: boolean;
+  iconos?: Partial<Record<T, IconoIonic>>;
 }) {
   return (
-    <View style={styles.segmentado} accessibilityRole="radiogroup" accessibilityLabel={etiqueta}>
+    <View style={[styles.segmentado, compacto && styles.segmentadoCompacto]} accessibilityRole="radiogroup" accessibilityLabel={etiqueta}>
       {opciones.map((o) => {
         const activa = o.valor === valor;
+        const icono = iconos?.[o.valor];
         return (
           <Pressable
             key={o.valor}
             accessibilityRole="radio"
             accessibilityState={{ checked: activa }}
+            accessibilityLabel={icono ? o.etiqueta : undefined}
             onPress={() => onCambiar(o.valor)}
-            style={[styles.segmento, activa && styles.segmentoActivo]}
+            hitSlop={compacto ? { top: 6, bottom: 6 } : undefined}
+            style={[styles.segmento, compacto ? styles.segmentoCompacto : styles.segmentoRepartido, icono && styles.segmentoIcono, activa && styles.segmentoActivo]}
           >
-            <Text style={[styles.segmentoTexto, activa && styles.segmentoTextoActivo]}>{o.etiqueta}</Text>
+            {icono ? (
+              <Ionicons name={icono} size={18} color={activa ? colors.text : colors.textSecondary} />
+            ) : (
+              <Text
+                numberOfLines={1}
+                maxFontSizeMultiplier={compacto ? 1.2 : undefined}
+                style={[styles.segmentoTexto, compacto && styles.segmentoTextoCompacto, activa && (compacto ? styles.segmentoTextoActivoCompacto : styles.segmentoTextoActivo)]}
+              >
+                {o.etiqueta}
+              </Text>
+            )}
           </Pressable>
         );
       })}
@@ -113,8 +139,16 @@ const styles = StyleSheet.create({
   detalle: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.textSecondary },
   extra: { marginLeft: 56, marginRight: 16, marginBottom: 14 },
   segmentado: { flexDirection: 'row', padding: 3, backgroundColor: colors.segmented, borderRadius: radius.full },
-  segmento: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
+  segmentadoCompacto: { flexShrink: 0 },
+  segmento: { minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
+  segmentoRepartido: { flex: 1 },
+  // Sin ninguna propiedad `flex*`: el ancho es el del texto, que Yoga mide.
+  segmentoCompacto: { minHeight: 32, minWidth: 52, paddingHorizontal: 12 },
+  segmentoIcono: { minWidth: 40 },
   segmentoActivo: { backgroundColor: colors.white },
   segmentoTexto: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textSecondary },
+  segmentoTextoCompacto: { fontSize: 14 },
   segmentoTextoActivo: { fontFamily: fonts.bodyBold, color: colors.text },
+  // En compacto solo cambia el color: con otra fuente el segmento cambiaría de ancho al activarse (y lo que lo rodea bailaría).
+  segmentoTextoActivoCompacto: { color: colors.text },
 });

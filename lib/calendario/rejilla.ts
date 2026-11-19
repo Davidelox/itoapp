@@ -100,6 +100,45 @@ export function etiquetaPeriodo(vista: Vista, iso: string, anioRef?: number): st
   return vista === 'mes' ? etiquetaMes(iso) : etiquetaSemana(iso, anioRef);
 }
 
+/** Etiqueta del periodo para la barra del calendario, en dos líneas: la principal y, debajo, el año. */
+export type EtiquetaCorta = { principal: string; secundaria: string; accesible: string };
+
+/**
+ * Etiqueta corta del periodo: mes → «Noviembre» / «2026»; semana → «23–29 nov» / «2026», «28 dic–3 ene» (guion largo,
+ * sin espacios) y, si cruza de año, «2026–27» debajo. `accesible` es el texto largo para los lectores de pantalla.
+ */
+export function etiquetaPeriodoCorta(vista: Vista, iso: string): EtiquetaCorta {
+  if (vista === 'mes') {
+    const d = deISO(iso);
+    const largo = `${MESES[d.getMonth()]} ${d.getFullYear()}`;
+    return { principal: MESES[d.getMonth()], secundaria: String(d.getFullYear()), accesible: largo };
+  }
+  const s = semanaDe(iso);
+  const a = deISO(s[0]);
+  const b = deISO(s[6]);
+  const mesLargo = (d: Date) => MESES[d.getMonth()].toLowerCase();
+  if (a.getFullYear() !== b.getFullYear()) {
+    return {
+      principal: `${a.getDate()} ${MESES_CORTOS[a.getMonth()]}–${b.getDate()} ${MESES_CORTOS[b.getMonth()]}`,
+      secundaria: `${a.getFullYear()}–${String(b.getFullYear()).slice(2)}`,
+      accesible: `del ${a.getDate()} de ${mesLargo(a)} de ${a.getFullYear()} al ${b.getDate()} de ${mesLargo(b)} de ${b.getFullYear()}`,
+    };
+  }
+  const anio = String(b.getFullYear());
+  if (a.getMonth() === b.getMonth()) {
+    return {
+      principal: `${a.getDate()}–${b.getDate()} ${MESES_CORTOS[b.getMonth()]}`,
+      secundaria: anio,
+      accesible: `del ${a.getDate()} al ${b.getDate()} de ${mesLargo(b)} de ${anio}`,
+    };
+  }
+  return {
+    principal: `${a.getDate()} ${MESES_CORTOS[a.getMonth()]}–${b.getDate()} ${MESES_CORTOS[b.getMonth()]}`,
+    secundaria: anio,
+    accesible: `del ${a.getDate()} de ${mesLargo(a)} al ${b.getDate()} de ${mesLargo(b)} de ${anio}`,
+  };
+}
+
 /** «Sábado 14». */
 export function tituloDia(iso: string): string {
   const d = deISO(iso);
@@ -136,4 +175,20 @@ export function rangoCorto(inicio: string, fin: string): string {
   const [dia1, mes1] = diaMesCorto(inicio).split(' ');
   const [dia2, mes2] = diaMesCorto(fin).split(' ');
   return mes1 === mes2 ? `${dia1} – ${dia2} ${mes2}` : `${dia1} ${mes1} – ${dia2} ${mes2}`;
+}
+
+/** Cómo se pinta el selector Mes|Semana de la barra: con texto, o con iconos si no cabe (pantalla estrecha o letra grande). */
+export type ModoBarra = 'texto' | 'iconos';
+
+/** `'iconos'` si la ventana mide menos de 370 pt o la letra del sistema está al 130 % o más. */
+export const modoBarra = (anchoVentana: number, fontScale: number): ModoBarra => (anchoVentana < 370 || fontScale >= 1.3 ? 'iconos' : 'texto');
+
+/**
+ * Columnas (0–6) contiguas de una semana que son de otro mes (`mes` = `YYYY-MM`), o null si todas son del mes.
+ * Siempre están al principio (`desde` = 0) o al final (`hasta` = 6) de la semana.
+ */
+export function tramoFueraDeMes(semana: string[], mes: string): { desde: number; hasta: number } | null {
+  const fuera = semana.flatMap((iso, i) => (iso.slice(0, 7) === mes ? [] : [i]));
+  if (fuera.length === 0) return null;
+  return { desde: fuera[0], hasta: fuera[fuera.length - 1] };
 }

@@ -1,12 +1,17 @@
 import {
+  type Elemento,
   type FilaRango,
+  type Filtros,
+  type InfoPago,
   agruparPorDia,
   aElementos,
+  claveFiltro,
   construirLista as construir,
   etiquetaAccesible,
   etiquetaDia,
   filtrar,
   claveBorrado,
+  infoPagos,
   lineaElemento,
   ordenar,
   pendienteDeBorrar,
@@ -74,9 +79,9 @@ describe('día, filtros y puntos', () => {
   ]);
   it('agrupa por día y filtra por tipo', () => {
     expect(Object.keys(agruparPorDia(l))).toEqual(['2026-11-17', '2026-11-18']);
-    expect(filtrar(l, 'payment').map((e) => e.titulo)).toEqual(['Luz']);
-    expect(filtrar(l, 'event')).toHaveLength(2);
-    expect(filtrar(l, 'todos')).toHaveLength(3);
+    expect(filtrar(l, ['payment']).map((e) => e.titulo)).toEqual(['Luz']);
+    expect(filtrar(l, ['other'])).toHaveLength(2);
+    expect(filtrar(l, [])).toHaveLength(3);
   });
   it('glifos: máximo 4 y el resto en «+N»; candado si hay un secreto', () => {
     const dia = agruparPorDia(l);
@@ -135,10 +140,10 @@ describe('día, filtros y puntos', () => {
 
 describe('frecuencia de los pagos', () => {
   const pago = (id: string) => fila({ kind: 'payment', source_id: id, title: id, status: 'scheduled' });
-  const frecuencias = new Map<string, 'once' | 'monthly' | 'yearly'>([
-    ['unico', 'once'],
-    ['mensual', 'monthly'],
-    ['anual', 'yearly'],
+  const frecuencias = new Map<string, InfoPago>([
+    ['unico', { frecuencia: 'once', duenoSolo: null }],
+    ['mensual', { frecuencia: 'monthly', duenoSolo: null }],
+    ['anual', { frecuencia: 'yearly', duenoSolo: null }],
   ]);
   it('sale del recurrente de origen (calendar_range no la trae); sin dato o en un evento es null', () => {
     const l = aElementos([pago('unico'), pago('mensual'), pago('anual'), pago('desconocido'), fila({ source_id: 'unico' })], frecuencias);
@@ -153,6 +158,29 @@ describe('frecuencia de los pagos', () => {
     expect(de('unico', 'event')).toBeNull();
     expect(aElementos([pago('unico')])[0].frecuencia).toBeNull();
     expect(aElementos([fila({ source_id: 'unico' })], frecuencias)[0].frecuencia).toBeNull();
+  });
+  it('dueño en solitario: sale del recurrente (esPersonal); compartido, sin dato o un evento, null', () => {
+    const rec = (id: string, split_mode: 'half' | 'only_m1' | 'only_m2' | 'pot', paid_by: 'm1' | 'm2' | 'pot') => ({
+      id,
+      frequency: 'monthly' as const,
+      split_mode,
+      paid_by,
+    });
+    const info = infoPagos([
+      rec('solo1', 'only_m1', 'm1'),
+      rec('solo2', 'only_m2', 'm2'),
+      rec('paga1_de2', 'only_m2', 'm1'),
+      rec('mitad', 'half', 'm1'),
+      rec('bote', 'pot', 'pot'),
+    ]);
+    const l = aElementos(['solo1', 'solo2', 'paga1_de2', 'mitad', 'bote', 'x'].map(pago), info);
+    expect(l.map((e) => [e.origenId, e.duenoSolo]).sort()).toEqual(
+      [['solo1', 'm1'], ['solo2', 'm2'], ['paga1_de2', null], ['mitad', null], ['bote', null], ['x', null]].sort(),
+    );
+    expect(l.find((e) => e.origenId === 'solo1')?.frecuencia).toBe('monthly');
+    // Un evento con el mismo id no hereda el dueño; sin mapa, null.
+    expect(aElementos([fila({ source_id: 'solo1' })], info)[0].duenoSolo).toBeNull();
+    expect(aElementos([pago('solo1')])[0].duenoSolo).toBeNull();
   });
   it('se conserva al agrupar por días', () => {
     const [e] = aElementos([pago('mensual')], frecuencias);
@@ -215,7 +243,7 @@ describe('lista', () => {
     fila({ source_id: 'c', title: 'Sábado', occurs_on: '2026-11-21' }),
     fila({ source_id: 'd', title: 'Diciembre', occurs_on: '2026-12-02' }),
   ]);
-  const base = { hoy, elementos: l, filtro: 'todos' as const, seleccionado: null };
+  const base = { hoy, elementos: l, filtros: [] as Filtros, seleccionado: null };
 
   it('mes actual: «Próximos», de hoy a fin de mes', () => {
     const r = construirLista({ ...base, vista: 'mes', ancla: '2026-11-17' });
@@ -235,7 +263,7 @@ describe('lista', () => {
   });
   it('estados vacíos', () => {
     expect(construirLista({ ...base, vista: 'mes', ancla: '2027-03-10' }).vacio).toBe('Aún no hay nada en el calendario');
-    expect(construirLista({ ...base, vista: 'mes', ancla: '2027-03-10', filtro: 'payment' }).vacio).toBe('Nada de este tipo este mes');
+    expect(construirLista({ ...base, vista: 'mes', ancla: '2027-03-10', filtros: ['payment'] }).vacio).toBe('Nada de este tipo este mes');
     expect(construirLista({ ...base, vista: 'mes', ancla: '2026-11-30', elementos: l.slice(0, 1) }).vacio).toBe('No queda nada este mes');
   });
   it('día seleccionado: la lista pasa a ser de ese día; vacío → «Nada este día»', () => {
@@ -248,14 +276,14 @@ describe('lista', () => {
   describe('info extra del día (cumpleaños y secretos)', () => {
     const dia = '2026-11-17';
     const e = (id: string, extra: Partial<FilaRango> = {}) => fila({ source_id: id, title: id, occurs_on: dia, ...extra });
-    const lista = (filas: FilaRango[], filtro: 'todos' | 'birthday' | 'event' = 'todos') =>
+    const lista = (filas: FilaRango[], filtros: Filtros = []) =>
       construirLista({
         vista: 'mes',
         ancla: dia,
         seleccionado: dia,
         hoy: dia,
-        elementos: filtrar(aElementos(filas), filtro),
-        filtro,
+        elementos: filtrar(aElementos(filas), filtros),
+        filtros,
       });
     const titulos = (r: ReturnType<typeof lista>) => r.secciones.map((s) => s.elementos.map((x) => x.titulo));
 
@@ -301,7 +329,7 @@ describe('lista', () => {
       expect(titulos(r)).toEqual([['Cumple de Ana', 'Sorpresa']]);
     });
     it('el filtro Cumpleaños sigue enseñando solo cumpleaños (ahora como info extra)', () => {
-      const r = lista([e('Ana', { category: 'birthday' }), e('Cena')], 'birthday');
+      const r = lista([e('Ana', { category: 'birthday' }), e('Cena')], ['birthday']);
       expect(titulos(r)).toEqual([['Cumple de Ana']]);
     });
     it('las claves de las secciones y de los elementos siguen siendo únicas, y cada elemento conserva su `inicio`', () => {
@@ -321,7 +349,7 @@ describe('lista', () => {
         seleccionado: dia,
         hoy: dia,
         elementos: aElementos([e('Ana', { category: 'birthday' }), e('Cena')]),
-        filtro: 'todos',
+        filtros: [],
       });
       expect(titulos(r)).toEqual([['Cena'], ['Cumple de Ana']]);
     });
@@ -402,7 +430,7 @@ describe('eventos de varios días', () => {
 
   it('en «Próximos», un viaje que empezó el mes anterior dice solo hasta cuándo', () => {
     const [largo] = aElementos([fila({ source_id: 'l', title: 'Japón', occurs_on: '2026-10-28', ends_on: '2026-11-03', category: 'trip' })]);
-    const r = construirLista({ vista: 'mes', ancla: '2026-11-01', seleccionado: null, hoy: '2026-11-01', elementos: [largo], filtro: 'todos' });
+    const r = construirLista({ vista: 'mes', ancla: '2026-11-01', seleccionado: null, hoy: '2026-11-01', elementos: [largo], filtros: [] });
     const [fila1] = r.secciones[0].elementos;
     expect(fila1.fecha).toBe('2026-11-01');
     expect(fila1.inicio).toBe('2026-10-28');
@@ -410,22 +438,22 @@ describe('eventos de varios días', () => {
   });
 
   it('«Próximos» lo pone una sola vez mientras no haya terminado, también si empezó antes de hoy', () => {
-    const r = construirLista({ vista: 'mes', ancla: '2026-11-16', seleccionado: null, hoy: '2026-11-16', elementos: [e], filtro: 'todos' });
+    const r = construirLista({ vista: 'mes', ancla: '2026-11-16', seleccionado: null, hoy: '2026-11-16', elementos: [e], filtros: [] });
     expect(r.secciones[0].elementos).toHaveLength(1);
-    const despues = construirLista({ vista: 'mes', ancla: '2026-11-19', seleccionado: null, hoy: '2026-11-19', elementos: [e], filtro: 'todos' });
+    const despues = construirLista({ vista: 'mes', ancla: '2026-11-19', seleccionado: null, hoy: '2026-11-19', elementos: [e], filtros: [] });
     expect(despues.secciones[0].elementos).toHaveLength(0);
     expect(despues.vacio).toBe('No queda nada este mes');
   });
 
   it('el día seleccionado lo enseña en cada día que dura', () => {
-    const r = construirLista({ vista: 'mes', ancla: '2026-11-16', seleccionado: '2026-11-16', hoy: '2026-11-16', elementos: [e], filtro: 'todos' });
+    const r = construirLista({ vista: 'mes', ancla: '2026-11-16', seleccionado: '2026-11-16', hoy: '2026-11-16', elementos: [e], filtros: [] });
     expect(r.secciones[0].elementos[0]).toMatchObject({ diaN: 3, inicio: '2026-11-14' });
   });
 
   it('un viaje de octubre que sigue en noviembre aparece en el mes que lo toca', () => {
     const [largo] = aElementos([fila({ occurs_on: '2026-10-28', ends_on: '2026-11-03' })]);
-    const oct = construirLista({ vista: 'mes', ancla: '2026-10-10', seleccionado: null, hoy: '2026-11-17', elementos: [largo], filtro: 'todos' });
-    const dic = construirLista({ vista: 'mes', ancla: '2026-12-10', seleccionado: null, hoy: '2026-11-17', elementos: [largo], filtro: 'todos' });
+    const oct = construirLista({ vista: 'mes', ancla: '2026-10-10', seleccionado: null, hoy: '2026-11-17', elementos: [largo], filtros: [] });
+    const dic = construirLista({ vista: 'mes', ancla: '2026-12-10', seleccionado: null, hoy: '2026-11-17', elementos: [largo], filtros: [] });
     expect(oct.secciones[0].elementos).toHaveLength(1);
     expect(dic.secciones[0].elementos).toHaveLength(0);
   });
@@ -454,16 +482,38 @@ describe('categorías y filtros', () => {
     fila({ source_id: 'f', title: 'Sin categoría' }),
     fila({ kind: 'payment', source_id: 'p', title: 'Luz' }),
   ]);
-  const titulos = (f: Parameters<typeof filtrar>[1]) => filtrar(l, f).map((e) => e.titulo).sort();
+  const titulos = (f: Filtros) => filtrar(l, f).map((e) => e.titulo).sort();
 
-  it('Eventos = todos los eventos menos los cumpleaños; cada categoría, solo la suya', () => {
-    expect(titulos('event')).toEqual(['Cine', 'Médico', 'Roma', 'Sin categoría', 'Tapas']);
-    expect(titulos('trip')).toEqual(['Roma']);
-    expect(titulos('eating_out')).toEqual(['Tapas']);
-    expect(titulos('leisure')).toEqual(['Cine']);
-    expect(titulos('birthday')).toEqual(['Cumple de Carmen']);
-    expect(titulos('payment')).toEqual(['Luz']);
-    expect(titulos('todos')).toHaveLength(7);
+  it('claveFiltro: pago, categoría conocida; sin categoría o desconocida, «other»', () => {
+    const por = (t: string) => l.find((e) => e.titulo === t)!;
+    const [roma, carmen, medico, sinCat, luz] = ['Roma', 'Cumple de Carmen', 'Médico', 'Sin categoría', 'Luz'].map(por);
+    expect(claveFiltro(roma)).toBe('trip');
+    expect(claveFiltro(carmen)).toBe('birthday');
+    expect(claveFiltro(medico)).toBe('other');
+    expect(claveFiltro(sinCat)).toBe('other');
+    expect(claveFiltro(luz)).toBe('payment');
+    expect(claveFiltro({ tipo: 'event', categoria: 'rara' as never })).toBe('other');
+    expect(claveFiltro({ tipo: 'event', categoria: null })).toBe('other');
+  });
+  it('cada opción es solo la suya; «other» ya no incluye viajes ni ocio', () => {
+    expect(titulos(['other'])).toEqual(['Médico', 'Sin categoría']);
+    expect(titulos(['trip'])).toEqual(['Roma']);
+    expect(titulos(['eating_out'])).toEqual(['Tapas']);
+    expect(titulos(['leisure'])).toEqual(['Cine']);
+    expect(titulos(['birthday'])).toEqual(['Cumple de Carmen']);
+    expect(titulos(['payment'])).toEqual(['Luz']);
+  });
+  it('varios filtros: unión; ninguno: todo', () => {
+    expect(titulos(['trip', 'birthday'])).toEqual(['Cumple de Carmen', 'Roma']);
+    expect(titulos(['leisure', 'payment', 'other'])).toEqual(['Cine', 'Luz', 'Médico', 'Sin categoría']);
+    expect(titulos([])).toHaveLength(7);
+    expect(filtrar(l, [])).toBe(l);
+  });
+  it('construirLista: textos de vacío con y sin filtros', () => {
+    const base = { vista: 'mes' as const, ancla: '2027-03-10', seleccionado: null, hoy: '2026-11-17', elementos: [] as Elemento[] };
+    expect(construirLista({ ...base, filtros: [] })?.vacio).toBe('Aún no hay nada en el calendario');
+    expect(construirLista({ ...base, filtros: ['payment'] })?.vacio).toBe('Nada de este tipo este mes');
+    expect(construirLista({ ...base, filtros: ['trip', 'leisure'] })?.vacio).toBe('Nada de este tipo este mes');
   });
 });
 

@@ -4,13 +4,15 @@
  * pastel (`bg`) con contorno fino en el tono oscuro (`ink`); el `ink` es solo para contornos y el glifo.
  *
  * - Evento de un día: insignia circular con el icono de su categoría (viaje, comer fuera, ocio, otros). De los
- *   dos: la insignia va partida en vertical (m1 a la izquierda, m2 a la derecha, siempre en ese orden para que
+ *   dos: la insignia va RAYADA (franjas en diagonal que alternan m1, m2, m1, m2; siempre empezando por m1 para que
  *   los dos móviles se vean igual).
  * - Cumpleaños: la misma insignia con un regalo fucsia.
- * - Pago: cuadrado naranja (el pago no es de una persona) con monedas amontonadas en blanco; si es recurrente, las
- *   mismas monedas con una insignia de bucle (círculo con flecha circular) en una esquina.
- * - Varios días: barra con relleno pastel y contorno oscuro (cinta bicolor si es de los dos).
- * Persona sin color elegido (o pareja aún sin unir): el azul de siempre. Si las dos mitades salen iguales, no se parte.
+ * - Pago: cuadrado con monedas amontonadas; si es recurrente, las mismas monedas con una insignia de bucle (círculo
+ *   con flecha circular) en una esquina. Compartido, del bote o pagado por uno pero de los dos (no es de una
+ *   persona): naranja con monedas blancas. EN SOLITARIO (lo paga y es solo suyo): pastel de esa persona con
+ *   contorno y monedas en su tono oscuro, como un evento suyo.
+ * - Varios días: barra con relleno pastel y contorno oscuro (franjas pequeñas alternas de m1 y m2 si es de los dos).
+ * Persona sin color elegido (o pareja aún sin unir): el azul de siempre. Si los dos colores salen iguales, no se raya.
  */
 import { colors, personColors, type ColorPersona } from '@/constants/theme';
 import type { Frecuencia } from '@/lib/gastos/recurrentes';
@@ -20,6 +22,9 @@ export type FormaMarcador = 'insignia' | 'pago';
 
 /** Nombres de Ionicons (versión rellena) de los glifos del calendario. */
 export type IconoMarcador = 'airplane' | 'restaurant' | 'ticket' | 'calendar' | 'gift';
+
+/** Icono de una opción del menú de filtros: los de la insignia o las monedas del pago. */
+export type IconoFiltro = IconoMarcador | 'pago';
 
 /** Icono de cada categoría de evento; las demás («Otros») llevan el calendario. */
 const ICONO_CATEGORIA: Record<string, IconoMarcador> = {
@@ -35,14 +40,14 @@ export type MarcadorSpec = {
   icono?: IconoMarcador;
   /** Solo en el pago: recurrente (monedas + insignia de bucle) o único (solo monedas). */
   recurrente?: boolean;
-  /** Relleno (en una insignia partida, la mitad izquierda: m1). */
+  /** Relleno (en una insignia rayada, el de las franjas de m1). */
   relleno: string;
-  /** Contorno (en una insignia partida, el de la mitad izquierda). */
+  /** Contorno (en una insignia rayada, el de las franjas de m1; en el pago, el del cuadrado). */
   borde: string;
-  /** Mitad derecha (m2): solo si es de los dos y sus colores difieren. */
+  /** Franjas de m2: solo si es de los dos y sus colores difieren. */
   relleno2?: string;
   borde2?: string;
-  /** Color del glifo (el icono) sobre el relleno. */
+  /** Color del glifo (el icono o las monedas) sobre el relleno. */
   tinta: string;
 };
 
@@ -53,6 +58,8 @@ export type ParaMarcador = {
   asistentes: 'both' | 'm1' | 'm2';
   /** Solo pagos: cada cuánto se cobra. Sin ella (no se sabe) se pinta como recurrente, que es lo habitual. */
   frecuencia?: Frecuencia | null;
+  /** Solo pagos: de quién es si es en solitario (`m1` o `m2`); null o sin él, compartido (naranja). */
+  duenoSolo?: 'm1' | 'm2' | null;
 };
 
 /** Color de perfil de cada hueco de la pareja (m1 y m2), sea quien sea «yo». */
@@ -84,7 +91,13 @@ function paletasDe(asistentes: ParaMarcador['asistentes'], m1: ColorPersona | nu
 /** Marcador de un elemento. `m1` y `m2`: color de perfil de cada hueco de la pareja. */
 export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null): MarcadorSpec {
   if (e.tipo === 'payment') {
-    return { forma: 'pago', recurrente: e.frecuencia !== 'once', relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.white };
+    const recurrente = e.frecuencia !== 'once';
+    if (e.duenoSolo) {
+      // En solitario: la paleta de la persona (pastel + contorno oscuro); las monedas, en el tono oscuro.
+      const { relleno, borde } = paletaDe(e.duenoSolo === 'm1' ? m1 : m2);
+      return { forma: 'pago', recurrente, relleno, borde, tinta: borde };
+    }
+    return { forma: 'pago', recurrente, relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.white };
   }
   const [uno, dos] = paletasDe(e.asistentes, m1, m2);
   const cumple = e.categoria === 'birthday';
@@ -94,14 +107,25 @@ export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPers
     relleno: uno.relleno,
     borde: uno.borde,
     ...(dos ? { relleno2: dos.relleno, borde2: dos.borde } : {}),
-    // El regalo es siempre fucsia; el resto, el tono oscuro de la persona (o texto normal si la insignia va partida).
+    // El regalo es siempre fucsia; el resto, el tono oscuro de la persona (o texto normal si la insignia va rayada).
     tinta: cumple ? colors.cumpleMarca : dos ? colors.text : uno.borde,
   };
 }
 
+/**
+ * Marcador de una opción del menú de filtros: neutro (superficie con contorno y glifo de `icon`) y, si es la elegida,
+ * en granate suave. «Pagos» dibuja las monedas del cuadrado de pago; el resto, una insignia con su icono.
+ */
+export function marcadorFiltro(opcion: { icono: IconoFiltro }, activo: boolean): MarcadorSpec {
+  const relleno = activo ? colors.accentSoft : colors.surface;
+  const tinta = activo ? colors.accent : colors.icon;
+  if (opcion.icono === 'pago') return { forma: 'pago', recurrente: false, relleno, borde: tinta, tinta };
+  return { forma: 'insignia', icono: opcion.icono, relleno, borde: tinta, tinta };
+}
+
 export type ColorBarra = { relleno: string; borde: string; relleno2: string | null; borde2: string | null };
 
-/** Colores de una barra de varios días: uno, o dos (arriba/izquierda m1, abajo/derecha m2) si van los dos. */
+/** Colores de una barra de varios días: uno, o dos (franjas alternas, empezando por m1) si van los dos. */
 export function colorBarra(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null): ColorBarra {
   const [uno, dos] = paletasDe(e.asistentes, m1, m2);
   return { relleno: uno.relleno, borde: uno.borde, relleno2: dos?.relleno ?? null, borde2: dos?.borde ?? null };

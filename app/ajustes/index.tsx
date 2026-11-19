@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { HojaBorrarCuenta, HojaContrasena, HojaPerfil, HojaSalir } from '@/components/ajustes/HojasCuenta';
 import { HojaBote, HojaCategorias, HojaReparto } from '@/components/ajustes/HojasDinero';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -158,7 +159,7 @@ export default function Ajustes() {
             datos.isError ? (
               <Text style={styles.nota}>No se han podido cargar los ajustes.</Text>
             ) : (
-              <ActivityIndicator color={colors.accent} style={{ paddingVertical: 16 }} />
+              <CargandoHilo color={colors.accent} style={{ paddingVertical: 16 }} />
             )
           ) : (
             <>

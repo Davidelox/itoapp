@@ -61,7 +61,7 @@ export default function NuevaContrasena() {
           value={password}
           onChangeText={setPassword}
           error={error}
-          ayuda="Al menos 10 caracteres, con letras y números."
+          ayuda="Al menos 8 caracteres, con letras y números."
           contrasena
           autoCapitalize="none"
           autoCorrect={false}

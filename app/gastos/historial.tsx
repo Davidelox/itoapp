@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Chip } from '@/components/gastos/Controles';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { BotonSecundario } from '@/components/onboarding/Botones';
@@ -153,7 +154,7 @@ export default function Historial() {
       </View>
 
       {(verPagos ? pagos.isLoading : historial.isLoading) ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 32 }} />
+        <CargandoHilo color={colors.accent} style={{ marginTop: 32 }} />
       ) : (verPagos ? pagos.isError : historial.isError) ? (
         <View style={styles.vacio}>
           <Text style={styles.vacioTexto}>No se ha podido cargar el historial.</Text>
@@ -177,7 +178,7 @@ export default function Historial() {
                   : 'Aún no hay gastos.'}
             </Text>
           }
-          ListFooterComponent={historial.isFetchingNextPage ? <ActivityIndicator color={colors.accent} style={{ marginVertical: 16 }} /> : undefined}
+          ListFooterComponent={historial.isFetchingNextPage ? <CargandoHilo color={colors.accent} style={{ marginVertical: 16 }} /> : undefined}
           renderItem={({ item }) =>
             item.tipo === 'mes' ? (
               <Text accessibilityRole="header" style={styles.mes}>

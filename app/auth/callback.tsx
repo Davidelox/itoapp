@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { Pantalla } from '@/components/onboarding/Pantalla';
 import { colors, fonts } from '@/constants/theme';
@@ -49,7 +50,7 @@ export default function CallbackAuth() {
   if (resultado === 'procesando') {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
         <Text style={styles.texto}>Confirmando tu email…</Text>
       </View>
     );

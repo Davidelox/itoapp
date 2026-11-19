@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, type ReactNode, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BloqueDespues } from '@/components/calendario/BloqueDespues';
 import { HojaRevelar } from '@/components/calendario/HojaRevelar';
 import { Marcador } from '@/components/calendario/Marcador';
@@ -82,7 +83,7 @@ export default function DetalleEvento() {
     return (
       <View style={styles.raiz}>
         {cabecera}
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        <CargandoHilo size="large" color={colors.accent} style={{ marginTop: 40 }} />
       </View>
     );
   }

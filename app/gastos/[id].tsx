@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { IconoCategoria, textoPagador } from '@/components/gastos/FilaGasto';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -54,7 +55,7 @@ export default function DetalleGasto() {
     return (
       <View style={styles.raiz}>
         {cabecera}
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        <CargandoHilo size="large" color={colors.accent} style={{ marginTop: 40 }} />
       </View>
     );
   }

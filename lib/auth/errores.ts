@@ -5,7 +5,7 @@ export type Resultado = { ok: true } | { ok: false; mensaje: string; reintentarE
 export const MENSAJES = {
   credenciales: 'El email o la contraseña no son correctos.',
   noConfirmado: 'Confirma tu email para entrar. Te enviamos un código.',
-  contrasenaDebil: 'Tu contraseña necesita al menos 10 caracteres, con letras y números.',
+  contrasenaDebil: 'Tu contraseña necesita al menos 8 caracteres, con letras y números.',
   codigoInvalido: 'El código no es válido o ha caducado. Pide uno nuevo.',
   demasiados: 'Has hecho demasiados intentos. Espera unos minutos.',
   sinConexion: 'No hay conexión. Inténtalo de nuevo.',

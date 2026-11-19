@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioGasto } from '@/components/gastos/FormularioGasto';
 import { colors, fonts, radius } from '@/constants/theme';
 import type { Gasto } from '@/lib/gastos/consultas';
@@ -28,7 +29,7 @@ export default function EditarGasto() {
   if (!pareja || ajustes.isLoading || (gasto.isLoading && !copia)) {
     return (
       <View style={styles.centro}>
-        <ActivityIndicator color={colors.accent} />
+        <CargandoHilo size="large" color={colors.accent} />
       </View>
     );
   }

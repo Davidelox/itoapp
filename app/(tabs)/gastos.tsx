@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, RefreshControl, StyleSheet, Switch, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
+import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
 import { TarjetasPendientes } from '@/components/inicio/TarjetasPendientes';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { HojaSaldar } from '@/components/gastos/HojaSaldar';
@@ -24,7 +26,7 @@ const CLAVE_SOLO_SIN_SALDAR = 'ito.solo_sin_saldar';
 /** Pestaña Gastos (mockup «Dinero»): saldo, bote (solo lectura) y últimos gastos. Saldar llega en la fase 2. */
 export default function Gastos() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { onScroll, sombra } = useScrollCabecera();
   const { pareja } = useEstado();
   const saldo = useSaldo();
   // Interruptor «Solo sin saldar» en Últimos gastos (se recuerda en este dispositivo).
@@ -71,18 +73,17 @@ export default function Gastos() {
 
   return (
     <View style={styles.raiz}>
-      <ScrollView
-        contentContainerStyle={[styles.contenido, { paddingTop: insets.top + spacing.lg }]}
+      <CabeceraPestana titulo="Gastos" sombra={sombra} />
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.contenido}
         refreshControl={
           <RefreshControl refreshing={saldo.isRefetching || ultimos.isRefetching} onRefresh={invalidar} tintColor={colors.accent} />
         }
       >
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Gastos
-        </Text>
-
         {cargando ? (
-          <ActivityIndicator color={colors.accent} style={styles.cargando} />
+          <CargandoHilo color={colors.accent} style={styles.cargando} />
         ) : fallo ? (
           <View style={styles.vacio}>
             <Text style={styles.vacioTexto}>No se han podido cargar los gastos.</Text>
@@ -170,7 +171,7 @@ export default function Gastos() {
             )}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {saldando ? <HojaSaldar onCerrar={() => setSaldando(false)} /> : null}
 
@@ -190,8 +191,7 @@ export default function Gastos() {
 
 const styles = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: colors.background },
-  contenido: { paddingHorizontal: 20, paddingBottom: 100, gap: 12 },
-  titulo: { fontFamily: fonts.title, fontSize: 30, color: colors.text, marginBottom: 4 },
+  contenido: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 100, gap: 12 },
   cargando: { marginTop: 40 },
   rechazo: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   rechazoCuerpo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingLeft: 14 },

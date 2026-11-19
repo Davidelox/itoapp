@@ -66,7 +66,7 @@ export default function CrearCuenta() {
           value={password}
           onChangeText={setPassword}
           error={errorPassword}
-          ayuda="Al menos 10 caracteres, con letras y números."
+          ayuda="Al menos 8 caracteres, con letras y números."
           contrasena
           autoCapitalize="none"
           autoCorrect={false}
