@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
-import { BotonPrincipal } from '@/components/onboarding/Botones';
+import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts } from '@/constants/theme';
 import { leerEuros } from '@/lib/dinero/importe';
@@ -22,12 +22,15 @@ export function HojaImporte({
   pareja,
   onCerrar,
   onHecho,
+  onVerPago,
 }: {
   cobro: Cobro;
   recurrente: Recurrente;
   pareja: Pareja;
   onCerrar: () => void;
   onHecho: () => void;
+  /** Con él sale «Ver el pago» (el calendario abre esta hoja en vez del detalle del recurrente). */
+  onVerPago?: () => void;
 }) {
   const p = personas(pareja);
   const invalidar = useInvalidarGastos();
@@ -83,6 +86,7 @@ export function HojaImporte({
       <Text style={styles.resultado}>{resultado.texto}</Text>
       <MensajeError texto={error ?? (texto.trim() !== '' && cents === null ? 'Escribe un importe, por ejemplo 52,30.' : null)} />
       <BotonPrincipal etiqueta="Apuntar gasto" etiquetaCargando="Guardando…" cargando={ocupado} deshabilitado={cents === null} onPress={guardar} />
+      {onVerPago ? <EnlaceTexto etiqueta="Ver el pago" deshabilitado={ocupado} onPress={onVerPago} /> : null}
     </Hoja>
   );
 }

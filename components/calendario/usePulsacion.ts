@@ -7,16 +7,16 @@ export const RETRASO_PULSACION = 80;
 
 /**
  * Feedback de pulsación de una celda o una fila (docs/plan-calendario-v3.md §5), sin `setState` (todo en el hilo de UI):
- * un tinte que aparece con fundido y una escala que se hunde y rebota con un resorte al soltar.
+ * un tinte que aparece con fundido y se apaga con un resorte al soltar. Sin `transform: scale`: en iOS el texto escalado
+ * se rasteriza y se queda borroso.
  *
  * - `onPressIn` hace el fundido del tinte; `onPressOut` suelta con resorte. Los `Pressable` llevan
  *   `unstable_pressDelay={RETRASO_PULSACION}`: así `onPressIn` no llega si el dedo empieza un scroll vertical (se
  *   cancela antes) y no hay destello; y `Pressability` retrasa `onPressOut` hasta 130 ms, así que un toque rápido
  *   también deja ver el tinte.
  * - `arrastre` (1 mientras se desliza la rejilla para cambiar de periodo): el feedback desaparece al instante.
- * - `reducida` (movimiento reducido): solo el tinte, sin escala.
  */
-export function usePulsacion({ arrastre, reducida, escala }: { arrastre: SharedValue<number>; reducida: boolean; escala: number }) {
+export function usePulsacion({ arrastre }: { arrastre: SharedValue<number> }) {
   const p = useSharedValue(0);
   const handlers = {
     onPressIn: () => {
@@ -27,8 +27,5 @@ export function usePulsacion({ arrastre, reducida, escala }: { arrastre: SharedV
     },
   };
   const estiloTinte = useAnimatedStyle(() => ({ opacity: arrastre.get() ? 0 : Math.max(0, Math.min(1, p.get())) }));
-  const estiloEscala = useAnimatedStyle(() => ({
-    transform: [{ scale: reducida || arrastre.get() ? 1 : 1 - (1 - escala) * p.get() }],
-  }));
-  return { handlers, estiloTinte, estiloEscala };
+  return { handlers, estiloTinte };
 }

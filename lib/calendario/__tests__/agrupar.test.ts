@@ -83,23 +83,23 @@ describe('día, filtros y puntos', () => {
     expect(filtrar(l, ['other'])).toHaveLength(2);
     expect(filtrar(l, [])).toHaveLength(3);
   });
-  it('glifos: máximo 4 y el resto en «+N»; candado si hay un secreto', () => {
+  it('glifos: máximo 2 y el resto en «+N»; candado si hay un secreto', () => {
     const dia = agruparPorDia(l);
     const d17 = puntosDelDia(dia['2026-11-17']);
     expect(d17.puntos.map((e) => e.tipo)).toEqual(['payment', 'event']);
     expect(d17).toMatchObject({ restantes: 0, secreto: false });
     expect(puntosDelDia(dia['2026-11-18']).secreto).toBe(true);
     const con = (n: number) => aElementos(Array.from({ length: n }, (_, i) => fila({ source_id: String(i) })));
-    // 1, 2, 3 y 4 se ven enteros (con 4 no hay «+N»); con 5 o más se ven 4 y el resto va al «+N».
-    for (const n of [1, 2, 3, 4]) {
+    // 1 y 2 se ven enteros (sin «+N»); con 3 o más se ven 2 y el resto va al «+N».
+    for (const n of [1, 2]) {
       const p = puntosDelDia(con(n));
       expect(p.puntos).toHaveLength(n);
       expect(p.restantes).toBe(0);
     }
-    const p5 = puntosDelDia(con(5));
-    expect(p5.puntos).toHaveLength(4);
-    expect(p5).toMatchObject({ restantes: 1, secreto: false });
-    expect(puntosDelDia(con(9))).toMatchObject({ restantes: 5 });
+    const p3 = puntosDelDia(con(3));
+    expect(p3.puntos).toHaveLength(2);
+    expect(p3).toMatchObject({ restantes: 1, secreto: false });
+    expect(puntosDelDia(con(9))).toMatchObject({ restantes: 7 });
     expect(puntosDelDia([])).toEqual({ puntos: [], restantes: 0, secreto: false, cumples: 0 });
   });
   it('los cumpleaños no son glifos: ni se dibujan ni cuentan en el «+N», solo en `cumples` (el regalo de la esquina)', () => {
@@ -109,13 +109,13 @@ describe('día, filtros y puntos', () => {
     expect(puntosDelDia(aElementos([cumple('a')]))).toEqual({ puntos: [], restantes: 0, secreto: false, cumples: 1 });
     // Dos cumpleaños: `cumples` = 2 (el «+» del regalo); siguen sin ser glifos.
     expect(puntosDelDia(aElementos([cumple('a'), cumple('b')]))).toMatchObject({ puntos: [], restantes: 0, cumples: 2 });
-    // Con 4 eventos y 3 cumpleaños se ven los 4 eventos y no hay «+N».
-    const mezcla = puntosDelDia(aElementos([...eventos(4), cumple('a'), cumple('b'), cumple('c')]));
-    expect(mezcla.puntos).toHaveLength(4);
+    // Con 2 eventos y 3 cumpleaños se ven los 2 eventos y no hay «+N».
+    const mezcla = puntosDelDia(aElementos([...eventos(2), cumple('a'), cumple('b'), cumple('c')]));
+    expect(mezcla.puntos).toHaveLength(2);
     expect(mezcla.puntos.every((e) => e.categoria !== 'birthday')).toBe(true);
     expect(mezcla).toMatchObject({ restantes: 0, cumples: 3 });
-    // Con 5 eventos y un cumpleaños, el «+N» es 1: el cumpleaños no suma.
-    expect(puntosDelDia(aElementos([...eventos(5), cumple('a')]))).toMatchObject({ restantes: 1, cumples: 1 });
+    // Con 3 eventos y un cumpleaños, el «+N» es 1: el cumpleaños no suma.
+    expect(puntosDelDia(aElementos([...eventos(3), cumple('a')]))).toMatchObject({ restantes: 1, cumples: 1 });
     // Los pagos sí son glifos.
     expect(puntosDelDia(aElementos([fila({ kind: 'payment', source_id: 'p' }), cumple('a')])).puntos.map((e) => e.tipo)).toEqual(['payment']);
   });
@@ -125,8 +125,8 @@ describe('día, filtros y puntos', () => {
   });
   it('las barras ocultas suman al «+N»', () => {
     const con = (n: number) => aElementos(Array.from({ length: n }, (_, i) => fila({ source_id: String(i) })));
-    expect(puntosDelDia(con(4), 1)).toMatchObject({ restantes: 1 });
-    expect(puntosDelDia(con(6), 2)).toMatchObject({ restantes: 4 });
+    expect(puntosDelDia(con(4), 1)).toMatchObject({ restantes: 3 });
+    expect(puntosDelDia(con(6), 2)).toMatchObject({ restantes: 6 });
     expect(puntosDelDia(con(2), 1)).toMatchObject({ restantes: 1 });
     expect(puntosDelDia(con(2), 0)).toMatchObject({ restantes: 0 });
   });

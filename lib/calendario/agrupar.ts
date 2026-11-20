@@ -232,16 +232,15 @@ export function agruparPorDia(lista: Elemento[]): Record<string, Elemento[]> {
 }
 
 /** Glifos que caben en una celda del Mes; si hay más, se ven estos y un «+N» pequeño al lado. */
-export const MAX_PUNTOS = 4;
+export const MAX_PUNTOS = 2;
 
 /** ¿Es un cumpleaños? Va en la esquina de la celda y en la info extra de la lista del día, no entre los glifos. */
 export const esCumple = (e: Pick<Elemento, 'tipo' | 'categoria'>): boolean => e.tipo === 'event' && e.categoria === 'birthday';
 
 /**
  * Glifos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras y los
- * cumpleaños, en la esquina: `cumples`), como mucho 4. `restantes`: los glifos que no caben más las barras ocultas
- * (`ocultos`, las que no cabían en los carriles); es el N del «+N». Con exactamente 4 elementos se ven los 4 y no
- * hay «+N». Candado si hay un secreto (también de varios días).
+ * cumpleaños, en la esquina: `cumples`), como mucho 2. `restantes`: los glifos que no caben más las barras ocultas
+ * (`ocultos`, las que no cabían en los carriles); es el N del «+N». Con 2 o menos se ven todos y no hay «+N». Candado si hay un secreto (también de varios días).
  */
 export function puntosDelDia(
   lista: Elemento[],

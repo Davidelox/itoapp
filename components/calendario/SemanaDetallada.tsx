@@ -23,7 +23,7 @@ const ANCHO_CARRILES = MAX_CARRILES_SEMANA * ANCHO_BARRA + (MAX_CARRILES_SEMANA 
  * días como barras verticales continuas en la columna de carriles. Cada fila pinta su trozo de la barra a todo
  * lo alto, así que las barras no se cortan entre filas aunque midan distinto y no hace falta medir nada.
  * Tocar el número del día (o un hueco de la fila) lo selecciona; tocar una línea abre su detalle. Al pulsar el día
- * o el hueco, toda la fila se tiñe de granate suave con fundido (también si es la seleccionada) y se hunde un poco
+ * o el hueco, toda la fila se tiñe de granate suave con fundido (también si es la seleccionada)
  * (`usePulsacion`); las líneas y el «+N más» tienen su propio feedback.
  */
 export function SemanaDetallada({
@@ -114,7 +114,7 @@ function FilaDelDia({
   reducida: boolean;
   onDia: (iso: string) => void;
 }) {
-  const { handlers, estiloTinte, estiloEscala } = usePulsacion({ arrastre, reducida, escala: 0.985 });
+  const { handlers, estiloTinte } = usePulsacion({ arrastre });
   const pulsar = { onPressIn: handlers.onPressIn, onPressOut: handlers.onPressOut, unstable_pressDelay: RETRASO_PULSACION };
   const tocar = () => {
     onDia(fila.iso);
@@ -130,8 +130,8 @@ function FilaDelDia({
       {!ultima ? <View style={styles.separador} /> : null}
       {elegido ? <View style={styles.borde} /> : null}
 
-      {/* El día y el hueco se hunden al pulsar; los carriles de las barras quedan fuera para que sigan continuos entre filas. */}
-      <Animated.View style={[styles.contenido, estiloEscala]}>
+      {/* El día y el hueco; los carriles de las barras quedan fuera para que sigan continuos entre filas. */}
+      <View style={styles.contenido}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={fila.etiqueta}
@@ -163,7 +163,7 @@ function FilaDelDia({
             </Pressable>
           ) : null}
         </Pressable>
-      </Animated.View>
+      </View>
 
       <View pointerEvents="none" style={styles.carriles} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {carriles}

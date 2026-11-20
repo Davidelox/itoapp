@@ -5,7 +5,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, RefreshControl, StyleSheet, Switch, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
 import { TarjetasPendientes } from '@/components/inicio/TarjetasPendientes';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
@@ -73,18 +72,16 @@ export default function Gastos() {
 
   return (
     <View style={styles.raiz}>
-      <CabeceraPestana titulo="Gastos" sombra={sombra} />
+      <CabeceraPestana titulo="Gastos" sombra={sombra} cargando={cargando || saldo.isRefetching || ultimos.isRefetching} />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={styles.contenido}
         refreshControl={
-          <RefreshControl refreshing={saldo.isRefetching || ultimos.isRefetching} onRefresh={invalidar} tintColor={colors.accent} />
+          <RefreshControl refreshing={saldo.isRefetching || ultimos.isRefetching} onRefresh={invalidar} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />
         }
       >
-        {cargando ? (
-          <CargandoHilo color={colors.accent} style={styles.cargando} />
-        ) : fallo ? (
+        {cargando ? null : fallo ? (
           <View style={styles.vacio}>
             <Text style={styles.vacioTexto}>No se han podido cargar los gastos.</Text>
             <BotonSecundario etiqueta="Reintentar" onPress={invalidar} />
@@ -192,7 +189,6 @@ export default function Gastos() {
 const styles = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 100, gap: 12 },
-  cargando: { marginTop: 40 },
   rechazo: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   rechazoCuerpo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingLeft: 14 },
   rechazoCerrar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

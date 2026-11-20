@@ -16,7 +16,7 @@ export const cosaBorrada = (p: Extract<Pendiente, { tipo: 'borrado' }>): string 
 
 /**
  * «cena · 20,00 €»: lo que se pide borrar. Un evento o un pago recurrente salen con la etiqueta que guardó el
- * servidor (el título del evento, con la fecha si es solo una; en un cumpleaños es el nombre, sin «Cumple de»).
+ * servidor (el título del evento, con la fecha si es solo una; en un cumpleaños «Cumpleaños de <nombre>», desde 20261122000000).
  */
 export function descripcionBorrado(p: Extract<Pendiente, { tipo: 'borrado' }>, yo: Hueco, nombrePareja: string): string {
   if (p.gasto) return `${p.gasto.concept} · ${formatearImporte(p.gasto.amount_cents)}`;

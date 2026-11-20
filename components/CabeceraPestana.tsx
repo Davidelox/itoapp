@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import Animated, { type SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, type SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { colors, fonts } from '@/constants/theme';
 
 /** Scroll (px) a partir del cual la separación de la cabecera se ve entera. */
@@ -25,11 +26,25 @@ export function useScrollCabecera() {
 }
 
 /**
- * Cabecera fija de una pestaña (docs/plan-cabeceras-calendario.md §2): título a la izquierda, `accion` a la
- * derecha (avatares, «Hoy»…). Va fuera del scroll, con fondo opaco; al desplazarse la pantalla aparece una línea y
+ * Cabecera fija de una pestaña (docs/plan-cabeceras-calendario.md §2): título a la izquierda, el hilo de carga
+ * en el centro y `accion` a la derecha (avatares, «Hoy»…). Va fuera del scroll, con fondo opaco; al desplazarse la pantalla aparece una línea y
  * una sombra suave debajo (`sombra`, de `useScrollCabecera`; sin ella no se ve separación).
  */
-export function CabeceraPestana({ titulo, accion, sombra }: { titulo: string; accion?: ReactNode; sombra?: SharedValue<number> }) {
+export function CabeceraPestana({
+  titulo,
+  accion,
+  sombra,
+  cargando,
+  children,
+}: {
+  titulo: string;
+  accion?: ReactNode;
+  sombra?: SharedValue<number>;
+  /** Con `true` dibuja el hilo de carga, centrado en la cabecera (en absoluto: no empuja el título ni la acción). */
+  cargando?: boolean;
+  /** Contenido fijo bajo el título (p. ej. la barra del calendario): queda dentro de la cabecera, con su fondo y su separación. */
+  children?: ReactNode;
+}) {
   const insets = useSafeAreaInsets();
   const contenedor = useAnimatedStyle(() => {
     const s = sombra ? sombra.get() : 0;
@@ -45,7 +60,11 @@ export function CabeceraPestana({ titulo, accion, sombra }: { titulo: string; ac
           {titulo}
         </Text>
         {accion ? <View style={styles.accion}>{accion}</View> : null}
+        <View pointerEvents="none" style={styles.hilo}>
+          {cargando ? <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)}><CargandoHilo size="small" /></Animated.View> : null}
+        </View>
       </View>
+      {children ? <View style={styles.hijos}>{children}</View> : null}
       <Animated.View pointerEvents="none" style={[styles.linea, linea]} />
     </Animated.View>
   );
@@ -69,6 +88,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   titulo: { flexShrink: 1, fontFamily: fonts.title, fontSize: 28, lineHeight: 34, letterSpacing: -0.3, color: colors.text },
+  hilo: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  hijos: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
   accion: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   linea: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: colors.border },
 });

@@ -6,12 +6,12 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Extrapolation, FadeIn, interpolate, useAnimatedRef, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
 import { BarraPeriodo } from '@/components/calendario/BarraPeriodo';
 import { ListaDias } from '@/components/calendario/ListaDias';
 import { RejillaMes } from '@/components/calendario/RejillaMes';
 import { SemanaDetallada } from '@/components/calendario/SemanaDetallada';
+import { HojaImporte } from '@/components/gastos/HojaImporte';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { colors, fonts } from '@/constants/theme';
 import { type Elemento, type Filtros, agruparPorDia, aElementos, construirLista, filtrar, infoPagos } from '@/lib/calendario/agrupar';
@@ -24,8 +24,9 @@ import { type Vista, mismoPeriodo, mover, rangoVisible, semanaDe, semanasDelMes 
 import { dentroDeLimites, direccionSalto } from '@/lib/calendario/selectorMes';
 import { useBorradosPendientes, useCalendario } from '@/lib/calendario/useCalendario';
 import { hoyISO } from '@/lib/gastos/fechas';
+import type { Cobro, Recurrente } from '@/lib/gastos/recurrentes';
 import { personas } from '@/lib/gastos/personas';
-import { useRecurrentes } from '@/lib/gastos/useGastos';
+import { useInvalidarGastos, useRecurrentes } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Cuánto se ve resaltada la fila del evento o pago recién guardado. */
@@ -45,6 +46,8 @@ export default function Calendario() {
   const [filtros, setFiltros] = useState<Filtros>([]);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [abriendo, setAbriendo] = useState(false);
+  const [importeDe, setImporteDe] = useState<{ cobro: Cobro; recurrente: Recurrente } | null>(null);
+  const invalidar = useInvalidarGastos();
   // Al volver de guardar un evento o un pago llegan `?dia=YYYY-MM-DD&evento=<id>` (en un pago, el id del recurrente):
   // se consumen una vez (`objetivo`), se limpian de la ruta y el elemento se resalta unos segundos (`resaltado`).
   const { dia: diaRuta, evento: eventoRuta } = useLocalSearchParams<{ dia?: string; evento?: string }>();
@@ -261,9 +264,14 @@ export default function Calendario() {
     else abrirEvento(e);
   };
 
-  // Pago cobrado → su gasto; previsto o pendiente (o si el gasto no se ve) → el recurrente.
+  // Pago cobrado → su gasto; pendiente de importe → la hoja «Poner importe»; previsto (o si el gasto no se ve) → el recurrente.
   const abrirPago = async (e: Elemento) => {
     if (abriendo) return;
+    const recurrente = e.estado === 'pending' && e.cobroId ? recurrentes.data?.find((r) => r.id === e.origenId) : undefined;
+    if (recurrente && e.cobroId) {
+      setImporteDe({ cobro: { id: e.cobroId, due_date: e.inicio, status: 'pending', amount_cents: null }, recurrente });
+      return;
+    }
     setAbriendo(true);
     try {
       const gasto = e.estado === 'paid' && e.cobroId ? await gastoDeCobro(e.cobroId).catch(() => null) : null;
@@ -284,6 +292,7 @@ export default function Calendario() {
       <CabeceraPestana
         titulo="Calendario"
         sombra={sombra}
+        cargando={cargando || consulta.isRefetching}
         accion={
           enPeriodoActual ? null : (
             <Pressable
@@ -297,24 +306,22 @@ export default function Calendario() {
             </Pressable>
           )
         }
-      />
+      >
+        <BarraPeriodo vista={vista} ancla={ancla} hoy={hoy} filtros={filtros} onVista={cambiarVista} onMover={ir} onSaltar={saltarA} onFiltros={setFiltros} />
+      </CabeceraPestana>
       <Animated.ScrollView
         ref={scrollRef}
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={styles.contenido}
-        refreshControl={<RefreshControl refreshing={consulta.isRefetching} onRefresh={recargar} tintColor={colors.accent} />}
+        refreshControl={<RefreshControl refreshing={consulta.isRefetching} onRefresh={recargar} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}
       >
-        <BarraPeriodo vista={vista} ancla={ancla} hoy={hoy} filtros={filtros} onVista={cambiarVista} onMover={ir} onSaltar={saltarA} onFiltros={setFiltros} />
-
         {consulta.isError && !consulta.data ? (
           <View style={styles.error}>
             <Text style={styles.errorTexto}>No se ha podido cargar el calendario.</Text>
             <BotonSecundario etiqueta="Reintentar" onPress={recargar} />
           </View>
-        ) : consulta.isLoading ? (
-          <CargandoHilo color={colors.accent} style={styles.cargando} />
-        ) : (
+        ) : consulta.isLoading ? null : (
           <>
             {/* `touchAction` (solo web táctil): sin él RNGH pone `touch-action: none` y no se podría hacer scroll vertical sobre la rejilla. */}
             <GestureDetector gesture={deslizar} touchAction="pan-y">
@@ -346,9 +353,7 @@ export default function Calendario() {
                 )}
               </Animated.View>
             </GestureDetector>
-            {cargando ? (
-              <CargandoHilo color={colors.accent} style={styles.cargando} />
-            ) : lista ? (
+            {cargando ? null : lista ? (
               <View
                 onLayout={(ev) => {
                   yLista.current = ev.nativeEvent.layout.y;
@@ -385,6 +390,22 @@ export default function Calendario() {
       >
         <Ionicons name="add" size={28} color={colors.white} />
       </Pressable>
+      {importeDe ? (
+        <HojaImporte
+          cobro={importeDe.cobro}
+          recurrente={importeDe.recurrente}
+          pareja={pareja}
+          onCerrar={() => setImporteDe(null)}
+          onHecho={() => {
+            setImporteDe(null);
+            invalidar();
+          }}
+          onVerPago={() => {
+            router.push({ pathname: '/gastos/recurrente/[id]', params: { id: importeDe.recurrente.id } });
+            setImporteDe(null);
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -403,7 +424,6 @@ const styles = StyleSheet.create({
   },
   hoyTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
   // En web, que arrastrar con el ratón no seleccione texto.
-  cargando: { marginTop: 24 },
   error: { alignItems: 'center', gap: 8, paddingVertical: 32, paddingHorizontal: 12 },
   mas: {
     position: 'absolute',
