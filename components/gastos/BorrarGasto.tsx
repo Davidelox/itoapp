@@ -12,6 +12,7 @@ import { diaMesCorto, rangoCorto } from '@/lib/calendario/rejilla';
 import { ErrorGasto, type TipoBorrable, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useSolicitudBorrado } from '@/lib/gastos/useGastos';
+import { useInvalidarMapa } from '@/lib/mapa/useSitios';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** «15 mar 2027»: la fecha de una repetición, siempre con el año (se borra una concreta). */
@@ -59,13 +60,16 @@ export function BorrarGasto({
   parte?: 'banda' | 'pie' | 'todo';
 }) {
   const router = useRouter();
-  const invalidar = useInvalidarGastos();
+  const invalidarGastos = useInvalidarGastos();
+  const invalidarMapa = useInvalidarMapa();
+  const esSitio = tipo === 'place';
+  const invalidar = () => (esSitio ? invalidarMapa() : invalidarGastos());
   const esEvento = tipo === 'event';
   const ofreceDia = esEvento && repetido && !!fecha;
   const serie = useSolicitudBorrado(gasto.id, tipo, null);
   const delDia = useSolicitudBorrado(gasto.id, tipo, ofreceDia ? fecha : null);
   const solicitud = { data: serie.data ?? (ofreceDia ? delDia.data : null) };
-  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : 'gasto');
+  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : esSitio ? 'sitio' : 'gasto');
   const p = personas(pareja);
   // Hoja de borrado: «alcance» (solo eventos repetidos) y «confirmar».
   const [paso, setPaso] = useState<'alcance' | 'confirmar' | null>(null);
@@ -88,7 +92,7 @@ export function BorrarGasto({
     setPaso('confirmar');
   };
 
-  const volver = () => (router.canGoBack() ? router.back() : router.replace(esEvento ? '/calendario' : '/gastos'));
+  const volver = () => (router.canGoBack() ? router.back() : router.replace(esEvento ? '/calendario' : esSitio ? '/mapa' : '/gastos'));
   const accion = async (f: () => Promise<boolean | void>) => {
     setOcupado(true);
     setError(null);
@@ -133,7 +137,9 @@ export function BorrarGasto({
               ? `Se sigue apuntando hasta que ${p.nombrePareja} lo apruebe.`
               : esEvento
                 ? `${soloDia}Sigue en el calendario hasta que ${p.nombrePareja} lo apruebe.`
-                : `Sigue en vuestro saldo hasta que ${p.nombrePareja} lo apruebe. No se puede saldar mientras tanto.`}
+                : esSitio
+                  ? `Sigue en el mapa hasta que ${p.nombrePareja} lo apruebe.`
+                  : `Sigue en vuestro saldo hasta que ${p.nombrePareja} lo apruebe. No se puede saldar mientras tanto.`}
           </Text>
           <MensajeError texto={error} />
         </View>

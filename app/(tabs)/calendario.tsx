@@ -27,6 +27,7 @@ import { hoyISO } from '@/lib/gastos/fechas';
 import type { Cobro, Recurrente } from '@/lib/gastos/recurrentes';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useRecurrentes } from '@/lib/gastos/useGastos';
+import { useSitios } from '@/lib/mapa/useSitios';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Cuánto se ve resaltada la fila del evento o pago recién guardado. */
@@ -65,6 +66,7 @@ export default function Calendario() {
     rangoVisible(vista, mover(vista, ancla, 1)),
   ]);
   const recurrentes = useRecurrentes();
+  const sitios = useSitios();
   const borrados = useBorradosPendientes();
   const { refetch } = consulta;
   const { refetch: recargarRecurrentes } = recurrentes;
@@ -217,6 +219,7 @@ export default function Calendario() {
     conPareja: !!p.otra,
     recurrentes: new Map((recurrentes.data ?? []).map((r) => [r.id, r])),
     pendientesDeBorrar: borrados.data,
+    sitios: new Map((sitios.data ?? []).map((s) => [s.id, s.name])),
   };
 
   const irAHoy = () => {

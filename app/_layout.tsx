@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { Avisos } from '@/components/avisos/Avisos';
 import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { colors } from '@/constants/theme';
 import { FlujoCuentaProvider } from '@/lib/auth/FlujoCuenta';
@@ -105,6 +106,8 @@ function Navegacion() {
           <Stack.Screen name="calendario/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="calendario/evento/[id]" />
           <Stack.Screen name="calendario/editar/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="mapa/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="mapa/sitio/[id]" />
           <Stack.Screen name="laboratorio/index" />
           {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
           <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />
@@ -112,6 +115,7 @@ function Navegacion() {
         {/* Sin guarda: procesa el enlace del email esté o no iniciada la sesión. */}
         <Stack.Screen name="auth/callback" />
       </Stack>
+      <Avisos />
       {mostrarSplash && <SplashHilo onDone={cerrarSplash} destino={destino} />}
     </View>
   );

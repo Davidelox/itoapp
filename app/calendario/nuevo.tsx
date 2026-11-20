@@ -6,6 +6,7 @@ import { FormularioEvento, type TipoFormulario } from '@/components/calendario/F
 import { colors } from '@/constants/theme';
 import type { CategoriaEvento } from '@/lib/calendario/evento';
 import { aISO, deISO, hoyISO } from '@/lib/gastos/fechas';
+import { sitioDeParametro } from '@/lib/mapa/conexiones';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 const TIPOS: TipoFormulario[] = ['evento', 'cumple', 'pago'];
@@ -13,11 +14,12 @@ const CATEGORIAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure'];
 
 /**
  * Nuevo evento. `?fecha=YYYY-MM-DD` precarga el día (el seleccionado en el calendario, también si ya pasó);
- * `?tipo=evento|cumple|pago` y `?categoria=trip|eating_out|leisure` los sugiere el filtro activo del calendario.
+ * `?tipo=evento|cumple|pago` y `?categoria=trip|eating_out|leisure` los sugiere el filtro activo del calendario;
+ * `?sitio=<id>` precarga el sitio del Mapa («Planear aquí»).
  */
 export default function NuevoEvento() {
   const { pareja } = useEstado();
-  const { fecha, tipo, categoria } = useLocalSearchParams<{ fecha?: string; tipo?: string; categoria?: string }>();
+  const { fecha, tipo, categoria, sitio } = useLocalSearchParams<{ fecha?: string; tipo?: string; categoria?: string; sitio?: string }>();
   if (!pareja) {
     return (
       <View style={styles.cargando}>
@@ -32,6 +34,7 @@ export default function NuevoEvento() {
       fechaInicial={valida ? fecha : hoyISO()}
       tipoInicial={TIPOS.find((t) => t === tipo)}
       categoriaInicial={CATEGORIAS.find((c) => c === categoria)}
+      sitioInicial={sitioDeParametro(sitio)}
     />
   );
 }

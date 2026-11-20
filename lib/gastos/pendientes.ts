@@ -9,6 +9,7 @@ const COSA_BORRADA = {
   pot_movement: 'el movimiento',
   event: 'el evento',
   recurring_payment: 'el pago',
+  place: 'el sitio',
 } as const;
 
 /** «el evento», «el pago»…: lo que se queda si no se responde a la solicitud de borrado. */

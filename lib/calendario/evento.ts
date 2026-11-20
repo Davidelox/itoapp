@@ -3,8 +3,8 @@
  * (`reminder_minutes`) y los textos del detalle. Sin red ni React: todo se puede probar.
  *
  * Nunca se envían `time_zone`, `created_by`, `starts_at` ni `ends_at` (los pone el servidor), ni `plan_id`
- * ni `place_id` (llegan con el Planificador y el Mapa): un evento de esta pantalla no va en un plan, así que
- * un secreto cumple siempre el CHECK `not (is_secret and plan_id is not null)`.
+ * (llega con el Planificador): un evento de esta pantalla no va en un plan, así que un secreto cumple siempre el
+ * CHECK `not (is_secret and plan_id is not null)`. `place_id` es el sitio del Mapa (opcional).
  */
 import { vaAlEvento } from '@/lib/calendario/quienPago';
 import { type Repeticion, edad, esBisiesto, proximaRepeticion, textoCorto } from '@/lib/calendario/repeticion';
@@ -63,6 +63,8 @@ export type Evento = {
   category: CategoriaEvento;
   /** Cumpleaños: año de nacimiento, si se puso. */
   birth_year: number | null;
+  /** Sitio del Mapa enlazado; null si no hay o se borró. */
+  place_id: string | null;
   created_by: string | null;
   version: number;
   starts_at: string;
@@ -71,7 +73,7 @@ export type Evento = {
 
 /** Columnas de `events` que lee la app (la fila completa de `Evento`, sin `time_zone`, `plan_id`, etc.). */
 export const COLUMNAS_EVENTO =
-  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, created_by, version, starts_at, ends_at';
+  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, place_id, created_by, version, starts_at, ends_at';
 
 /** `start_time` llega como `HH:MM:SS`. */
 export type FilaEvento = Omit<Evento, 'start_time'> & { start_time: string | null };
@@ -91,6 +93,7 @@ export type DatosEvento = {
   notes: string | null;
   category: CategoriaEvento;
   birth_year: number | null;
+  place_id: string | null;
 };
 export type DatosEventoNuevo = DatosEvento & { is_secret: boolean };
 
@@ -121,6 +124,8 @@ export type Formulario = {
   mes: number;
   /** Cumpleaños: año de nacimiento tal como se escribe; vacío = no se sabe. */
   anioNacimiento: string;
+  /** Sitio del Mapa (opcional). */
+  sitioId: string | null;
 };
 
 export const REPETICIONES: { valor: Repeticion; etiqueta: string }[] = [
@@ -197,7 +202,7 @@ export function textoAviso(minutos: number, todoElDia: boolean, hora: string | n
  * Formulario vacío para un evento nuevo en `fecha`. `categoria`: la que sugiere el filtro del calendario
  * (Viaje → «Varios días» activo; `birthday` → formulario de cumpleaños de parte de `yo`, con el aviso del día antes).
  */
-export function formularioNuevo(fecha: string, categoria: CategoriaEvento = 'other', yo: Hueco = 'm1'): Formulario {
+export function formularioNuevo(fecha: string, categoria: CategoriaEvento = 'other', yo: Hueco = 'm1', sitioId: string | null = null): Formulario {
   const base: Formulario = {
     titulo: '',
     secreto: false,
@@ -216,6 +221,7 @@ export function formularioNuevo(fecha: string, categoria: CategoriaEvento = 'oth
     dia: Number(fecha.slice(8, 10)),
     mes: Number(fecha.slice(5, 7)),
     anioNacimiento: '',
+    sitioId,
   };
   if (categoria === 'birthday') return conTipo(base, 'cumple', yo);
   return categoria === 'trip' ? conCategoria({ ...base, categoria }, 'trip', false) : { ...base, categoria };
@@ -243,6 +249,7 @@ export function deEvento(e: Evento): Formulario {
     dia: Number(e.start_date.slice(8, 10)),
     mes: Number(e.start_date.slice(5, 7)),
     anioNacimiento: e.birth_year === null ? '' : String(e.birth_year),
+    sitioId: e.place_id,
   };
 }
 
@@ -377,6 +384,7 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
       notes: notas === '' ? null : notas,
       category: 'birthday',
       birth_year: leerAnioNacimiento(f.anioNacimiento),
+      place_id: null,
     };
   }
   const presupuesto = leerEuros(f.presupuesto);
@@ -396,6 +404,7 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
     notes: notas === '' ? null : notas,
     category: f.categoria,
     birth_year: null,
+    place_id: f.sitioId,
   };
 }
 

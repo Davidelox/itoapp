@@ -458,7 +458,7 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
               <Chip key={a.etiqueta} rol="radio" etiqueta={a.etiqueta} activo={aviso === a.valor} onPress={() => setAviso(a.valor)} />
             ))}
           </FilaChips>
-          <Text style={styles.ayuda}>Los avisos llegarán cuando ito tenga notificaciones.</Text>
+          <Text style={styles.ayuda}>Te avisamos en el móvil. Elige qué avisos recibes en Ajustes.</Text>
         </Grupo>
 
         <Interruptor titulo="Mostrar en el calendario" ayuda="Cada cobro sale como Pago" valor={calendario} onCambiar={setCalendario} />

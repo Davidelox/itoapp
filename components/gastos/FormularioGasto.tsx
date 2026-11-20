@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { ControlesReparto } from '@/components/gastos/ControlesReparto';
+import { CampoSitio } from '@/components/mapa/CampoSitio';
 import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { MensajeError } from '@/components/onboarding/MensajeError';
@@ -77,6 +78,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const [pctYo, setPctYo] = useState(desdeDatos?.reparto === 'personalizado' ? desdeDatos.pctYo : 50);
   const [visible, setVisible] = useState(inicial ? inicial.visible_to_partner : ajustes.compartirPersonales);
   const [fecha, setFecha] = useState(inicial?.spent_on ?? hoyISO());
+  const [sitioId, setSitioId] = useState<string | null>(inicial?.place_id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [intentado, setIntentado] = useState(false);
   // Id del gasto nuevo fijado al abrir: un reintento tras un fallo de red no lo duplica.
@@ -126,6 +128,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
       amount_cents: cents,
       category: categoria,
       spent_on: fecha,
+      place_id: sitioId,
       ...datos,
       // Solo quien lo creó puede cambiar la visibilidad (TW013): si no, no se envía.
       ...(soyQuienLoCreo ? { visible_to_partner: visibleFinal } : {}),
@@ -142,6 +145,8 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
         await crearGasto(idNuevo, pareja.coupleId, { ...fila, visible_to_partner: visibleFinal });
       }
     } catch (e) {
+      // El sitio ya no está (borrado o privado de tu pareja): se quita la selección.
+      if (e instanceof ErrorGasto && e.codigo === 'TW064') setSitioId(null);
       setError(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar. Inténtalo de nuevo.');
       alGuardarEdicion?.(false);
       throw e;
@@ -238,6 +243,8 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
         <Grupo etiqueta="Fecha" rol="radiogroup">
           <SelectorFecha valor={fecha} onCambiar={setFecha} />
         </Grupo>
+
+        <CampoSitio valor={sitioId} onCambiar={setSitioId} compartido={visibleFinal} />
 
         <MensajeError texto={error} />
       </ScrollView>

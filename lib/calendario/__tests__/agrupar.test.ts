@@ -210,6 +210,12 @@ describe('línea de cada fila', () => {
     expect(lineaElemento(aElementos([fila({ start_time: '19:00:00', attendees: 'm2' })])[0], ctx)).toBe('19:00 · Solo va Meri');
     expect(lineaElemento(aElementos([fila({ attendees: 'm1' })])[0], ctx)).toBe('Todo el día · Solo vas tú');
   });
+  it('añade el sitio enlazado si esta persona lo ve, y nada si no', () => {
+    const e = aElementos([fila({ start_time: '21:30:00', place_id: 's1' })])[0];
+    expect(lineaElemento(e, { ...ctx, sitios: new Map([['s1', 'Taberna El Olivo']]) })).toBe('21:30 · Taberna El Olivo');
+    expect(lineaElemento(e, { ...ctx, sitios: new Map() })).toBe('21:30');
+    expect(lineaElemento(e, ctx)).toBe('21:30');
+  });
   it('«Pendiente de borrar»: toda la serie o solo esa fecha', () => {
     const [domingo] = aElementos([fila({ source_id: 'c', occurs_on: '2027-03-15', recurrence: 'yearly' })]);
     const [otroAnio] = aElementos([fila({ source_id: 'c', occurs_on: '2028-03-15', recurrence: 'yearly' })]);

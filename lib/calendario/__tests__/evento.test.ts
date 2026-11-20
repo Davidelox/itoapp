@@ -55,6 +55,7 @@ const fila: Evento = {
   is_secret: false,
   category: 'other',
   birth_year: null,
+  place_id: null,
   created_by: 'u1',
   version: 3,
   starts_at: '2026-03-14T23:00:00Z',
@@ -97,7 +98,7 @@ describe('aDatos', () => {
   });
   it('nunca envía time_zone, created_by, starts_at, ends_at ni plan_id', () => {
     const claves = Object.keys(aDatosNuevo({ ...base, secreto: true }, 'm1'));
-    for (const k of ['time_zone', 'created_by', 'starts_at', 'ends_at', 'plan_id', 'place_id', 'id', 'version']) {
+    for (const k of ['time_zone', 'created_by', 'starts_at', 'ends_at', 'plan_id', 'id', 'version']) {
       expect(claves).not.toContain(k);
     }
   });
@@ -345,6 +346,7 @@ describe('cumpleaños', () => {
   });
   it('se guarda con el año ancla 2000, cada año, todo el día, sin presupuesto ni «¿Quién pagó?»', () => {
     expect(aDatosNuevo(cumple({ anioNacimiento: '1966', asistentes: 'm2' }), yo)).toEqual({
+      place_id: null,
       title: 'Carmen',
       start_date: '2000-03-15',
       start_time: null,
@@ -423,5 +425,23 @@ describe('cumpleaños', () => {
     // 29 de febrero: el 28 los años no bisiestos.
     expect(textoCumplira(cumple({ dia: 29, mes: 2, anioNacimiento: '1996' }), '2026-11-18')).toBe('Cumplirá 31 el 28 feb 2027');
     expect(textoCumplira(cumple({ dia: 29, mes: 2, anioNacimiento: '1997' }), '2026-11-18')).toBeNull();
+  });
+});
+
+describe('sitio del Mapa (place_id)', () => {
+  it('el formulario nuevo lo trae y aDatos lo envía', () => {
+    const f = { ...formularioNuevo('2026-11-21', 'eating_out', 'm1', 's1'), titulo: 'Cena' };
+    expect(f.sitioId).toBe('s1');
+    expect(aDatos(f, 'm1').place_id).toBe('s1');
+    expect(aDatos({ ...f, sitioId: null }, 'm1').place_id).toBeNull();
+  });
+  it('un cumpleaños nunca lleva sitio', () => {
+    const f = { ...formularioNuevo('2026-11-21', 'birthday', 'm1', 's1'), titulo: 'Marta' };
+    expect(aDatos(f, 'm1').place_id).toBeNull();
+  });
+  it('al editar parte del sitio guardado y soloCambios detecta quitarlo', () => {
+    const e = { ...fila, place_id: 's1' };
+    expect(deEvento(e).sitioId).toBe('s1');
+    expect(soloCambios(e, { place_id: null })).toEqual({ place_id: null });
   });
 });

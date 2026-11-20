@@ -23,7 +23,7 @@ import { supabase } from '@/lib/supabase';
 export { soloCambios };
 
 export const COLUMNAS =
-  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, event_id, event_title_snapshot, version, created_at, liquidacion:settlements(id, status, method, created_at)';
+  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, event_id, event_title_snapshot, place_id, version, created_at, liquidacion:settlements(id, status, method, created_at)';
 
 export type Gasto = {
   id: string;
@@ -46,6 +46,8 @@ export type Gasto = {
   event_id: string | null;
   /** Título del evento, guardado por el servidor al borrarlo (no en gastos compartidos de un secreto). */
   event_title_snapshot: string | null;
+  /** Sitio del Mapa enlazado; null si no hay o se borró. */
+  place_id: string | null;
   version: number;
   created_at: string;
   /** Pago que lo cubre (si lo hay). */
@@ -201,12 +203,14 @@ export type DatosGasto = {
   recurring_occurrence_id?: string;
   /** Solo al apuntar «¿Quién pagó?» de un evento: el servidor cierra la pregunta al crear el gasto. */
   event_id?: string;
+  /** Sitio del Mapa (opcional); null lo quita. */
+  place_id?: string | null;
 };
 
 export { ErrorGasto };
 
 /** Lo que se puede pedir borrar (desde Gastos y desde el Calendario). */
-export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event';
+export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event' | 'place';
 
 const MENSAJES: Record<string, string> = {
   TW020: 'Algo ha cambiado mientras tanto (un gasto se ha editado, saldado o pedido borrar). Revisa la lista.',
@@ -228,12 +232,14 @@ const MENSAJES: Record<string, string> = {
   TW050: 'El evento no puede terminar antes de empezar. Revisa la fecha y la hora.',
   TW051: 'Un evento compartido no se puede volver secreto.',
   TW052: 'El rango de fechas del calendario no es válido.',
+  TW064: 'Ese sitio ya no está disponible.',
 };
 
 /** Mensajes de TW060 cuando lo que se pide borrar es un evento (en gastos significa «este gasto ya no existe»). */
 const MENSAJES_EVENTO: Record<string, string> = {
   TW060: 'Este evento ya no existe, o no ocurre ese día. Revisa el calendario.',
 };
+const MENSAJES_SITIO: Record<string, string> = { TW060: 'Este sitio ya no existe.' };
 
 /** Error de Supabase → `ErrorGasto` con un mensaje listo para mostrar. `mensajes` pisa los generales. */
 export function traducir(contexto: string, error: unknown, mensajes?: Record<string, string>): ErrorGasto {
@@ -402,7 +408,7 @@ export async function pedirBorrar(
 ): Promise<{ borrado: boolean }> {
   const params = { p_id: id, p_type: tipo, p_target_id: gastoId, ...(fecha ? { p_occurrence_date: fecha } : {}) };
   const { data, error } = await supabase.rpc('request_deletion', params);
-  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : undefined);
+  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : tipo === 'place' ? MENSAJES_SITIO : undefined);
   const estado = (data as { status?: string } | null)?.status;
   if (estado === 'deleted' || estado === 'approved') return { borrado: true };
   if (estado === 'pending') return { borrado: false };

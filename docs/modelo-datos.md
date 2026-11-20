@@ -349,10 +349,13 @@ La app los traduce por `error.code`:
 | `TW040` | Membresía no editable |
 | `TW050` | Fechas del evento |
 | `TW051` | Un evento compartido no se puede volver secreto |
+| `TW052` | Rango de fechas del calendario no válido |
+| `TW053` | Un sitio compartido no puede volver a ser privado |
 | `TW060` | No encontrado / no visible |
 | `TW061` | La colección de un plan se borra con el plan |
 | `TW062` | Solicitud ya resuelta o caducada |
 | `TW063` | La solicitud la tiene que aprobar la otra persona |
+| `TW064` | Sitio no encontrado o no visible (al enlazarlo a un gasto o evento) |
 
 `join_couple` devuelve `{ok:false, error}` con uno de estos valores: `invalid_code`, `code_used`, `code_expired`, `couple_full`, `too_many_attempts`, `already_in_couple`.
 
@@ -381,7 +384,7 @@ La app los traduce por `error.code`:
 
 - **Google Places**: el `place_id` se puede guardar sin límite; las coordenadas, solo hasta 30 días. Para uso personal no es un problema; si se publica, hay que refrescarlas.
 - **Sitios privados en algo compartido**: si David enlaza un sitio privado a un evento compartido, María ve el evento sin sitio. La app debería ofrecer hacerlo visible.
-- **Sitio duplicado**: si María guarda un sitio que David tiene en privado, el índice único por `place_id` hace fallar el insert. El cliente debe tratarlo como "ya existe" y ofrecer hacerlo visible.
+- **Sitio duplicado**: resuelto en `20261126000000_mapa.sql`: índice único de compartidos por pareja y de privados por persona; un privado de David no impide a María guardar el mismo sitio. Revelar un privado que ya está compartido da `23505`.
 - **Céntimo impar** en "a medias": lo paga siempre m1.
 - **Escrituras con `service_role`** (Edge Functions): no fuerzan `created_by` y deben fijarlo explícitamente.
 - La migración requiere **Postgres 15 o superior**. Si `pg_cron` no está activado, hay que activarlo y ejecutar el `cron.schedule` del final.

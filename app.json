@@ -31,6 +31,15 @@
       ],
       "expo-font",
       "expo-secure-store",
+      ["expo-notifications", { "color": "#7B2433" }],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ito usa tu ubicación solo para centrar el mapa donde estás y colocar un sitio. Nunca se guarda ni se envía.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
       [
         "expo-image-picker",
         {

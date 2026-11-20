@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HojaPermisoAvisos } from '@/components/avisos/HojaPermisoAvisos';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { HojaBorrarCuenta, HojaContrasena, HojaPerfil, HojaSalir } from '@/components/ajustes/HojasCuenta';
 import { HojaBote, HojaCategorias, HojaReparto } from '@/components/ajustes/HojasDinero';
@@ -14,6 +15,9 @@ import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { listaCategorias, resumenBote, resumenReparto, textoPorcentaje, textosCambios } from '@/lib/ajustes/ajustes';
 import { type CampoPrivacidad, guardarPrivacidad, responderPropuesta, retirarPropuesta } from '@/lib/ajustes/consultas';
 import { cerrarSesion } from '@/lib/auth/acciones';
+import { enExpoGo, puedeRecibirPush } from '@/lib/avisos/entorno';
+import { AVISOS, AVISO_EXPO_GO, type CampoAviso, type EstadoPermiso, textoEstadoPermiso } from '@/lib/avisos/estado';
+import { estadoPermiso, probarAviso } from '@/lib/avisos/registro';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { MESES } from '@/lib/gastos/fechas';
@@ -22,7 +26,7 @@ import { useDatosAjustes, useInvalidarGastos, useSaldo } from '@/lib/gastos/useG
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { supabase } from '@/lib/supabase';
 
-type HojaAbierta = 'perfil' | 'reparto' | 'categorias' | 'bote' | 'contrasena' | 'salir' | 'borrar' | null;
+type HojaAbierta = 'perfil' | 'reparto' | 'categorias' | 'bote' | 'contrasena' | 'salir' | 'borrar' | 'avisos' | null;
 
 /** Ajustes (docs/plan-ajustes.md): perfil, pareja, dinero, privacidad y cuenta. Cada cambio, en una hoja. */
 export default function Ajustes() {
@@ -36,6 +40,10 @@ export default function Ajustes() {
   const [email, setEmail] = useState<string | null>(null);
   const [compartir, setCompartir] = useState<Partial<Record<CampoPrivacidad, boolean>>>({});
   const [errorPrivacidad, setErrorPrivacidad] = useState<string | null>(null);
+  const [avisosLocal, setAvisosLocal] = useState<Partial<Record<CampoAviso, boolean>>>({});
+  const [errorAvisos, setErrorAvisos] = useState<string | null>(null);
+  const [permiso, setPermiso] = useState<EstadoPermiso | null>(null);
+  const [prueba, setPrueba] = useState<{ ocupado: boolean; texto: string | null }>({ ocupado: false, texto: null });
 
   const { refetch } = datos;
   useFocusEffect(
@@ -43,6 +51,9 @@ export default function Ajustes() {
       refetch();
     }, [refetch]),
   );
+  useEffect(() => {
+    estadoPermiso().then(setPermiso);
+  }, [abierta]);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? null));
   }, []);
@@ -69,6 +80,27 @@ export default function Ajustes() {
       setErrorPrivacidad(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar.');
     }
   };
+
+  const cambiarAviso = async (campo: CampoAviso, v: boolean) => {
+    setAvisosLocal((c) => ({ ...c, [campo]: v }));
+    setErrorAvisos(null);
+    try {
+      await guardarPrivacidad(userId, campo, v);
+    } catch (e) {
+      setAvisosLocal((c) => ({ ...c, [campo]: !v }));
+      setErrorAvisos(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar.');
+    }
+  };
+  const probar = async () => {
+    setPrueba({ ocupado: true, texto: null });
+    try {
+      const enviado = await probarAviso();
+      setPrueba({ ocupado: false, texto: enviado ? 'Enviado. Llegará en un par de minutos.' : 'Ya has enviado uno hace un momento.' });
+    } catch {
+      setPrueba({ ocupado: false, texto: 'No se ha podido enviar. Inténtalo de nuevo.' });
+    }
+  };
+  const puedePush = puedeRecibirPush();
 
   return (
     <View style={styles.raiz}>
@@ -201,6 +233,34 @@ export default function Ajustes() {
           <MensajeError texto={errorPrivacidad} />
         </Seccion>
 
+        {/* Avisos */}
+        <Seccion titulo="AVISOS" nota={enExpoGo ? AVISO_EXPO_GO : undefined}>
+          {permiso === 'pendiente' ? (
+            <Fila titulo="Avisos en este móvil" valor={textoEstadoPermiso(permiso, enExpoGo)} onPress={() => setAbierta('avisos')} />
+          ) : permiso === 'denegado' ? (
+            <Fila titulo="Avisos en este móvil" valor={textoEstadoPermiso(permiso, enExpoGo)} onPress={() => Linking.openSettings()} />
+          ) : (
+            <Fila titulo="Avisos en este móvil" valor={textoEstadoPermiso(permiso ?? 'no_disponible', enExpoGo)} />
+          )}
+          {AVISOS.map((a) => (
+            <FilaInterruptor
+              key={a.campo}
+              titulo={a.titulo}
+              ayuda={a.ayuda}
+              valor={avisosLocal[a.campo] ?? d?.avisos[a.campo] ?? true}
+              onCambiar={(v) => cambiarAviso(a.campo, v)}
+              separador
+            />
+          ))}
+          <MensajeError texto={errorAvisos} />
+          <Fila
+            titulo={prueba.ocupado ? 'Enviando…' : 'Probar aviso'}
+            valor={prueba.texto ?? (!puedePush ? 'Disponible en la app instalada' : permiso === 'concedido' ? undefined : 'Activa antes los avisos en este móvil')}
+            onPress={puedePush && permiso === 'concedido' && !prueba.ocupado ? probar : undefined}
+            separador
+          />
+        </Seccion>
+
         {/* Cuenta */}
         <Seccion titulo="CUENTA">
           {email ? <Fila titulo="Email" valor={email} /> : null}
@@ -219,6 +279,7 @@ export default function Ajustes() {
         {version ? <Text style={styles.version}>ito {version}</Text> : null}
       </ScrollView>
 
+      {abierta === 'avisos' ? <HojaPermisoAvisos onCerrar={cerrar} /> : null}
       {abierta === 'perfil' ? <HojaPerfil onCerrar={cerrar} /> : null}
       {abierta === 'reparto' && fila ? <HojaReparto key={JSON.stringify(fila)} actual={fila} pareja={pareja} onCerrar={cerrar} /> : null}
       {abierta === 'categorias' && fila ? <HojaCategorias key={JSON.stringify(fila)} actual={fila} onCerrar={cerrar} /> : null}

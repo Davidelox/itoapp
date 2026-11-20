@@ -1,5 +1,6 @@
 import { urlCallback } from '@/lib/auth/enlaces';
 import { marcarCierreVoluntario } from '@/lib/auth/cierre';
+import { olvidarDispositivo } from '@/lib/avisos/registro';
 import { MENSAJES, type Resultado, esCodigoNoValido, esErrorDeRed, traducirErrorAuth } from '@/lib/auth/errores';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
@@ -102,6 +103,8 @@ export async function pedirCodigoReautenticacion(): Promise<Resultado> {
 /** Cierra solo la sesión de este dispositivo. */
 export async function cerrarSesion(): Promise<void> {
   marcarCierreVoluntario();
+  // Antes de cerrar (después no hay sesión para la RPC); sin red no se espera más de 3 s.
+  await Promise.race([olvidarDispositivo(), new Promise((r) => setTimeout(r, 3000))]);
   const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) registrarError('cerrarSesion', error);
 }

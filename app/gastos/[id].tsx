@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { IconoCategoria, textoPagador } from '@/components/gastos/FilaGasto';
+import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useEvento } from '@/lib/calendario/useCalendario';
@@ -167,6 +168,15 @@ export default function DetalleGasto() {
           </Pressable>
         ) : null}
 
+        {gasto.place_id ? (
+          <View style={styles.saldado}>
+            <Ionicons name="location-outline" size={20} color={colors.icon} />
+            <View style={styles.sitio}>
+              <SitioEnlazado placeId={gasto.place_id} />
+            </View>
+          </View>
+        ) : null}
+
         <OrigenRecurrente cobroId={gasto.recurring_occurrence_id} />
 
         <OrigenEvento eventoId={gasto.event_id} titulo={gasto.event_title_snapshot} />
@@ -255,6 +265,7 @@ const styles = StyleSheet.create({
   editar: { minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' },
   editarTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
   noExiste: { marginTop: 40, textAlign: 'center', fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
+  sitio: { flex: 1 },
   contenido: { paddingHorizontal: 20, gap: 14 },
   resumen: { alignItems: 'center', gap: 4, paddingTop: 4 },
   concepto: { marginTop: 6, fontFamily: fonts.bodyMedium, fontSize: 18, color: colors.text, textAlign: 'center' },

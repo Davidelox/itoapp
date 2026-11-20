@@ -61,6 +61,8 @@ export type FilaRango = {
   occurrence_id?: string | null;
   category?: string | null;
   birth_year?: number | null;
+  /** Sitio del Mapa enlazado (solo eventos). */
+  place_id?: string | null;
 };
 
 export type Tipo = 'event' | 'payment';
@@ -101,6 +103,8 @@ export type Elemento = {
   categoria: CategoriaEvento | null;
   /** Cumpleaños: año de nacimiento, si se puso. */
   anioNacimiento: number | null;
+  /** Sitio del Mapa enlazado (eventos que no son cumpleaños); la línea de la fila pone su nombre si esta persona lo ve. */
+  placeId?: string | null;
   /**
    * Pagos: cada cuánto se cobra (único, mensual, anual) según el recurrente de origen; null si no se sabe (los
    * eventos, o los recurrentes aún sin cargar). `calendar_range` no la devuelve: la pone `aElementos` desde la lista de recurrentes.
@@ -186,6 +190,7 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
       cobroId: f.occurrence_id ?? null,
       categoria,
       anioNacimiento: categoria === 'birthday' && typeof f.birth_year === 'number' ? f.birth_year : null,
+      placeId: f.kind === 'event' && categoria !== 'birthday' ? (f.place_id ?? null) : null,
       frecuencia: f.kind === 'payment' ? (pagos?.get(f.source_id)?.frecuencia ?? null) : null,
       duenoSolo: f.kind === 'payment' ? (pagos?.get(f.source_id)?.duenoSolo ?? null) : null,
     });
@@ -300,6 +305,8 @@ export type ContextoLinea = {
   recurrentes?: ReadonlyMap<string, Pick<Recurrente, 'paid_by' | 'split_mode' | 'split_pct_m1'>>;
   /** Solicitudes de borrado pendientes (`claveBorrado`): la fila lo dice. Una de la serie vale para todas sus fechas. */
   pendientesDeBorrar?: ReadonlySet<string>;
+  /** Nombres de los sitios del Mapa que esta persona ve, por id: los eventos enlazados lo muestran en su línea. */
+  sitios?: ReadonlyMap<string, string>;
 };
 
 /**
@@ -353,6 +360,7 @@ export function lineaElemento(e: Elemento, ctx: ContextoLinea): string {
       esVariosDias(e) ? textoVarios(e) : (e.hora ?? 'Todo el día'),
       textoCorto(e.repeticion),
       e.asistentes === 'both' ? null : e.asistentes === ctx.yo ? 'Solo vas tú' : `Solo va ${ctx.nombrePareja}`,
+      (e.placeId && ctx.sitios?.get(e.placeId)) || null,
       pendiente,
     ]
       .filter(Boolean)

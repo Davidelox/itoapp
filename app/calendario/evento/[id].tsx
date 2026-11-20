@@ -9,6 +9,7 @@ import { BloqueDespues } from '@/components/calendario/BloqueDespues';
 import { HojaRevelar } from '@/components/calendario/HojaRevelar';
 import { Marcador } from '@/components/calendario/Marcador';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
+import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { colors, fonts, radius } from '@/constants/theme';
@@ -205,6 +206,11 @@ export default function DetalleEvento() {
                 </View>
                 <Text style={styles.filaTexto}>{quien}</Text>
               </View>
+            </Fila>
+          ) : null}
+          {evento.place_id && !cumple ? (
+            <Fila icono="location-outline">
+              <SitioEnlazado placeId={evento.place_id} acciones />
             </Fila>
           ) : null}
           {evento.budget_cents !== null ? (

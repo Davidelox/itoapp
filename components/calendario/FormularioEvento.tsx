@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HojaDiaMes } from '@/components/calendario/HojaDiaMes';
 import { SelectorHora } from '@/components/calendario/SelectorHora';
 import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
+import { CampoSitio } from '@/components/mapa/CampoSitio';
 import { BotonFecha, SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
@@ -72,11 +73,13 @@ type Props = {
   tipoInicial?: TipoFormulario;
   /** Al crear un evento: la categoría con la que se abre (Viajes, Comer fuera u Ocio en el filtro). */
   categoriaInicial?: CategoriaEvento;
+  /** Al crear un evento: el sitio del Mapa ya elegido («Planear aquí» en la ficha). */
+  sitioInicial?: string | null;
   alGuardarEdicion?: (enCurso: boolean) => void;
 };
 
 /** Nuevo o editar evento y cumpleaños (mockup NuevoEvento, docs/plan-calendario.md §2 y docs/plan-calendario-v2.md §2.4). */
-export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, alGuardarEdicion }: Props) {
+export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, sitioInicial, alGuardarEdicion }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
@@ -89,7 +92,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
   const [f, setF] = useState<Formulario>(() =>
     inicial
       ? deEvento(inicial)
-      : formularioNuevo(fechaInicial ?? hoy, tipoInicial === 'cumple' ? 'birthday' : (categoriaInicial ?? 'other'), yo),
+      : formularioNuevo(fechaInicial ?? hoy, tipoInicial === 'cumple' ? 'birthday' : (categoriaInicial ?? 'other'), yo, sitioInicial ?? null),
   );
   // Si se ha tocado «Varios días», elegir Viaje ya no lo activa solo.
   const [variosTocado, setVariosTocado] = useState(editando);
@@ -148,6 +151,8 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
         await crearEvento(idNuevo, pareja.coupleId, aDatosNuevo(f, yo));
       }
     } catch (e) {
+      // El sitio ya no está (borrado o privado de tu pareja): se quita la selección.
+      if (e instanceof ErrorGasto && e.codigo === 'TW064') cambiar({ sitioId: null });
       setError(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar. Inténtalo de nuevo.');
       alGuardarEdicion?.(false);
       throw e;
@@ -253,6 +258,8 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
             </FilaChips>
           </Grupo>
         ) : null}
+
+        {tipo === 'evento' ? <CampoSitio valor={f.sitioId} onCambiar={(sitioId) => cambiar({ sitioId })} compartido={!f.secreto} /> : null}
 
         {esCumple ? (
           <>
@@ -440,7 +447,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
                   <Chip key={a.etiqueta} rol="radio" etiqueta={a.etiqueta} activo={f.aviso === a.valor} onPress={() => cambiar({ aviso: a.valor })} />
                 ))}
               </FilaChips>
-              <Text style={styles.ayuda}>Los avisos llegarán cuando ito tenga notificaciones.</Text>
+              <Text style={styles.ayuda}>Te avisamos en el móvil. Elige qué avisos recibes en Ajustes.</Text>
             </Grupo>
 
             <Grupo etiqueta="Notas">

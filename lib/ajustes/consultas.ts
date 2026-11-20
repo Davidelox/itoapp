@@ -1,4 +1,5 @@
 import { type Cambios, type FilaAjustes } from '@/lib/ajustes/ajustes';
+import { type CampoAviso, type PreferenciasAvisos, aPreferencias } from '@/lib/avisos/estado';
 import { esErrorDeRed } from '@/lib/auth/errores';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { registrarError } from '@/lib/registro';
@@ -24,6 +25,8 @@ export type DatosAjustes = {
   pendiente: Propuesta | null;
   /** Mi última propuesta respondida en los últimos 3 días, para avisar de si se aceptó o no. */
   respondida: Propuesta | null;
+  /** Mis interruptores de Avisos (`notify_*`). */
+  avisos: PreferenciasAvisos;
   /** Cuándo se unió la segunda persona (fecha de «Juntos en ito desde…»). */
   juntosDesde: string | null;
   /**
@@ -74,7 +77,7 @@ export async function leerFilaAjustes(): Promise<FilaAjustes | null> {
 export async function leerDatosAjustes(userId: string): Promise<DatosAjustes | null> {
   const [s, m, p, inv] = await Promise.all([
     supabase.from('couple_settings').select(COLUMNAS).maybeSingle(),
-    supabase.from('couple_members').select('user_id, joined_at, left_at, share_personal_expenses, share_personal_recurring, profiles(display_name)'),
+    supabase.from('couple_members').select('user_id, joined_at, left_at, share_personal_expenses, share_personal_recurring, notify_payment_reminder, notify_events, notify_who_paid, notify_partner_expense, notify_settlements, notify_requests, profiles(display_name)'),
     supabase.from('settings_proposals').select(COLUMNAS_PROPUESTA).order('created_at', { ascending: false }).limit(5),
     supabase.from('couple_invitations').select('id').not('used_at', 'is', null).limit(1),
   ]);
@@ -89,7 +92,7 @@ export async function leerDatosAjustes(userId: string): Promise<DatosAjustes | n
     share_personal_expenses: boolean;
     share_personal_recurring: boolean;
     profiles: { display_name: string } | null;
-  }[];
+  }[] & Partial<Record<CampoAviso, boolean>>[];
   const activos = miembros.filter((x) => x.left_at === null);
   const otraSalio = miembros.find((x) => x.user_id !== userId && x.left_at !== null);
   const invitacionUsada = !inv.error && (inv.data ?? []).length > 0;
@@ -117,6 +120,7 @@ export async function leerDatosAjustes(userId: string): Promise<DatosAjustes | n
     pendiente: propuestas.find((x) => x.status === 'pending') ?? null,
     // Solo si es más reciente que cualquier otra propuesta (si no, el aviso ya no tiene sentido).
     respondida: respondida && propuestas[0]?.id === respondida.id ? respondida : null,
+    avisos: aPreferencias(activos.find((x) => x.user_id === userId) as Partial<Record<CampoAviso, boolean>> | undefined),
     juntosDesde: activos.length === 2 ? activos.map((x) => x.joined_at).sort()[1] : null,
     sinPareja,
   };
@@ -171,10 +175,10 @@ export async function retirarPropuesta(id: string): Promise<void> {
   if (!data || data.length === 0) throw new ErrorGasto(MENSAJES.TW030, 'TW030');
 }
 
-/** Mi preferencia de privacidad (solo mía, sin aprobación). */
+/** Mi preferencia de privacidad o de avisos (solo mía, sin aprobación). */
 export type CampoPrivacidad = 'share_personal_expenses' | 'share_personal_recurring';
 
-export async function guardarPrivacidad(userId: string, campo: CampoPrivacidad, compartir: boolean): Promise<void> {
+export async function guardarPrivacidad(userId: string, campo: CampoPrivacidad | CampoAviso, compartir: boolean): Promise<void> {
   const { error } = await supabase
     .from('couple_members')
     .update({ [campo]: compartir })
