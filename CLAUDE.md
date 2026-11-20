@@ -61,5 +61,5 @@ _Actualizado: 2026-11-20 (Mac)_. Detalle (pendientes, decisiones, Supabase) en `
 - **En curso**: Mapa con colecciones, buscador directo y borrado nuevo (migraciones aplicadas); sin probar en iPhone.
 - **Hecho**: onboarding, Gastos 1–4, Ajustes, Calendario v1–v3, avisos push (servidor y cliente), Mapa.
 - **Próximo**: pruebas en móvil real y con dos cuentas; Planificador; Apple Developer para push.
-- **Pendiente de David**: «Minimum password length» a 8 en Supabase; confirmar `20261117010000_saldar_seguro.sql`; probar Mapa y Avisos.
+- **Pendiente de David**: probar Mapa y Avisos en iPhone y con dos cuentas; cuenta Apple Developer para push reales.
 - **Clave**: `.env` nunca a git; `service_role` solo en servidor; migraciones con CLI Supabase (`db query`, nunca `db push`) tras el sí de David.
