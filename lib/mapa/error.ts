@@ -14,12 +14,22 @@ const MENSAJES: Record<string, string> = {
   TW064: 'Ese sitio ya no está disponible.',
 };
 
+/** Mensajes propios de las colecciones: pisan a los del sitio (TW013 y TW060 significan otra cosa aquí). */
+const MENSAJES_COLECCION: Record<string, string> = {
+  TW013: 'Solo quien creó la colección puede cambiar su visibilidad.',
+  TW060: 'Esta colección ya no existe.',
+  TW054: 'Una colección compartida no puede volver a ser privada.',
+  TW061: 'La colección de un plan se borra con el plan.',
+  '23503': 'Esa colección o ese sitio ya no existe.',
+  '23514': 'La colección de un plan siempre es visible para los dos.',
+};
+
 /** Código del servidor (`error.code`) de un error cualquiera, si lo trae. */
 export const codigoDe = (error: unknown): string | undefined => (error as { code?: string } | null)?.code;
 
 /** Texto listo para mostrar. Un código sin traducción da el mensaje genérico (nunca `error.message`). */
-export function mensajeErrorMapa(error: unknown): string {
+export function mensajeErrorMapa(error: unknown, deColeccion = false): string {
   if (esErrorDeRed(error)) return SIN_CONEXION;
   const codigo = codigoDe(error);
-  return (codigo && MENSAJES[codigo]) || ERROR_GENERICO;
+  return (codigo && ((deColeccion && MENSAJES_COLECCION[codigo]) || MENSAJES[codigo])) || ERROR_GENERICO;
 }

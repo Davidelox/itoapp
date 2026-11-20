@@ -108,6 +108,10 @@ function Navegacion() {
           <Stack.Screen name="calendario/editar/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="mapa/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="mapa/sitio/[id]" />
+          <Stack.Screen name="mapa/colecciones" />
+          <Stack.Screen name="mapa/coleccion/nueva" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="mapa/coleccion/[id]/index" />
+          <Stack.Screen name="mapa/coleccion/[id]/editar" />
           <Stack.Screen name="laboratorio/index" />
           {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
           <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />

@@ -245,7 +245,26 @@ tarjeta. Tests: `filtros`.
   '<nombre>', '/mapa/sitio/<id>', 'notify_partner_places')`. Nunca para privados.
 - Las solicitudes de borrar un sitio ya avisan por `notify_requests`; su `url` debe abrir `/mapa/sitio/<id>`.
 
-## 10. Riesgos
+## 10. Borrar colecciones
+
+Reglas, casos y supuestos en `docs/modelo-datos.md` §8 («Borrar una colección»). Migración
+`supabase/migrations/20261128000000_colecciones_borrado.sql` (la aplica David; revisa el arquitecto).
+
+- **R1**: solo pide permiso si tu pareja ha añadido algún sitio a la colección. Vacía, privada o con solo tus sitios: sin permiso.
+- **R2**: una compartida no se destruye para tu pareja sin su permiso: la «dejas», pasa a ser privada suya y puede
+  volver a compartirla. Excepción: una compartida vacía que creaste tú se borra.
+- **Hoja de confirmación** (`preview_collection_deletion`):
+  - `delete` → «Se borrará la colección. Los sitios no se borran.»
+  - `leave` → «Desaparecerá de tu mapa. {pareja} la conservará y podrá volver a compartirla.»
+  - `approval` → «{pareja} ha añadido sitios: tendrá que aprobarlo.»
+  - `plan` → no se ofrece borrar (se borra con el plan).
+- **Resultado** (`request_deletion`): `deleted` → «Colección borrada»; `deleted` + `kept_by_partner` → «Has dejado la
+  colección; {pareja} la conserva» (quitarla de la caché de `collections` y `collection_places`); `pending` →
+  «Pendiente de borrar» en el detalle.
+- Errores: `TW060`, `TW061` (ya traducidos). Nuevo `TW054`: una compartida no vuelve a ser privada (el interruptor
+  «Visible para…» solo sale al crearla o si es privada y tuya: `puedeCambiarVisibilidad`).
+
+## 11. Riesgos
 
 - **Marcadores con vistas propias en Apple Maps con la nueva arquitectura**: parpadeo, consumo o cierres. Mitigación:
   `tracksViewChanges={false}`, pines simples sin animación. Plan B: 12 PNG (6 categorías × 2 estados) con `image`.

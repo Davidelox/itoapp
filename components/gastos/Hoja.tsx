@@ -11,6 +11,7 @@ export function Hoja({
   onCerrar,
   bloqueada = false,
   desplazable = false,
+  alerta = false,
   pie,
   children,
 }: {
@@ -21,6 +22,8 @@ export function Hoja({
   bloqueada?: boolean;
   /** Contenido largo (Saldar): la hoja ocupa hasta el 92 % de la pantalla y su contenido hace scroll. */
   desplazable?: boolean;
+  /** Hoja de confirmación (borrar, deshacer): la anuncia como diálogo de alerta. */
+  alerta?: boolean;
   /** Fijo abajo, fuera del scroll (el botón principal). */
   pie?: ReactNode;
   children: ReactNode;
@@ -36,6 +39,7 @@ export function Hoja({
         <View
           style={[styles.hoja, desplazable && styles.alta, { paddingBottom: pie ? 0 : insets.bottom + 20 }]}
           accessibilityViewIsModal
+          role={alerta ? 'alertdialog' : undefined}
         >
           <View style={styles.asa} />
           <View style={styles.cabecera}>

@@ -162,6 +162,7 @@ export default function DetalleMovimiento() {
         titulo={alMomento ? '¿Borrar este movimiento?' : '¿Pedir borrar este movimiento?'}
         onCerrar={() => setConfirmando(false)}
         bloqueada={ocupado}
+        alerta
       >
         <Text style={styles.cajaTexto}>
           {alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el movimiento se queda.`}

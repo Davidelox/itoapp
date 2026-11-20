@@ -14,7 +14,7 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
  * Tarjeta flotante al tocar un pin (docs/plan-mapa.md §5.1): no es una `Hoja`, para no tapar el mapa ni bloquearlo.
  * Nombre, categoría y estado, las valoraciones, «Cómo llegar» y «Ver ficha». Al abrirse, el foco del lector de pantalla va al título.
  */
-export function TarjetaSitio({ sitio, pareja, onFicha, onCerrar }: { sitio: Sitio; pareja: Pareja; onFicha: () => void; onCerrar: () => void }) {
+export function TarjetaSitio({ sitio, pareja, emoji = null, onFicha, onCerrar }: { sitio: Sitio; pareja: Pareja; emoji?: string | null; onFicha: () => void; onCerrar: () => void }) {
   const [llegar, setLlegar] = useState(false);
   const titulo = useRef<ComponentRef<typeof Text>>(null);
   useEffect(() => {
@@ -25,7 +25,7 @@ export function TarjetaSitio({ sitio, pareja, onFicha, onCerrar }: { sitio: Siti
   return (
     <View style={styles.tarjeta}>
       <View style={styles.cabecera}>
-        <PinSitio categoria={sitio.category} estado={sitio.status} privado={!sitio.visible_to_partner} tamano={32} />
+        <PinSitio categoria={sitio.category} estado={sitio.status} privado={!sitio.visible_to_partner} tamano={32} emoji={emoji} />
         <View style={styles.textos}>
           <Text ref={titulo} accessibilityRole="header" style={styles.nombre} numberOfLines={2}>
             {sitio.name}

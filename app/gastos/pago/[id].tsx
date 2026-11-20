@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
+import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
@@ -27,6 +28,7 @@ export default function DetallePago() {
   const invalidar = useInvalidarGastos();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deshaciendo, setDeshaciendo] = useState(false);
 
   const volver = () => (router.canGoBack() ? router.back() : router.replace('/gastos'));
   const cabecera = (
@@ -104,9 +106,9 @@ export default function DetallePago() {
           </View>
         ) : null}
         {puedeDeshacer ? (
-          <EnlaceTexto etiqueta="Deshacer este pago" deshabilitado={ocupado} onPress={() => accion(() => deshacerPago(pago.id), volver)} />
+          <EnlaceTexto etiqueta="Deshacer este pago" deshabilitado={ocupado} onPress={() => setDeshaciendo(true)} />
         ) : null}
-        <MensajeError texto={error} />
+        <MensajeError texto={deshaciendo ? null : error} />
 
         {gastos.length ? (
           <>
@@ -130,6 +132,17 @@ export default function DetallePago() {
           <Text style={styles.nota}>Los gastos han vuelto a estar pendientes.</Text>
         ) : null}
       </ScrollView>
+      {deshaciendo ? (
+        <HojaConfirmar
+          titulo={`¿Deshacer el pago de ${formatearImporte(pago.amount_cents)}?`}
+          texto="Se borra este pago y los gastos que cubría vuelven a quedar por saldar. No se puede deshacer."
+          etiqueta="Deshacer pago"
+          ocupado={ocupado}
+          error={error}
+          onCerrar={() => setDeshaciendo(false)}
+          onConfirmar={() => accion(() => deshacerPago(pago.id), volver)}
+        />
+      ) : null}
     </View>
   );
 }

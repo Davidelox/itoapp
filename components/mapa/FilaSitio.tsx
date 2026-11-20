@@ -10,7 +10,7 @@ import type { Sitio } from '@/lib/mapa/tipos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** Fila de la Lista: pin de 28 px, nombre, «Restaurante · Calle Mayor 12», tus estrellas, avatar de quien lo guardó y candado si es privado. */
-export function FilaSitio({ sitio, pareja, separador, onPress }: { sitio: Sitio; pareja: Pareja; separador: boolean; onPress: () => void }) {
+export function FilaSitio({ sitio, pareja, separador, emoji = null, onPress }: { sitio: Sitio; pareja: Pareja; separador: boolean; emoji?: string | null; onPress: () => void }) {
   const mia = valoracionDe(sitio, pareja.yo.userId);
   const quien = quienGuardo(sitio, pareja.yo.userId, pareja.otra?.userId);
   const autor = quien === 'yo' ? pareja.yo : quien === 'otra' ? pareja.otra : null;
@@ -23,7 +23,7 @@ export function FilaSitio({ sitio, pareja, separador, onPress }: { sitio: Sitio;
       style={({ pressed }) => [styles.fila, separador && styles.separador, pressed && { opacity: 0.7 }]}
     >
       <View style={styles.pin}>
-        <PinSitio categoria={sitio.category} estado={sitio.status} tamano={28} />
+        <PinSitio categoria={sitio.category} estado={sitio.status} tamano={28} emoji={emoji} />
       </View>
       <View style={styles.textos}>
         <Text style={styles.nombre} numberOfLines={2}>

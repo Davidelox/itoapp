@@ -10,6 +10,7 @@ const sitio = (id: string, name: string, address: string | null = null, category
   category,
   status: 'want_to_go',
   visible_to_partner: true,
+  primary_collection_id: null,
   created_by: 'u1',
   version: 1,
   created_at: '2026-11-01T10:00:00Z',

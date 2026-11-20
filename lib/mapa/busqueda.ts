@@ -16,9 +16,12 @@ export type SitioBuscado = {
   lat: number;
   lng: number;
   categoria: CategoriaSitio;
+  /** Metros desde el centro de referencia (se calcula en la app; sin centro, no hay). */
+  distanciaM?: number;
 };
 
 export const MENSAJE_SIN_BUSQUEDA = 'La búsqueda no está disponible ahora. Añádelo a mano.';
+export const MENSAJE_TIMEOUT = 'La búsqueda tarda demasiado. Inténtalo de nuevo o añádelo a mano.';
 export const MENSAJE_LIMITE = 'Demasiadas búsquedas seguidas. Espera un momento o añádelo a mano.';
 
 /** Texto a buscar (espacios recortados) o null si aún es demasiado corto. */
@@ -55,4 +58,11 @@ export function mensajeErrorBusqueda(error: unknown): string {
   const e = (typeof error === 'object' && error !== null ? error : {}) as { name?: string; context?: { status?: number } };
   if (e.name === 'FunctionsFetchError' || e.name === 'TypeError') return SIN_CONEXION;
   return e.context?.status === 429 ? MENSAJE_LIMITE : MENSAJE_SIN_BUSQUEDA;
+}
+
+/** Error de la petición directa a Photon (`fetch`) → texto para el usuario. `estado`: HTTP; `tipo`: fallo antes de respuesta. */
+export function mensajeErrorDirecto(fallo: { estado?: number; tipo?: 'red' | 'timeout' }): string {
+  if (fallo.tipo === 'red') return SIN_CONEXION;
+  if (fallo.tipo === 'timeout') return MENSAJE_TIMEOUT;
+  return fallo.estado === 429 ? MENSAJE_LIMITE : MENSAJE_SIN_BUSQUEDA;
 }

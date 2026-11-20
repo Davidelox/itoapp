@@ -15,6 +15,8 @@ export type Sitio = {
   category: CategoriaSitio;
   status: EstadoSitio;
   visible_to_partner: boolean;
+  /** Colección cuyo icono lleva el pin (la fija un trigger); null = icono de la categoría. */
+  primary_collection_id: string | null;
   created_by: string | null;
   version: number;
   created_at: string;
@@ -28,3 +30,18 @@ export type EstadisticasSitio = {
   total_spent_cents: number;
   next_event_on: string | null;
 };
+
+/** Fila de `collections` (el icono es un emoji, 1 a 16 caracteres). `plan_id`: colección automática de un plan. */
+export type Coleccion = {
+  id: string;
+  name: string;
+  icon: string;
+  plan_id: string | null;
+  visible_to_partner: boolean;
+  created_by: string | null;
+  version: number;
+  created_at: string;
+};
+
+/** Fila de `collection_places`: un sitio dentro de una colección. */
+export type Pertenencia = { collection_id: string; place_id: string; added_at: string };

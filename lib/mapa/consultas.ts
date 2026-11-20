@@ -1,6 +1,8 @@
 /** Lecturas del Mapa (docs/plan-mapa.md §4). La RLS ya oculta los sitios privados de la pareja. */
 import { ErrorGasto } from '@/lib/gastos/error';
-import { leerResultados, mensajeErrorBusqueda, textoBuscable, type SitioBuscado } from '@/lib/mapa/busqueda';
+import { MENSAJE_LIMITE, leerResultados, mensajeErrorBusqueda, mensajeErrorDirecto, textoBuscable, type SitioBuscado } from '@/lib/mapa/busqueda';
+import { type EntradaCache, LIMITE_CANDIDATOS, claveCache, guardarCache, leerCache, normalizarRespuesta, permitir, urlPhoton } from '@/lib/mapa/photon';
+import { esConsultaGenerica, ordenarResultados } from '@/lib/mapa/resultados';
 import { mensajeErrorMapa } from '@/lib/mapa/error';
 import { type PlanEnSitio, juntarPlanes } from '@/lib/mapa/conexiones';
 import { filaNueva } from '@/lib/mapa/sitio';
@@ -10,7 +12,7 @@ import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 
 const COLUMNAS =
-  'id, name, address, lat, lng, category, status, visible_to_partner, created_by, version, created_at, place_notes(user_id, rating, note)';
+  'id, name, address, lat, lng, category, status, visible_to_partner, primary_collection_id, created_by, version, created_at, place_notes(user_id, rating, note)';
 
 export async function leerSitios(): Promise<Sitio[]> {
   const { data, error } = await supabase.from('places').select(COLUMNAS).order('created_at', { ascending: false });
@@ -86,16 +88,89 @@ export async function editarSitio(
   }
 }
 
-/** Busca sitios con la Edge Function `buscar-sitios` (Photon). `centro`: sesgo por cercanía, si se conoce. */
-export async function buscarSitios(texto: string, centro?: { lat: number; lng: number }): Promise<SitioBuscado[]> {
+/**
+ * Proveedor de la búsqueda de sitios. Único punto de cambio: con 'funcion' vuelve a la Edge Function `buscar-sitios`
+ * (útil con un proveedor con clave); con 'directo' la app llama a Photon, que da 403 a las IPs de Supabase.
+ */
+const PROVEEDOR_BUSQUEDA: 'directo' | 'funcion' = 'directo';
+const TIMEOUT_BUSQUEDA_MS = 6000;
+
+type Centro = { lat: number; lng: number };
+
+/**
+ * Busca sitios (hasta 8). `centro`: sesgo por cercanía y origen de las distancias, si se conoce. `signal`: cancela la
+ * petición en curso. Los candidatos (hasta 20) se guardan en caché tal cual; el orden y la distancia se calculan aquí,
+ * con el centro exacto (ver `ordenarResultados`).
+ */
+export async function buscarSitios(texto: string, centro?: Centro, signal?: AbortSignal): Promise<SitioBuscado[]> {
   const q = textoBuscable(texto);
   if (!q) return [];
+  const candidatos = PROVEEDOR_BUSQUEDA === 'directo' ? await buscarDirecto(q, centro, signal) : await buscarConFuncion(q, centro);
+  return ordenarResultados(candidatos, q, centro);
+}
+
+async function buscarConFuncion(q: string, centro?: Centro): Promise<SitioBuscado[]> {
   const { data, error } = await supabase.functions.invoke('buscar-sitios', { body: { q, lat: centro?.lat, lng: centro?.lng } });
   if (error) {
     registrarError('mapa.buscar', error);
     throw new ErrorGasto(mensajeErrorBusqueda(error));
   }
   return leerResultados(data);
+}
+
+const cacheBusqueda = new Map<string, EntradaCache>();
+const peticiones: number[] = [];
+
+/** Photon directo con caché de 5 min, tope de peticiones por minuto y plazo de 6 s. Nunca se registra el texto buscado. */
+async function buscarDirecto(q: string, centro?: Centro, signal?: AbortSignal): Promise<SitioBuscado[]> {
+  const entrada = { q, lat: centro?.lat ?? null, lng: centro?.lng ?? null };
+  const clave = claveCache(entrada);
+  const ahora = Date.now();
+  const guardado = leerCache(cacheBusqueda, clave, ahora);
+  if (guardado) return guardado;
+  if (!permitir(peticiones, ahora)) throw new ErrorGasto(MENSAJE_LIMITE);
+
+  const control = new AbortController();
+  let caducado = false;
+  const reloj = setTimeout(() => {
+    caducado = true;
+    control.abort();
+  }, TIMEOUT_BUSQUEDA_MS);
+  const cancelar = () => control.abort();
+  signal?.addEventListener('abort', cancelar);
+  try {
+    const pedir = async (bbox: boolean) => {
+      const r = await fetch(urlPhoton(entrada, { limite: LIMITE_CANDIDATOS, bbox }), { headers: { Accept: 'application/json' }, signal: control.signal });
+      if (!r.ok) {
+        registrarError('mapa.buscar', { status: r.status });
+        throw new ErrorGasto(mensajeErrorDirecto({ estado: r.status }));
+      }
+      const resultado = normalizarRespuesta(await r.json(), LIMITE_CANDIDATOS);
+      if (!resultado) {
+        registrarError('mapa.buscar', { name: 'RespuestaInesperada' });
+        throw new ErrorGasto(mensajeErrorDirecto({}));
+      }
+      return resultado;
+    };
+    // Búsqueda genérica con centro: primero solo la zona; si no hay nada, otra vez sin recuadro (cuenta para el tope).
+    const conRecuadro = centro !== undefined && esConsultaGenerica(q);
+    let lista = await pedir(conRecuadro);
+    if (conRecuadro && lista.length === 0) {
+      if (!permitir(peticiones, Date.now())) throw new ErrorGasto(MENSAJE_LIMITE);
+      lista = await pedir(false);
+    }
+    guardarCache(cacheBusqueda, clave, lista, Date.now());
+    return lista;
+  } catch (e) {
+    if (e instanceof ErrorGasto) throw e;
+    // Cancelada por la app (otra búsqueda la sustituye): se deja pasar tal cual, sin mensaje.
+    if (signal?.aborted && !caducado) throw e;
+    registrarError('mapa.buscar', { name: (e as { name?: string } | null)?.name });
+    throw new ErrorGasto(mensajeErrorDirecto({ tipo: caducado ? 'timeout' : 'red' }));
+  } finally {
+    clearTimeout(reloj);
+    signal?.removeEventListener('abort', cancelar);
+  }
 }
 
 /** Id del sitio ya guardado (y visible para esta persona) con ese resultado de búsqueda, para abrirlo tras un `23505`. */

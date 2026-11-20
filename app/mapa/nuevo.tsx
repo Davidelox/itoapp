@@ -3,12 +3,14 @@ import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
+import { BotonUbicacion } from '@/components/mapa/BotonUbicacion';
+import { SelectorColecciones } from '@/components/mapa/SelectorColecciones';
 import { SelectorUbicacion } from '@/components/mapa/SelectorUbicacion';
 import { EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
@@ -18,7 +20,11 @@ import { personas } from '@/lib/gastos/personas';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { CATEGORIAS_SITIO, INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
 import { PAUSA_BUSQUEDA_MS, type SitioBuscado, textoBuscable } from '@/lib/mapa/busqueda';
+import { leerCentro, leerParamsGuardar, lineaResultado } from '@/lib/mapa/resultados';
+import { usePosicion } from '@/lib/mapa/usePosicion';
+import { SIN_SELECCION, type Seleccion, pasosGuardado } from '@/lib/mapa/colecciones';
 import { buscarSitios, crearSitio, sitioDeBusqueda } from '@/lib/mapa/consultas';
+import { guardarColeccionesDeSitio } from '@/lib/mapa/consultasColecciones';
 import { DELTA_MINIMO, encuadre } from '@/lib/mapa/encuadre';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { ETIQUETA_ESTADO } from '@/lib/mapa/lista';
@@ -32,7 +38,7 @@ import {
   validarSitio,
 } from '@/lib/mapa/sitio';
 import type { EstadoSitio, Sitio } from '@/lib/mapa/tipos';
-import { useInvalidarMapa, useSitios } from '@/lib/mapa/useSitios';
+import { useColecciones, useInvalidarMapa, useSitios } from '@/lib/mapa/useSitios';
 import { type Pareja, useEstado } from '@/lib/pareja/EstadoProvider';
 
 const PAUSA_NUDO_MS = 900;
@@ -63,7 +69,14 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarMapa();
   const { data: sitios = [] } = useSitios();
-  const params = useLocalSearchParams<{ lat?: string; lng?: string }>();
+  const { data: colecciones = [] } = useColecciones();
+  const [seleccion, setSeleccion] = useState<Seleccion>(SIN_SELECCION);
+  const params = useLocalSearchParams<{ lat?: string; lng?: string; cLat?: string; cLng?: string; nombre?: string; direccion?: string; categoria?: string; lugarId?: string }>();
+  // Venido de la búsqueda del mapa: el resultado ya viene elegido (no hace falta volver a buscar).
+  const [prefill] = useState(() => leerParamsGuardar(params));
+  // Centro de las distancias: tu ubicación si ya la dio (o la obtuvo «Mi ubicación»); si no, el centro del mapa del que vienes.
+  const posicion = usePosicion();
+  const centro = posicion ?? leerCentro(params);
   const p = personas(pareja);
 
   // Punto de partida: el de «mantener pulsado»; si no, el encuadre de lo ya guardado (o España).
@@ -74,25 +87,25 @@ function Formulario({ pareja }: { pareja: Pareja }) {
       ? { latitude: lat, longitude: lng as number, latitudeDelta: DELTA_MINIMO, longitudeDelta: DELTA_MINIMO }
       : encuadre(sitios);
   });
-  const [modo, setModo] = useState<Modo>(() => (coordenadasValidas(numero(params.lat), numero(params.lng)) ? 'mano' : 'buscar'));
+  const [modo, setModo] = useState<Modo>(() => (!prefill && coordenadasValidas(numero(params.lat), numero(params.lng)) ? 'mano' : 'buscar'));
   const [f, setF] = useState<FormularioSitio>({
-    nombre: '',
-    direccion: '',
-    categoria: 'restaurant',
+    nombre: prefill?.nombre ?? '',
+    direccion: prefill?.direccion ?? '',
+    categoria: prefill?.categoria ?? 'restaurant',
     estado: 'want_to_go',
     privado: false,
-    lat: modo === 'mano' ? inicial.latitude : null,
-    lng: modo === 'mano' ? inicial.longitude : null,
-    lugarId: null,
+    lat: prefill ? prefill.lat : modo === 'mano' ? inicial.latitude : null,
+    lng: prefill ? prefill.lng : modo === 'mano' ? inicial.longitude : null,
+    lugarId: prefill?.lugarId ?? null,
   });
   const [escrito, setEscrito] = useState('');
   const [consulta, setConsulta] = useState<string | null>(null);
-  const [elegido, setElegido] = useState<string | null>(null);
+  const [elegido, setElegido] = useState<string | null>(prefill?.lugarId ?? null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
   const busqueda = useQuery({
-    queryKey: ['mapa-busqueda', consulta],
-    queryFn: () => buscarSitios(consulta as string, { lat: inicial.latitude, lng: inicial.longitude }),
+    queryKey: ['mapa-busqueda', consulta, centro ? `${centro.lat.toFixed(3)},${centro.lng.toFixed(3)}` : null],
+    queryFn: ({ signal }) => buscarSitios(consulta as string, centro ?? undefined, signal),
     enabled: modo === 'buscar' && consulta !== null,
     staleTime: 5 * 60_000,
     retry: false,
@@ -141,6 +154,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
     setError(null);
     try {
       await crearSitio(id, pareja.coupleId, f);
+      await guardarColeccionesDeSitio(id, pareja.coupleId, pasosGuardado(SIN_SELECCION, seleccion));
       await invalidar();
     } catch (e) {
       if (e instanceof ErrorGasto && e.codigo === '23505' && f.lugarId) {
@@ -156,7 +170,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   const abrirFicha = (sitioId: string) => router.replace({ pathname: '/mapa/sitio/[id]', params: { id: sitioId } });
 
   return (
-    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.raiz}>
       <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={() => router.back()} style={styles.cerrar}>
           <Ionicons name="close" size={22} color={colors.text} />
@@ -167,7 +181,13 @@ function Formulario({ pareja }: { pareja: Pareja }) {
         <View style={styles.cerrarHueco} />
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.contenido}>
+      {/* El pie no sube con el teclado (lo tapa); el contenido se desplaza para dejar visible el campo enfocado. */}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.contenido}
+      >
         <Segmentado<Modo>
           etiqueta="Cómo añadirlo"
           opciones={[
@@ -210,18 +230,24 @@ function Formulario({ pareja }: { pareja: Pareja }) {
                     key={r.provider_place_id}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: elegido === r.provider_place_id }}
-                    accessibilityLabel={`${r.nombre}${r.direccion ? `, ${r.direccion}` : ''}`}
+                    accessibilityLabel={`${r.nombre}${lineaResultado(r) ? `, ${lineaResultado(r)}` : ''}`}
                     onPress={() => elegir(r)}
                     style={[styles.resultado, elegido === r.provider_place_id && styles.resultadoActivo]}
                   >
                     <Ionicons name={INFO_CATEGORIA_SITIO[r.categoria].icono} size={20} color={colors.accent} />
                     <View style={styles.resultadoTexto}>
                       <Text style={styles.resultadoNombre} numberOfLines={1}>{r.nombre}</Text>
-                      {r.direccion ? <Text style={styles.nota} numberOfLines={1}>{r.direccion}</Text> : null}
+                      {lineaResultado(r) ? <Text style={styles.nota} numberOfLines={1}>{lineaResultado(r)}</Text> : null}
                     </View>
                   </Pressable>
                 ))
               : null}
+            {!posicion ? (
+              <View style={styles.miUbicacion}>
+                <Text style={[styles.nota, { flex: 1 }]}>Para ver lo más cercano a ti, pulsa «Mi ubicación». No se guarda.</Text>
+                <BotonUbicacion style={styles.botonUbicacion} onUbicacion={() => {}} />
+              </View>
+            ) : null}
             <Text style={styles.nota}>Datos © OpenStreetMap</Text>
             <MensajeError texto={visibles.ubicacion} />
           </Grupo>
@@ -253,6 +279,15 @@ function Formulario({ pareja }: { pareja: Pareja }) {
             autoCapitalize="sentences"
             returnKeyType="done"
             style={styles.campo}
+          />
+        </Grupo>
+
+        <Grupo etiqueta="Colecciones (puedes elegir varias)">
+          <SelectorColecciones
+            colecciones={colecciones}
+            valor={seleccion}
+            onCambiar={setSeleccion}
+            onNueva={() => router.push('/mapa/coleccion/nueva')}
           />
         </Grupo>
 
@@ -296,7 +331,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
       <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
         <BotonNudo label="Guardar sitio" labelHecho="Guardado" labelError="No se ha podido guardar" onPress={guardar} onHecho={() => setTimeout(() => abrirFicha(id), PAUSA_NUDO_MS)} />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -307,13 +342,15 @@ const styles = StyleSheet.create({
   cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   cerrarHueco: { width: 44 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
-  contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
+  contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 120, gap: 14 },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   estado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   resultado: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   resultadoActivo: { borderColor: colors.accent, borderWidth: 2 },
   resultadoTexto: { flex: 1 },
+  miUbicacion: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingRight: 60 },
+  botonUbicacion: { right: 0, top: 0 },
   resultadoNombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   pie: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
 });

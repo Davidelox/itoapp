@@ -35,9 +35,16 @@ async function consultarProveedor(url: string): Promise<SitioBuscado[] | null> {
       headers: { 'User-Agent': 'app-mapa/1.0', Accept: 'application/json' },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) return null;
-    return normalizarRespuesta(await res.json().catch(() => null));
-  } catch {
+    if (!res.ok) {
+      // Solo el código y el proveedor: nunca el texto buscado ni datos del usuario.
+      console.error(`buscar-sitios: el proveedor respondió ${res.status}`);
+      return null;
+    }
+    const resultados = normalizarRespuesta(await res.json().catch(() => null));
+    if (!resultados) console.error('buscar-sitios: respuesta del proveedor no válida');
+    return resultados;
+  } catch (e) {
+    console.error(`buscar-sitios: fallo al llamar al proveedor (${e instanceof Error ? e.name : 'error'})`);
     return null;
   }
 }

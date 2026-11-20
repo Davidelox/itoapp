@@ -9,6 +9,7 @@ import { soloCambios } from '@/lib/gastos/cambios';
 import type { Party, RepartoPorDefecto, SplitMode } from '@/lib/gastos/reparto';
 import type { AjustesBote, Movimiento } from '@/lib/gastos/bote';
 import type { MetodoPago, Pago } from '@/lib/gastos/saldar';
+import { resultadoBorrado, type ResultadoBorrado } from '@/lib/mapa/borradoColeccion';
 import { formatearImporte } from '@/lib/dinero/importe';
 import type { FilaAjustes } from '@/lib/ajustes/ajustes';
 import { leerPropuesta, type Propuesta } from '@/lib/ajustes/consultas';
@@ -210,7 +211,7 @@ export type DatosGasto = {
 export { ErrorGasto };
 
 /** Lo que se puede pedir borrar (desde Gastos y desde el Calendario). */
-export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event' | 'place';
+export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event' | 'place' | 'collection';
 
 const MENSAJES: Record<string, string> = {
   TW020: 'Algo ha cambiado mientras tanto (un gasto se ha editado, saldado o pedido borrar). Revisa la lista.',
@@ -240,6 +241,10 @@ const MENSAJES_EVENTO: Record<string, string> = {
   TW060: 'Este evento ya no existe, o no ocurre ese día. Revisa el calendario.',
 };
 const MENSAJES_SITIO: Record<string, string> = { TW060: 'Este sitio ya no existe.' };
+const MENSAJES_COLECCION: Record<string, string> = {
+  TW060: 'Esta colección ya no existe.',
+  TW061: 'La colección de un plan se borra con el plan.',
+};
 
 /** Error de Supabase → `ErrorGasto` con un mensaje listo para mostrar. `mensajes` pisa los generales. */
 export function traducir(contexto: string, error: unknown, mensajes?: Record<string, string>): ErrorGasto {
@@ -397,7 +402,7 @@ export async function leerSolicitudBorrado(
 }
 
 /**
- * Pide borrar (o borra al momento si es privado o estás sin pareja). Devuelve si ya se ha borrado.
+ * Pide borrar (o borra al momento si es privado o estás sin pareja). Devuelve si ya se ha borrado (`dejada`: colección que la pareja conserva).
  * `fecha`: solo para un evento repetido («solo este día»); sin ella se borra todo.
  */
 export async function pedirBorrar(
@@ -405,13 +410,12 @@ export async function pedirBorrar(
   gastoId: string,
   tipo: TipoBorrable = 'expense',
   fecha?: string | null,
-): Promise<{ borrado: boolean }> {
+): Promise<ResultadoBorrado> {
   const params = { p_id: id, p_type: tipo, p_target_id: gastoId, ...(fecha ? { p_occurrence_date: fecha } : {}) };
   const { data, error } = await supabase.rpc('request_deletion', params);
-  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : tipo === 'place' ? MENSAJES_SITIO : undefined);
-  const estado = (data as { status?: string } | null)?.status;
-  if (estado === 'deleted' || estado === 'approved') return { borrado: true };
-  if (estado === 'pending') return { borrado: false };
+  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : tipo === 'place' ? MENSAJES_SITIO : tipo === 'collection' ? MENSAJES_COLECCION : undefined);
+  const resultado = resultadoBorrado(data);
+  if (resultado) return resultado;
   // cancelled / rejected / expired: el id era de una solicitud ya resuelta.
   throw new ErrorGasto('Esa solicitud ya estaba resuelta. Vuelve a pedirlo.', 'solicitud_resuelta');
 }

@@ -1,4 +1,4 @@
-import { SIN_FILTROS_MAPA, alternarFiltroMapa, contarFiltros, filtrarMapa, opcionesActivas, resumenFiltrosMapa } from '@/lib/mapa/filtros';
+import { SIN_FILTROS_MAPA, alternarFiltroMapa, contarFiltros, depurarFiltros, filtrarMapa, opcionesActivas, resumenFiltrosMapa } from '@/lib/mapa/filtros';
 import type { Sitio } from '@/lib/mapa/tipos';
 
 const sitio = (o: Partial<Sitio> = {}): Sitio => ({
@@ -10,6 +10,7 @@ const sitio = (o: Partial<Sitio> = {}): Sitio => ({
   category: 'restaurant',
   status: 'been',
   visible_to_partner: true,
+  primary_collection_id: null,
   created_by: 'yo',
   version: 1,
   created_at: '2026-01-01T00:00:00Z',
@@ -60,5 +61,39 @@ describe('alternar, contar y resumir', () => {
   it('resumen sin y con uno', () => {
     expect(resumenFiltrosMapa(SIN_FILTROS_MAPA)).toBe('sin filtros');
     expect(resumenFiltrosMapa(alternarFiltroMapa(SIN_FILTROS_MAPA, 'estados', 'want_to_go'))).toBe('Quiero ir');
+  });
+});
+
+describe('filtro por colecciones', () => {
+  const pertenencias = [
+    { collection_id: 'c1', place_id: '1', added_at: 't' },
+    { collection_id: 'c2', place_id: '2', added_at: 't' },
+    { collection_id: 'c2', place_id: '3', added_at: 't' },
+  ];
+  const cols = [
+    { id: 'c1', name: 'Ramen', icon: '🍜' },
+    { id: 'c2', name: 'Escapadas', icon: '🏖️' },
+  ];
+  it('una colección: solo sus sitios', () =>
+    expect(ids(filtrarMapa(todos, { ...SIN_FILTROS_MAPA, colecciones: ['c2'] }, 'yo', pertenencias))).toEqual(['2', '3']));
+  it('varias: «o» entre ellas', () =>
+    expect(ids(filtrarMapa(todos, { ...SIN_FILTROS_MAPA, colecciones: ['c1', 'c2'] }, 'yo', pertenencias))).toEqual(['1', '2', '3']));
+  it('«y» con los demás grupos', () =>
+    expect(ids(filtrarMapa(todos, { ...SIN_FILTROS_MAPA, colecciones: ['c2'], categorias: ['bar'] }, 'yo', pertenencias))).toEqual(['2']));
+  it('alternar y contar', () => {
+    const f = alternarFiltroMapa(alternarFiltroMapa(SIN_FILTROS_MAPA, 'colecciones', 'c1'), 'colecciones', 'c2');
+    expect(f.colecciones).toEqual(['c1', 'c2']);
+    expect(contarFiltros(f)).toBe(2);
+    expect(alternarFiltroMapa(f, 'colecciones', 'c1').colecciones).toEqual(['c2']);
+  });
+  it('píldoras y resumen con el nombre de la colección', () => {
+    const f = { ...SIN_FILTROS_MAPA, estados: ['been' as const], colecciones: ['c2'] };
+    expect(opcionesActivas(f, cols).map((o) => o.etiqueta)).toEqual(['Hemos ido', 'Escapadas']);
+    expect(opcionesActivas(f, cols)[1].emoji).toBe('🏖️');
+    expect(resumenFiltrosMapa(f, cols)).toBe('Hemos ido y Escapadas');
+  });
+  it('depurar quita las colecciones que ya no existen', () => {
+    expect(depurarFiltros({ ...SIN_FILTROS_MAPA, colecciones: ['c1', 'borrada'] }, cols).colecciones).toEqual(['c1']);
+    expect(depurarFiltros(SIN_FILTROS_MAPA, cols)).toBe(SIN_FILTROS_MAPA);
   });
 });

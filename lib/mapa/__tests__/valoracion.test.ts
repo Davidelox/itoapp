@@ -1,4 +1,4 @@
-import { diaCorto, estaVacia, limpiarNota, miNota, normalizarValoracion, pasoValoracion, textoEstadisticas, tocarEstrella } from '@/lib/mapa/valoracion';
+import { diaCorto, estaVacia, limpiarNota, miNota, normalizarValoracion, pasoValoracion, puedeValorar, textoEstadisticas, tocarEstrella } from '@/lib/mapa/valoracion';
 
 describe('normalizarValoracion', () => {
   it('ajusta a medias estrellas dentro de 0,5–5', () => {
@@ -72,4 +72,11 @@ describe('textoEstadisticas', () => {
     expect(textoEstadisticas(null)).toBeNull();
   });
   it('diaCorto', () => expect(diaCorto('2026-11-22')).toBe('dom 22'));
+});
+
+describe('puedeValorar', () => {
+  it('solo en «Hemos ido»', () => {
+    expect(puedeValorar('been')).toBe(true);
+    expect(puedeValorar('want_to_go')).toBe(false);
+  });
 });

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HojaDiaMes } from '@/components/calendario/HojaDiaMes';
@@ -188,7 +188,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
   const ayudaCumple = esCumple ? textoCumplira(f, hoy) : null;
 
   return (
-    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.raiz}>
       <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={() => router.back()} style={styles.cerrar}>
           <Ionicons name="close" size={22} color={colors.text} />
@@ -199,7 +199,12 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
         <View style={styles.cerrarHueco} />
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.contenido}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.contenido}
+      >
         {!editando ? (
           <Grupo etiqueta="Tipo">
             <Segmentado
@@ -483,7 +488,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
           />
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

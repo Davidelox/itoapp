@@ -8,6 +8,14 @@ describe('mensajeErrorMapa', () => {
     expect(mensajeErrorMapa({ code: 'TW013' })).toContain('Solo quien guardó');
     expect(mensajeErrorMapa({ code: 'TW060' })).toBe('Este sitio ya no existe.');
   });
+  it('las colecciones tienen sus propios textos', () => {
+    expect(mensajeErrorMapa({ code: 'TW061' }, true)).toBe('La colección de un plan se borra con el plan.');
+    expect(mensajeErrorMapa({ code: 'TW060' }, true)).toBe('Esta colección ya no existe.');
+    expect(mensajeErrorMapa({ code: 'TW013' }, true)).toContain('quien creó la colección');
+    expect(mensajeErrorMapa({ code: 'TW053' }, true)).toBe('Un sitio compartido no puede volver a ser privado.');
+    expect(mensajeErrorMapa({ code: 'TW054' }, true)).toBe('Una colección compartida no puede volver a ser privada.');
+    expect(mensajeErrorMapa({ code: 'TW054' })).toBe(ERROR_GENERICO);
+  });
   it('un código desconocido o ausente da el genérico, nunca error.message', () => {
     expect(mensajeErrorMapa({ code: 'XX999', message: 'secreto interno' })).toBe(ERROR_GENERICO);
     expect(mensajeErrorMapa(null)).toBe(ERROR_GENERICO);

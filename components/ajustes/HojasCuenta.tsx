@@ -241,7 +241,7 @@ export function HojaSalir({ onCerrar }: { onCerrar: () => void }) {
   };
 
   return (
-    <Hoja visible titulo={otra ? '¿Salir del espacio?' : '¿Eliminar el espacio?'} onCerrar={onCerrar} bloqueada={ocupado}>
+    <Hoja visible titulo={otra ? '¿Salir del espacio?' : '¿Eliminar el espacio?'} onCerrar={onCerrar} bloqueada={ocupado} alerta>
       <Text style={styles.texto}>
         {otra
           ? `${otra} seguirá dentro con los gastos compartidos. Se borrará lo que sea solo tuyo y privado. Para volver, ${otra} tendrá que darte un código nuevo.`
@@ -275,7 +275,7 @@ export function HojaBorrarCuenta({ onCerrar }: { onCerrar: () => void }) {
   };
 
   return (
-    <Hoja visible titulo="¿Borrar tu cuenta?" onCerrar={onCerrar} bloqueada={ocupado}>
+    <Hoja visible titulo="¿Borrar tu cuenta?" onCerrar={onCerrar} bloqueada={ocupado} alerta>
       <Text style={styles.texto}>
         Se borrarán tu cuenta, tu perfil y todo lo que sea solo tuyo y privado. No se puede deshacer.
         {otra

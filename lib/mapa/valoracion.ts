@@ -23,6 +23,9 @@ export function tocarEstrella(actual: number | null, n: number): number | null {
 export const pasoValoracion = (actual: number | null, delta: 0.5 | -0.5): number | null =>
   normalizarValoracion((actual ?? 0) + delta);
 
+/** Las estrellas solo se ponen en un sitio donde ya habéis estado; la nota de texto vale en los dos estados. */
+export const puedeValorar = (estado: string): boolean => estado === 'been';
+
 /** Lo que se guarda de mi nota: valoración normalizada y texto recortado (vacío = null). */
 export function limpiarNota(rating: number | null, note: string): { rating: number | null; note: string | null } {
   return { rating: normalizarValoracion(rating), note: note.trim().slice(0, MAX_NOTA) || null };

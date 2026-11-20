@@ -3,6 +3,7 @@ import { type ComponentProps, type ComponentRef, useRef, useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { colors, fonts, radius } from '@/constants/theme';
 import { type Rect, posicionMenu } from '@/lib/calendario/filtros';
 import {
@@ -13,9 +14,13 @@ import {
   TITULO_GRUPO,
   alternarFiltroMapa,
   contarFiltros,
+  type Grupo as GrupoMapa,
+  type OpcionMapa,
   opcionesActivas,
+  opcionesColecciones,
   resumenFiltrosMapa,
 } from '@/lib/mapa/filtros';
+import type { Coleccion } from '@/lib/mapa/tipos';
 
 type Icono = ComponentProps<typeof Ionicons>['name'];
 
@@ -28,7 +33,7 @@ const ALTO_MENU = 440;
  * un chip por opción, agrupadas. Se pueden marcar varias y no se cierra al marcar; «Listo», tocar fuera, Atrás o
  * Escape lo cierran y «Limpiar» desmarca todo.
  */
-export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void }) {
+export function BotonFiltrosMapa({ valor, onCambiar, colecciones = [] }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void; colecciones?: Coleccion[] }) {
   const ventana = useWindowDimensions();
   const embudo = useRef<ComponentRef<typeof View>>(null);
   const [abierto, setAbierto] = useState(false);
@@ -42,6 +47,10 @@ export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onC
       setAbierto(true);
     });
   const cerrar = () => setAbierto(false);
+  const grupos: [GrupoMapa, readonly OpcionMapa[]][] = [
+    ...GRUPOS.map((g): [GrupoMapa, readonly OpcionMapa[]] => [g, OPCIONES_MAPA[g]]),
+    ...(colecciones.length > 0 ? [['colecciones', opcionesColecciones(colecciones)] as [GrupoMapa, readonly OpcionMapa[]]] : []),
+  ];
   const pos = rect ? posicionMenu(rect, ventana, { ancho: ANCHO_MENU, alto: ALTO_MENU }) : null;
 
   return (
@@ -49,7 +58,7 @@ export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onC
       <Pressable
         ref={embudo}
         accessibilityRole="button"
-        accessibilityLabel={`Filtrar sitios${activo ? `: ${resumenFiltrosMapa(valor)}` : ''}`}
+        accessibilityLabel={`Filtrar sitios${activo ? `: ${resumenFiltrosMapa(valor, colecciones)}` : ''}`}
         accessibilityState={{ expanded: abierto }}
         onPress={abrir}
         hitSlop={4}
@@ -74,13 +83,13 @@ export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onC
             style={[styles.menu, { top: pos.top, left: pos.left, maxHeight: ventana.height - 2 * 16 }]}
           >
             <ScrollView bounces={false} contentContainerStyle={styles.cuerpo}>
-              {GRUPOS.map((g) => (
+              {grupos.map(([g, opciones]) => (
                 <View key={g} style={styles.grupo}>
                   <Text accessibilityRole="header" style={styles.grupoTitulo}>
                     {TITULO_GRUPO[g]}
                   </Text>
                   <View style={styles.chips}>
-                    {OPCIONES_MAPA[g].map((o) => {
+                    {opciones.map((o) => {
                       const marcada = (valor[g] as string[]).includes(o.valor);
                       return (
                         <Pressable
@@ -91,7 +100,7 @@ export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onC
                           onPress={() => onCambiar(alternarFiltroMapa(valor, g, o.valor))}
                           style={({ pressed }) => [styles.chip, marcada && styles.chipMarcado, pressed && { backgroundColor: colors.pressed }]}
                         >
-                          <Ionicons name={o.icono as Icono} size={16} color={marcada ? colors.accent : colors.icon} />
+                          <IconoOpcion opcion={o} tamano={16} color={marcada ? colors.accent : colors.icon} />
                           <Text style={[styles.chipTexto, marcada && styles.chipTextoMarcado]} numberOfLines={1}>
                             {o.etiqueta}
                           </Text>
@@ -129,12 +138,12 @@ export function BotonFiltrosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onC
  * Fila con los filtros activos: una píldora por filtro (tocarla lo quita) en un scroll horizontal y, fijo a la derecha,
  * el botón que los quita todos. No sale si no hay ninguno.
  */
-export function FiltrosActivosMapa({ valor, onCambiar }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void }) {
+export function FiltrosActivosMapa({ valor, onCambiar, colecciones = [] }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void; colecciones?: Coleccion[] }) {
   if (contarFiltros(valor) === 0) return null;
   return (
     <Animated.View entering={FadeIn.duration(140)} style={styles.fila}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={styles.pildoras}>
-        {opcionesActivas(valor).map((o) => (
+        {opcionesActivas(valor, colecciones).map((o) => (
           <Pressable
             key={`${o.grupo}:${o.valor}`}
             accessibilityRole="button"
@@ -143,7 +152,7 @@ export function FiltrosActivosMapa({ valor, onCambiar }: { valor: FiltrosMapa; o
             hitSlop={{ top: 6, bottom: 6 }}
             style={({ pressed }) => [styles.pildora, pressed && { backgroundColor: colors.pressed }]}
           >
-            <Ionicons name={o.icono as Icono} size={14} color={colors.accent} />
+            <IconoOpcion opcion={o} tamano={14} color={colors.accent} />
             <Text style={styles.pildoraTexto} maxFontSizeMultiplier={1.2}>
               {o.etiqueta}
             </Text>
@@ -162,6 +171,15 @@ export function FiltrosActivosMapa({ valor, onCambiar }: { valor: FiltrosMapa; o
         <Ionicons name="close" size={14} color={colors.icon} />
       </Pressable>
     </Animated.View>
+  );
+}
+
+/** Icono de una opción: el emoji de la colección o un icono de Ionicons. */
+function IconoOpcion({ opcion, tamano, color }: { opcion: OpcionMapa; tamano: number; color: string }) {
+  return opcion.emoji ? (
+    <EmojiIcono emoji={opcion.emoji} size={tamano - 1} />
+  ) : (
+    <Ionicons name={opcion.icono as Icono} size={tamano} color={color} />
   );
 }
 

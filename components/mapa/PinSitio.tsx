@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { colors } from '@/constants/theme';
 import { INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
 import type { CategoriaSitio, EstadoSitio } from '@/lib/mapa/tipos';
@@ -11,6 +12,10 @@ import type { CategoriaSitio, EstadoSitio } from '@/lib/mapa/tipos';
  * Sin colores de persona. `tamano` es el diámetro de la insignia (el pico va debajo). Oculto a los lectores de pantalla:
  * lo que dice está en la etiqueta de la fila o del `Marker`.
  */
+/** Ajuste fino del emoji en los pines dentro de un `Marker` del mapa (`enMapa`): fracción de su tamaño, negativa = a la izquierda. Si en el
+ *  iPhone sigue corrido a la derecha, subir el valor en negativo (p. ej. -0,12); si se pasa, bajarlo. */
+const AJUSTE_EMOJI_MAPA = -0.025;
+
 export function PinSitio({
   categoria,
   estado,
@@ -18,6 +23,8 @@ export function PinSitio({
   conPlan = false,
   tamano = 32,
   conPico = false,
+  emoji = null,
+  enMapa = false,
 }: {
   categoria: CategoriaSitio;
   estado: EstadoSitio;
@@ -26,6 +33,10 @@ export function PinSitio({
   conPlan?: boolean;
   tamano?: number;
   conPico?: boolean;
+  /** Icono de la colección principal (o de la filtrada): sustituye al de la categoría. La forma y el candado siguen igual. */
+  emoji?: string | null;
+  /** El pin va dentro de un `Marker` del mapa (se convierte en imagen): el emoji lleva allí un ajuste fino que fuera sobra. */
+  enMapa?: boolean;
 }) {
   const fue = estado === 'been';
   const lado = Math.round(tamano * 0.28);
@@ -38,7 +49,11 @@ export function PinSitio({
           fue ? styles.insigniaFue : styles.insigniaQuiero,
         ]}
       >
-        <Ionicons name={INFO_CATEGORIA_SITIO[categoria].icono} size={Math.round(tamano * 0.5)} color={fue ? colors.white : colors.accent} />
+        {emoji ? (
+          <EmojiIcono emoji={emoji} size={Math.round(tamano * 0.5)} contorno={fue} desplazarX={enMapa ? AJUSTE_EMOJI_MAPA : 0} />
+        ) : (
+          <Ionicons name={INFO_CATEGORIA_SITIO[categoria].icono} size={Math.round(tamano * 0.5)} color={fue ? colors.white : colors.accent} />
+        )}
       </View>
       {conPico ? (
         <View

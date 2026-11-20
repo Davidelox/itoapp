@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
@@ -12,7 +12,9 @@ import { diaMesCorto, rangoCorto } from '@/lib/calendario/rejilla';
 import { ErrorGasto, type TipoBorrable, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useSolicitudBorrado } from '@/lib/gastos/useGastos';
-import { useInvalidarMapa } from '@/lib/mapa/useSitios';
+import { avisoBorradoColeccion, textoHojaBorrarColeccion, type PrevisionBorrado } from '@/lib/mapa/borradoColeccion';
+import { previsionBorrarColeccion } from '@/lib/mapa/consultasColecciones';
+import { useInvalidarMapa, useQuitarColeccionDeCache } from '@/lib/mapa/useSitios';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** «15 mar 2027»: la fecha de una repetición, siempre con el año (se borra una concreta). */
@@ -45,7 +47,7 @@ export function BorrarGasto({
   parte = 'todo',
 }: {
   /** Un gasto, un pago recurrente (`tipo: 'recurring_payment'`) o un evento (`tipo: 'event'`, con `visible_to_partner = !is_secret`). */
-  gasto: { id: string; visible_to_partner: boolean; liquidacion?: unknown };
+  gasto: { id: string; visible_to_partner: boolean; liquidacion?: unknown; /** Colección: su nombre, para la hoja. */ name?: string };
   pareja: Pareja;
   tipo?: TipoBorrable;
   /** Evento: la fecha de INICIO de la repetición que se está mirando. */
@@ -62,14 +64,18 @@ export function BorrarGasto({
   const router = useRouter();
   const invalidarGastos = useInvalidarGastos();
   const invalidarMapa = useInvalidarMapa();
-  const esSitio = tipo === 'place';
+  const quitarColeccionDeCache = useQuitarColeccionDeCache();
+  // Las colecciones son del Mapa: mismo refresco, misma pantalla de vuelta y mismo texto de «Sigue en el mapa».
+  const esSitio = tipo === 'place' || tipo === 'collection';
   const invalidar = () => (esSitio ? invalidarMapa() : invalidarGastos());
   const esEvento = tipo === 'event';
+  const esColeccion = tipo === 'collection';
+  const [prevision, setPrevision] = useState<PrevisionBorrado | null>(null);
   const ofreceDia = esEvento && repetido && !!fecha;
   const serie = useSolicitudBorrado(gasto.id, tipo, null);
   const delDia = useSolicitudBorrado(gasto.id, tipo, ofreceDia ? fecha : null);
   const solicitud = { data: serie.data ?? (ofreceDia ? delDia.data : null) };
-  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : esSitio ? 'sitio' : 'gasto');
+  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : tipo === 'collection' ? 'colección' : esSitio ? 'sitio' : 'gasto');
   const p = personas(pareja);
   // Hoja de borrado: «alcance» (solo eventos repetidos) y «confirmar».
   const [paso, setPaso] = useState<'alcance' | 'confirmar' | null>(null);
@@ -84,6 +90,11 @@ export function BorrarGasto({
     setError(null);
     setAlcance('serie');
     setPaso(ofreceDia ? 'alcance' : 'confirmar');
+    if (esColeccion) {
+      // Orientativa y sin bloquear: mientras llega (o si falla) se ve el texto genérico y el botón ya funciona.
+      setPrevision(null);
+      void previsionBorrarColeccion(gasto.id).then(setPrevision);
+    }
   };
   const elegirAlcance = (a: Alcance) => {
     // Un id nuevo por alcance: «solo este día» y «toda la serie» son solicitudes distintas.
@@ -92,7 +103,7 @@ export function BorrarGasto({
     setPaso('confirmar');
   };
 
-  const volver = () => (router.canGoBack() ? router.back() : router.replace(esEvento ? '/calendario' : esSitio ? '/mapa' : '/gastos'));
+  const volver = () => (router.canGoBack() ? router.back() : router.replace(esEvento ? '/calendario' : esColeccion ? '/mapa/colecciones' : esSitio ? '/mapa' : '/gastos'));
   const accion = async (f: () => Promise<boolean | void>) => {
     setOcupado(true);
     setError(null);
@@ -172,20 +183,22 @@ export function BorrarGasto({
   const alMomento = !gasto.visible_to_partner || !p.otra;
   // La fecha concreta que se borra (solo un evento repetido, si se ha elegido «Solo el …»); null = todo.
   const diaElegido = esEvento && alcance === 'dia' ? fecha : null;
+  const hojaColeccion = esColeccion ? textoHojaBorrarColeccion(prevision, nombre ?? gasto.name ?? 'colección', p.nombrePareja) : null;
   const queBorra = diaElegido ? `solo ${descripcionDia(diaElegido, fin)}` : `este ${cosa}`;
 
   return (
     <View style={styles.pie}>
-      <EnlaceTexto etiqueta={alMomento ? `Borrar ${cosa}` : `Pedir borrar este ${cosa}`} onPress={abrirConfirmacion} />
-      {!alMomento ? <Text style={styles.nota}>{p.nombrePareja} tendrá que aprobarlo</Text> : null}
+      <EnlaceTexto etiqueta={alMomento || esColeccion ? `Borrar ${cosa}` : `Pedir borrar este ${cosa}`} onPress={abrirConfirmacion} />
+      {!alMomento && !esColeccion ? <Text style={styles.nota}>{p.nombrePareja} tendrá que aprobarlo</Text> : null}
       {/* Mockup DetalleGasto: la confirmación es una hoja inferior. */}
       <Hoja
         visible={paso !== null}
         titulo={
-          paso === 'alcance' ? '¿Qué quieres borrar?' : alMomento ? `¿Borrar ${queBorra}?` : `¿Pedir borrar ${queBorra}?`
+          hojaColeccion ? hojaColeccion.titulo : paso === 'alcance' ? '¿Qué quieres borrar?' : alMomento ? `¿Borrar ${queBorra}?` : `¿Pedir borrar ${queBorra}?`
         }
         onCerrar={() => setPaso(null)}
         bloqueada={ocupado}
+        alerta
       >
         {paso === 'alcance' && fecha ? (
           <View style={styles.alcances}>
@@ -199,7 +212,7 @@ export function BorrarGasto({
         ) : (
           <>
             <Text style={styles.cajaTexto}>
-              {alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el ${cosa} se queda.`}
+              {hojaColeccion ? hojaColeccion.texto : alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el ${cosa} se queda.`}
               {tipo === 'recurring_payment' ? ' Los gastos que ya se apuntaron se quedan.' : ''}
               {esEvento && !alMomento ? ' Los gastos se conservan.' : ''}
             </Text>
@@ -208,15 +221,25 @@ export function BorrarGasto({
               <View style={{ flex: 1 }}>
                 <BotonSecundario etiqueta="Cancelar" deshabilitado={ocupado} onPress={() => setPaso(null)} />
               </View>
-              <View style={{ flex: 1 }}>
-                <BotonPrincipal
-                  etiqueta={alMomento ? 'Borrar' : 'Enviar solicitud'}
-                  cargando={ocupado}
-                  onPress={() =>
-                    accion(async () => (await pedirBorrar(idSolicitud, gasto.id, tipo, diaElegido)).borrado)
-                  }
-                />
-              </View>
+              {hojaColeccion && !hojaColeccion.boton ? null : (
+                <View style={{ flex: 1 }}>
+                  <BotonPrincipal
+                    etiqueta={hojaColeccion?.boton ?? (alMomento ? 'Borrar' : 'Enviar solicitud')}
+                    cargando={ocupado}
+                    onPress={() =>
+                      accion(async () => {
+                        const r = await pedirBorrar(idSolicitud, gasto.id, tipo, diaElegido);
+                        if (esColeccion) {
+                          // Realtime no avisa a quien deja de verla: se quita de la caché ya.
+                          if (r.borrado) quitarColeccionDeCache(gasto.id);
+                          Alert.alert(avisoBorradoColeccion(r, p.nombrePareja));
+                        }
+                        return r.borrado;
+                      })
+                    }
+                  />
+                </View>
+              )}
             </View>
           </>
         )}

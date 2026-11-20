@@ -13,7 +13,7 @@ import type { Sitio } from '@/lib/mapa/tipos';
 
 const sitio = (o: Partial<Sitio> = {}): Sitio => ({
   id: 'a', name: 'Taberna El Olivo', address: 'Calle Mayor 12', lat: 40.4168, lng: -3.7038, category: 'restaurant', status: 'been',
-  visible_to_partner: true, created_by: 'u1', version: 1, created_at: '2026-01-01T00:00:00Z', place_notes: [], ...o,
+  visible_to_partner: true, primary_collection_id: null, created_by: 'u1', version: 1, created_at: '2026-01-01T00:00:00Z', place_notes: [], ...o,
 });
 const form = (o: Partial<FormularioSitio> = {}): FormularioSitio => ({
   nombre: ' Mirador ', direccion: '  ', categoria: 'leisure', estado: 'want_to_go', privado: true, lat: 40, lng: -3, ...o,

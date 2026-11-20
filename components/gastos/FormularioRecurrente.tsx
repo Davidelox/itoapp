@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { type ReactNode, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarraPorcentaje, Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
@@ -233,7 +233,7 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
   ];
 
   return (
-    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.raiz}>
       <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={() => router.back()} style={styles.cerrar}>
           <Ionicons name="close" size={22} color={colors.text} />
@@ -244,7 +244,12 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
         <View style={styles.cerrarHueco} />
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.contenido}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.contenido}
+      >
         <Grupo etiqueta="Nombre">
           <TextInput
             accessibilityLabel="Nombre"
@@ -476,7 +481,7 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
           onHecho={alTerminar}
         />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

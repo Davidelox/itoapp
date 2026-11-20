@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
@@ -163,7 +163,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   };
 
   return (
-    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.raiz}>
       <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={() => router.back()} style={styles.cerrar}>
           <Ionicons name="close" size={22} color={colors.text} />
@@ -174,7 +174,12 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
         <View style={styles.cerrarHueco} />
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.contenido}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.contenido}
+      >
         {saldado ? (
           <Text style={styles.aviso}>Este gasto ya está saldado: el importe y el reparto no se pueden cambiar.</Text>
         ) : null}
@@ -258,7 +263,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
           onHecho={alTerminar}
         />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

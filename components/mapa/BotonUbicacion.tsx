@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, fonts, radius } from '@/constants/theme';
+import { CLAVE_POSICION } from '@/lib/mapa/usePosicion';
 import { estadoTrasPermiso, ofreceAjustes, textoAviso, type EstadoUbicacion } from '@/lib/mapa/ubicacion';
 
 /**
@@ -12,6 +14,7 @@ import { estadoTrasPermiso, ofreceAjustes, textoAviso, type EstadoUbicacion } fr
  */
 export function BotonUbicacion({ onUbicacion, style }: { onUbicacion: (lat: number, lng: number) => void; style?: StyleProp<ViewStyle> }) {
   const [estado, setEstado] = useState<EstadoUbicacion>('libre');
+  const cliente = useQueryClient();
 
   const pulsar = async () => {
     if (estado === 'buscando') return;
@@ -21,6 +24,7 @@ export function BotonUbicacion({ onUbicacion, style }: { onUbicacion: (lat: numb
       if (estadoTrasPermiso(permiso.granted) === 'denegado') return setEstado('denegado');
       if (!(await Location.hasServicesEnabledAsync())) return setEstado('apagado');
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      cliente.setQueryData(CLAVE_POSICION, { lat: pos.coords.latitude, lng: pos.coords.longitude }); // centro de las distancias de la búsqueda
       onUbicacion(pos.coords.latitude, pos.coords.longitude);
       setEstado('libre');
     } catch {

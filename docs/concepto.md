@@ -156,7 +156,7 @@ Nadie junta bien dinero, calendario, listas y mapa conectados entre sí.
 
 ## Decisiones del modelo de datos (13 nov)
 
-- **Borrar requiere la aprobación de los dos**: borrar un gasto, un sitio, un evento, un pago recurrente, un plan completo o una colección con sitios queda pendiente hasta que la otra persona lo acepta. No hace falta aprobación para editar el importe de un gasto aún no saldado, quitar un sitio de una colección, mover un plan o un elemento del itinerario de día, ni para borrar algo privado o una colección vacía.
+- **Borrar requiere la aprobación de los dos**: borrar un gasto, un sitio, un evento, un pago recurrente, un plan completo o una colección en la que la pareja ha añadido sitios queda pendiente hasta que la otra persona lo acepta. No hace falta aprobación para editar el importe de un gasto aún no saldado, quitar un sitio de una colección, mover un plan o un elemento del itinerario de día, ni para borrar algo privado. Una colección sin sitios de la pareja se borra sin permiso; si la pareja añadió sitios, al borrarla se «deja»: la pareja la conserva como suya y privada y puede volver a compartirla. Una colección compartida no puede volver a privada.
 - **Colecciones**: un sitio puede estar en varias. Se elige una colección principal, cuyo icono es el del pin; al añadirlo a otra colección, la app ofrece quitarlo de las demás.
 - **Eventos secretos**: por defecto eventos y planes los ven los dos, pero se puede crear un evento secreto que solo ve quien lo crea (para sorpresas).
 - **Saldar** por gastos concretos (sin pagos libres a cuenta en el MVP). Cambiar reparto o bote cuando ya sois dos va con propuesta que acepta el otro. Código de invitación de 6 caracteres.

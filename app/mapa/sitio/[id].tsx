@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
+import { HojaColecciones } from '@/components/mapa/HojaColecciones';
 import { HojaComoLlegar } from '@/components/mapa/HojaComoLlegar';
 import { HojaEditarSitio } from '@/components/mapa/HojaEditarSitio';
-import { HojaValoracion } from '@/components/mapa/HojaValoracion';
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
+import { AVISO_VALORAR, HojaValoracion } from '@/components/mapa/HojaValoracion';
 import { MiniMapa } from '@/components/mapa/MiniMapa';
 import { ValoracionesPareja } from '@/components/mapa/Valoraciones';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -21,14 +23,15 @@ import { hoyISO } from '@/lib/gastos/fechas';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
+import { type Seleccion, coleccionesDeSitio } from '@/lib/mapa/colecciones';
 import { paramsPlanearAqui, preguntarYaHabeisIdo } from '@/lib/mapa/conexiones';
 import { editarSitio } from '@/lib/mapa/consultas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { ETIQUETA_ESTADO, quienGuardo } from '@/lib/mapa/lista';
 import { urlGoogleMaps } from '@/lib/mapa/sitio';
 import type { EstadoSitio } from '@/lib/mapa/tipos';
-import { diaCorto, miNota, textoEstadisticas } from '@/lib/mapa/valoracion';
-import { useEstadisticasSitio, useInvalidarMapa, usePlanesDeSitio, useSitio } from '@/lib/mapa/useSitios';
+import { diaCorto, miNota, puedeValorar, textoEstadisticas } from '@/lib/mapa/valoracion';
+import { useColecciones, useEstadisticasSitio, useInvalidarMapa, usePertenencias, usePlanesDeSitio, useSitio } from '@/lib/mapa/useSitios';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Ficha de un sitio (docs/plan-mapa.md §5.3): estado, «Cómo llegar», «Ver en Google Maps», editar y pedir borrar. */
@@ -42,6 +45,9 @@ export default function FichaSitio() {
   const [editando, setEditando] = useState(false);
   const [llegar, setLlegar] = useState(false);
   const [valorando, setValorando] = useState(false);
+  const [coleccionando, setColeccionando] = useState(false);
+  const colecciones = useColecciones();
+  const pertenencias = usePertenencias();
   const estadisticas = useEstadisticasSitio(id);
   const planes = usePlanesDeSitio(id);
   // El estado elegido se ve al momento; vuelve a lo guardado cuando el servidor responde.
@@ -115,13 +121,19 @@ export default function FichaSitio() {
     });
   const textoStats = textoEstadisticas(estadisticas.data);
   const tieneMia = !!miNota(sitio.place_notes, pareja.yo.userId);
+  const tieneNota = !!miNota(sitio.place_notes, pareja.yo.userId)?.note?.trim();
+  const delSitio = coleccionesDeSitio(sitio.id, colecciones.data ?? [], pertenencias.data ?? []);
+  const actualColecciones: Seleccion = {
+    ids: delSitio.map((c) => c.id),
+    principal: delSitio.some((c) => c.id === sitio.primary_collection_id) ? sitio.primary_collection_id : null,
+  };
 
   return (
     <View style={styles.raiz}>
       {cabecera}
       <ScrollView contentContainerStyle={[styles.contenido, { paddingBottom: insets.bottom + 24 }]}>
         <BorrarGasto gasto={{ id: sitio.id, visible_to_partner: sitio.visible_to_partner }} pareja={pareja} tipo="place" parte="banda" />
-        <MiniMapa lat={sitio.lat} lng={sitio.lng} categoria={sitio.category} estado={sitio.status} privado={!sitio.visible_to_partner} />
+        <MiniMapa lat={sitio.lat} lng={sitio.lng} categoria={sitio.category} estado={sitio.status} privado={!sitio.visible_to_partner} onPress={() => router.navigate({ pathname: '/mapa', params: { sitio: sitio.id } })} />
 
         <Text accessibilityRole="header" style={styles.titulo}>
           {sitio.name}
@@ -160,6 +172,39 @@ export default function FichaSitio() {
               <Text style={styles.filaTexto}>{quien === 'yo' ? 'Lo guardaste tú' : `Lo guardó ${p.nombrePareja}`}</Text>
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.tarjeta}>
+          <Text accessibilityRole="header" style={styles.notaTitulo}>
+            Colecciones
+          </Text>
+          {delSitio.length === 0 ? (
+            <Text style={styles.filaTexto}>Sin colección · el pin usa el icono de su categoría</Text>
+          ) : (
+            <View style={styles.chips}>
+              {delSitio.map((c) => {
+                const principal = c.id === actualColecciones.principal;
+                return (
+                  <Pressable
+                    key={c.id}
+                    style={styles.chip}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Colección ${c.name}${principal ? ', principal' : ''}`}
+                    accessibilityHint="Abre la colección"
+                    hitSlop={6}
+                    onPress={() => router.push({ pathname: '/mapa/coleccion/[id]', params: { id: c.id } })}
+                  >
+                    <EmojiIcono emoji={c.icon} size={15} />
+                    <Text style={styles.chipTexto}>{c.name}</Text>
+                    {principal ? <Ionicons name="star" size={13} color={colors.text} /> : null}
+                    {principal ? <Text style={styles.chipTexto}>Principal</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+          {delSitio.length > 0 ? <Text style={styles.stats}>La principal da el icono del pin</Text> : null}
+          <BotonSecundario etiqueta="+ Añadir a colección" onPress={() => setColeccionando(true)} />
         </View>
 
         {textoStats ? (
@@ -207,7 +252,14 @@ export default function FichaSitio() {
         ) : null}
 
         <ValoracionesPareja sitio={sitio} pareja={pareja} userId={pareja.yo.userId} />
-        <BotonSecundario etiqueta={tieneMia ? 'Editar mi valoración y nota' : 'Valorar y añadir nota'} onPress={() => setValorando(true)} />
+        {puedeValorar(estado) ? (
+          <BotonSecundario etiqueta={tieneMia ? 'Editar mi valoración y nota' : 'Valorar y añadir nota'} onPress={() => setValorando(true)} />
+        ) : (
+          <>
+            <BotonSecundario etiqueta={tieneNota ? 'Editar mi nota' : 'Añadir nota'} onPress={() => setValorando(true)} />
+            <Text style={styles.stats}>{AVISO_VALORAR}</Text>
+          </>
+        )}
 
         {notas.map((n) => (
           <View key={n.nombre} style={[styles.tarjeta, n.paleta && { backgroundColor: n.paleta.bg, borderColor: n.paleta.ink }]} accessible accessibilityLabel={`${n.nombre}: ${n.texto}`}>
@@ -223,7 +275,10 @@ export default function FichaSitio() {
       </ScrollView>
       <HojaComoLlegar sitio={sitio} visible={llegar} onCerrar={() => setLlegar(false)} />
       {valorando && pareja.coupleId && pareja.yo.userId ? (
-        <HojaValoracion sitio={sitio} coupleId={pareja.coupleId} userId={pareja.yo.userId} nombrePareja={pareja.otra ? p.nombrePareja : null} onCerrar={() => setValorando(false)} />
+        <HojaValoracion sitio={sitio} estado={estado} coupleId={pareja.coupleId} userId={pareja.yo.userId} nombrePareja={pareja.otra ? p.nombrePareja : null} onCerrar={() => setValorando(false)} />
+      ) : null}
+      {coleccionando ? (
+        <HojaColecciones sitio={sitio} coupleId={pareja.coupleId} colecciones={colecciones.data ?? []} actual={actualColecciones} onCerrar={() => setColeccionando(false)} />
       ) : null}
       {editando ? <HojaEditarSitio sitio={sitio} pareja={pareja} onCerrar={() => setEditando(false)} /> : null}
     </View>

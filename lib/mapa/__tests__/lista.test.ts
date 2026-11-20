@@ -10,6 +10,7 @@ const sitio = (o: Partial<Sitio> = {}): Sitio => ({
   category: 'restaurant',
   status: 'been',
   visible_to_partner: true,
+  primary_collection_id: null,
   created_by: 'u1',
   version: 1,
   created_at: '2026-01-01T00:00:00Z',

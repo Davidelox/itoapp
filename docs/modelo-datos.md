@@ -116,7 +116,7 @@ Convenciones comunes:
 - `id uuid`, generado por el cliente en todo lo que se pueda crear sin conexión.
 - `created_at` y `updated_at` son `timestamptz`.
 - `version` (entero que sube en cada `UPDATE`) sirve para la concurrencia optimista.
-- `created_by` lo fuerza un trigger a `auth.uid()`.
+- `created_by` lo fuerza un trigger a `auth.uid()`. Excepción: al «dejar» una colección compartida, el servidor la traspasa a la pareja (§8).
 - Fechas de calendario en `date` local, más `time` cuando hace falta.
 
 ### Personas y pareja
@@ -214,12 +214,12 @@ Otras protecciones:
 
 **Qué necesita aprobación**:
 - Borrar un gasto, un sitio, un evento (entero o una fecha de uno que se repite), un pago recurrente o un plan completo.
-- Borrar una colección con sitios.
+- Borrar una colección en la que tu pareja ha añadido algún sitio (aunque la colección sea privada). Ver §8.
 - Borrar un movimiento del bote (propuesta mía, ver §12).
 
 **Qué no la necesita**:
-- Borrar algo privado tuyo: un gasto, pago, sitio o colección no visible, o un evento secreto.
-- Borrar una colección vacía.
+- Borrar algo privado tuyo: un gasto, pago o sitio no visible, o un evento secreto.
+- Borrar una colección sin sitios añadidos por tu pareja (vacía, privada o con solo tus sitios). Si es compartida, por lo general no se borra: la «dejas» y tu pareja la conserva (§8).
 - Quitar un sitio de una colección.
 - Editar el importe de un gasto no saldado.
 - Mover un plan o un elemento del itinerario de día u hora.
@@ -250,7 +250,7 @@ Otras protecciones:
 **Qué conserva cada borrado**:
 - **Gastos**: si se borra lo que tenían vinculado, guardan el nombre del sitio, evento o plan (y el icono del plan) como texto en `*_snapshot`. Un trigger lo copia antes de borrar, también en los gastos privados de la pareja. El título de un **evento secreto** solo se copia en gastos que la pareja no ve.
 - **Plan**: se borran su itinerario (eventos con `plan_id`) y sus tareas. Se conservan sus gastos y sus sitios; su colección se queda como colección normal.
-- **Colección**: los sitios se quedan; solo se quita la pertenencia.
+- **Colección**: los sitios se quedan; solo se quita la pertenencia. Al «dejarla» (§8) no se borra: pasa a tu pareja.
 - **Recurrente**: se borran sus ocurrencias; los gastos ya creados se quedan.
 - **Salir del espacio** (`leave_couple`): se borra lo privado y los eventos secretos de quien sale, se cancelan las solicitudes pendientes y lo compartido se queda con la otra persona.
 
@@ -281,6 +281,48 @@ Otras protecciones:
 - **"Quitar de las demás"** al añadir un sitio a otra colección es un `DELETE` directo de sus otras filas en `collection_places`.
 - **Colección automática de un plan**: "+ Guardar sitio en Lisboa" inserta en `collection_places` con la colección del plan.
 - **Colección privada de tu pareja**: si la principal de un sitio es una colección que no ves, tu pin usa el icono de la categoría.
+
+### Borrar una colección (`20261128000000_colecciones_borrado.sql`)
+
+La primera regla que se cumple decide (`private.collection_deletion_mode`):
+
+| Caso | Resultado |
+|---|---|
+| Es de un plan | `TW061`: se borra con el plan |
+| No hay pareja activa | Se borra |
+| **R1** · Tiene algún sitio añadido por otra persona (`collection_places.added_by` ≠ tú; cuenta aunque sea privada o el sitio sea privado de tu pareja) | Pide aprobación (§6); al aprobarla se borra para los dos |
+| Privada | Se borra |
+| Compartida, vacía y creada por ti | Se borra |
+| **R2** · Compartida en cualquier otro caso (con sitios solo tuyos, o creada por tu pareja) | **Se deja**: desaparece para ti y tu pareja la conserva |
+
+**Dejar una colección** (R2), en una transacción:
+- `created_by` pasa a la pareja y `visible_to_partner` a `false`: es una colección privada suya. Tú dejas de verla (RLS) y
+  ella puede volver a compartirla con «Visible para…» (ya es suya, así que `TW013` no salta).
+- Las filas de tus sitios privados (que tu pareja no ve) salen de la colección; los sitios se quedan.
+- El resto de filas pasan a `added_by` = pareja: si después la borra ella, no necesita tu permiso.
+- Principal: en los sitios que la tenían de principal y están en otra colección compartida, pasa a la más antigua de
+  esas (una privada de cualquiera de los dos no, porque el otro perdería el icono). Si no hay, se queda (tu pareja la
+  sigue teniendo; tú ves el icono de la categoría).
+- Sus solicitudes de borrado pendientes se cancelan. Si había una de tu pareja (quería borrarla), los dos estáis de
+  acuerdo y se borra para los dos.
+- `created_by` solo lo puede cambiar el servidor: `private.collections_guard` (trigger `a_guard` de `collections`).
+
+**Una compartida no vuelve a ser privada** (`TW054`, como `TW053` en sitios): la pareja la tiene en su caché, Realtime no
+le avisaría y podría tener sitios suyos dentro. Privada → compartida sí (solo quien la creó, `TW013`). Solo el servidor la
+hace privada, al dejarla (R2).
+
+**Carreras**: `request_deletion` bloquea la colección (`FOR UPDATE`) y decide en otra sentencia. Añadir un sitio pide
+`FOR KEY SHARE` sobre la colección (FK), así que espera o ya se ve; dos peticiones sobre la misma colección van en fila.
+
+**Para la app**:
+- Borrar: `request_deletion(id, 'collection', colección)` →
+  `{status:'deleted'}` borrada · `{status:'deleted', kept_by_partner:true}` dejada (la app la quita de su caché:
+  Realtime no avisa a quien deja de verla) · `{status:'pending', request_id}` pendiente de aprobación.
+- Antes de confirmar: `preview_collection_deletion(colección)` → `'delete' | 'leave' | 'approval' | 'plan'` (orientativo).
+
+**Supuestos a confirmar con David**: (a) una compartida vacía se borra si la creaste tú y se deja si la creó tu pareja;
+(b) tus sitios privados salen de la colección al dejarla; (c) la principal pasa a otra colección compartida del sitio si
+la tiene. Si la pareja **rechaza** el borrado, la colección sigue para los dos (como el resto de §6).
 
 ## 9. Sin conexión
 
@@ -351,6 +393,7 @@ La app los traduce por `error.code`:
 | `TW051` | Un evento compartido no se puede volver secreto |
 | `TW052` | Rango de fechas del calendario no válido |
 | `TW053` | Un sitio compartido no puede volver a ser privado |
+| `TW054` | Una colección compartida no puede volver a ser privada |
 | `TW060` | No encontrado / no visible |
 | `TW061` | La colección de un plan se borra con el plan |
 | `TW062` | Solicitud ya resuelta o caducada |
