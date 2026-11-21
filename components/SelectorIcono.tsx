@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Grupo } from '@/components/gastos/Controles';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
-import { EMOJIS_SUGERIDOS, primerEmoji } from '@/lib/mapa/colecciones';
+import { EMOJIS_SUGERIDOS, resolverTextoIcono } from '@/lib/mapa/colecciones';
 
 /**
  * Selector de icono emoji: unos sugeridos (por defecto los de las colecciones) y «Otro…», que abre el teclado de emojis
@@ -27,6 +27,7 @@ export function SelectorIcono({
 }) {
   const [otroAbierto, setOtroAbierto] = useState(false);
   const esSugerido = sugeridos.some((e) => e.emoji === valor);
+  const [texto, setTexto] = useState('');
   const otroMarcado = otroAbierto || !esSugerido;
   return (
     <Grupo etiqueta={etiqueta} rol="radiogroup">
@@ -53,7 +54,10 @@ export function SelectorIcono({
           accessibilityRole="radio"
           accessibilityState={{ checked: otroMarcado }}
           accessibilityLabel={!esSugerido ? `Otro icono: ${valor}` : 'Otro icono'}
-          onPress={() => setOtroAbierto(true)}
+          onPress={() => {
+            setTexto(esSugerido ? '' : valor);
+            setOtroAbierto(true);
+          }}
           style={[styles.emoji, otroMarcado && styles.emojiOn]}
         >
           {otroMarcado && !esSugerido ? <EmojiIcono emoji={valor} size={26} /> : <Text style={styles.otro}>{!esSugerido ? valor : 'Otro…'}</Text>}
@@ -64,12 +68,18 @@ export function SelectorIcono({
           <Text style={styles.nota}>Abre el teclado de emojis de tu móvil y elige el que quieras.</Text>
           <TextInput
             accessibilityLabel="Icono personalizado"
-            value={esSugerido ? '' : valor}
+            value={texto}
             onChangeText={(t) => {
-              const e = primerEmoji(t);
-              if (e) onCambiar(e);
+              const r = resolverTextoIcono(t, sugeridos[0].emoji);
+              setTexto(r.cerrar ? '' : t);
+              onCambiar(r.icono);
+              if (r.cerrar) {
+                setOtroAbierto(false);
+                Keyboard.dismiss();
+              } else setOtroAbierto(true);
             }}
-            autoFocus={otroAbierto && esSugerido}
+            selectTextOnFocus
+            autoFocus={otroAbierto}
             autoCorrect={false}
             autoCapitalize="none"
             style={styles.campoEmoji}

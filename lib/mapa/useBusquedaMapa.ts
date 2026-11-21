@@ -5,6 +5,7 @@ import { Keyboard } from 'react-native';
 import { type SitioBuscado, textoBuscable } from '@/lib/mapa/busqueda';
 import { buscarSitios } from '@/lib/mapa/consultas';
 import type { Region } from '@/lib/mapa/encuadre';
+import { esEcoDeSeleccion } from '@/lib/mapa/sugerencias';
 import { type Centro, MAX_SUGERENCIAS, PAUSA_SUGERENCIAS_MS, regionMovida, textoSugerible } from '@/lib/mapa/resultados';
 
 type Consulta = { texto: string; centro: Centro | null };
@@ -25,6 +26,8 @@ export function useBusquedaMapa(region: RefObject<Region | null>) {
   const [extra, setExtra] = useState<SitioBuscado | null>(null);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   const base = useRef<Region | null>(null);
+  // Texto que dejó la última selección: si el campo lo devuelve tal cual, no es que la persona escriba.
+  const textoElegido = useRef<string | null>(null);
   const ventana = useRef(0);
   useEffect(
     () => () => {
@@ -69,6 +72,8 @@ export function useBusquedaMapa(region: RefObject<Region | null>) {
   // Al escribir solo se sugiere (a partir de 3 letras, con pausa); la búsqueda completa va al enviar.
   const escribir = (t: string) => {
     setEscrito(t);
+    if (esEcoDeSeleccion(t, textoElegido.current)) return;
+    textoElegido.current = null;
     setAbierta(true);
     if (temporizador.current) clearTimeout(temporizador.current);
     if (textoSugerible(t) === null) return setPidiendo(null);
@@ -87,6 +92,7 @@ export function useBusquedaMapa(region: RefObject<Region | null>) {
     Keyboard.dismiss();
     if (temporizador.current) clearTimeout(temporizador.current);
     setPidiendo(null);
+    textoElegido.current = null;
     setEscrito('');
     lanzar(null);
   };
@@ -102,12 +108,14 @@ export function useBusquedaMapa(region: RefObject<Region | null>) {
   /** Elige una sugerencia: pasa a ser un resultado más (con pin), con su zoom y su tarjeta; cierra teclado y cascada. */
   const elegirSugerencia = (s: SitioBuscado) => {
     cerrarSugerencias();
+    textoElegido.current = s.nombre;
     setEscrito(s.nombre);
     if (!q.data?.some((x) => x.provider_place_id === s.provider_place_id)) setExtra(s);
     elegir(s.provider_place_id);
   };
   /** Elige un resultado: cierra el teclado y el mapa hace zoom a él (ese movimiento no cuenta como «moverse»). */
   const elegir = (id: string) => {
+    cerrarSugerencias();
     Keyboard.dismiss();
     ventana.current = Date.now() + 2000;
     setSeleccionado(id);

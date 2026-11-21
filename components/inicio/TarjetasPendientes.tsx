@@ -11,6 +11,7 @@ import { responderPropuesta } from '@/lib/ajustes/consultas';
 import { HojaQuienPago } from '@/components/calendario/HojaQuienPago';
 import { HojaImporte } from '@/components/gastos/HojaImporte';
 import { descartarQuienPago } from '@/lib/calendario/consultas';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { lineaQuienPago } from '@/lib/calendario/quienPago';
 import { fechaCorta } from '@/lib/gastos/fechas';
 import { saltarCobro } from '@/lib/gastos/consultasRecurrentes';
@@ -98,6 +99,7 @@ function Tarjeta({
   onResuelta: (p: Pendiente, texto: string) => void;
 }) {
   const router = useRouter();
+  const presupuestos = usePresupuestos();
   const invalidar = useInvalidarGastos();
   const p = personas(pareja);
   const [ocupado, setOcupado] = useState(false);
@@ -159,7 +161,7 @@ function Tarjeta({
         ¿Quién pagó <Text style={styles.importe}>{e.title}</Text>?
       </>
     );
-    ayuda = lineaQuienPago(fechaCorta(e.start_date), e.budget_cents);
+    ayuda = lineaQuienPago(fechaCorta(e.start_date), e.budget_cents, presupuestos);
     si = { etiqueta: 'Apuntar', accion: () => setApuntando(true) };
     no = { etiqueta: 'No hubo gasto', accion: () => responder(() => descartarQuienPago(e.id), 'Sin gasto') };
     abrir = () => router.push({ pathname: '/calendario/evento/[id]', params: { id: e.id } });

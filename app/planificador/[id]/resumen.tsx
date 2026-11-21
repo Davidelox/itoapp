@@ -7,7 +7,7 @@ import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
-import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
+import { DineroDelPlan } from '@/components/planificador/BarraPresupuesto';
 import { colors, fonts, radius } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { hoyISO } from '@/lib/gastos/fechas';
@@ -16,7 +16,7 @@ import { totalGastadoDelPlan } from '@/lib/gastos/planes';
 import { useGastosPlan } from '@/lib/gastos/useGastos';
 import { useColecciones, usePertenencias, useSitios } from '@/lib/mapa/useSitios';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
-import { etiquetaTipo, textoFechas, vistaPresupuesto } from '@/lib/planificador/plan';
+import { etiquetaTipo, textoFechas } from '@/lib/planificador/plan';
 import { parametrosDePlan } from '@/lib/planificador/precarga';
 import { itinerarioResumido, puestoPor, sitiosVisitados } from '@/lib/planificador/resumen';
 import { contadorTareas } from '@/lib/planificador/tareas';
@@ -75,7 +75,7 @@ export default function ResumenPlan() {
   }
 
   const p = personas(pareja);
-  const vista = vistaPresupuesto(plan.budget_cents, plan.gastado_cents ?? (gastos.data ? totalGastadoDelPlan(gastos.data) : null));
+  const gastado = plan.gastado_cents ?? (gastos.data ? totalGastadoDelPlan(gastos.data) : null);
   const puesto = gastos.data ? puestoPor(gastos.data, p.yo.slot) : null;
   const hechas = contadorTareas((tareas.data ?? []).filter((t) => t.plan_id === plan.id));
   const coleccion = colecciones.data?.find((c) => c.plan_id === plan.id)?.id ?? null;
@@ -112,7 +112,7 @@ export default function ResumenPlan() {
           <Text accessibilityRole="header" style={styles.seccionTitulo}>
             Gasto
           </Text>
-          <BarraPresupuesto vista={vista} tamano="grande" />
+          <DineroDelPlan presupuestoCents={plan.budget_cents} gastadoCents={gastado} tamano="grande" />
           {gastos.isError ? (
             error('No se ha podido cargar quién pagó.', () => gastos.refetch())
           ) : puesto ? (

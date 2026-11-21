@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts } from '@/constants/theme';
-import type { VistaPresupuesto } from '@/lib/planificador/plan';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
+import { type VistaPresupuesto, textoGastadoPlan, vistaPresupuesto } from '@/lib/planificador/plan';
 
 /**
  * Presupuesto de un plan: «312 € de 900 €» con barra y «Quedan 588 €» (o «Os habéis pasado 40 €», con la barra llena
@@ -29,6 +30,17 @@ export function BarraPresupuesto({ vista, tamano = 'normal' }: { vista: VistaPre
       </View>
     </View>
   );
+}
+
+/**
+ * Dinero de un plan según la preferencia «Mostrar presupuestos»: activa, la barra de arriba; apagada, solo «312 € gastados»
+ * (y nada si no hay gasto).
+ */
+export function DineroDelPlan({ presupuestoCents, gastadoCents, tamano = 'normal' }: { presupuestoCents: number | null; gastadoCents: number | null; tamano?: 'normal' | 'grande' }) {
+  const presupuestos = usePresupuestos();
+  if (presupuestos) return <BarraPresupuesto vista={vistaPresupuesto(presupuestoCents, gastadoCents)} tamano={tamano} />;
+  const texto = textoGastadoPlan(gastadoCents);
+  return texto ? <Text style={[styles.texto, tamano === 'grande' && styles.textoGrande]}>{texto}</Text> : null;
 }
 
 const styles = StyleSheet.create({

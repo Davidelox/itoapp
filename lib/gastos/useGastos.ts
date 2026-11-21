@@ -18,6 +18,7 @@ import {
   leerGasto,
   leerGastosPlan,
   leerPagina,
+  leerResumenesPlanes,
   leerSaldo,
   leerTotales,
   leerUltimos,
@@ -58,6 +59,21 @@ export function useUltimosGastos(soloSinSaldar = false) {
   const { pareja } = useEstado();
   const k = useClave();
   return useQuery({ queryKey: k('ultimos', soloSinSaldar), queryFn: () => leerUltimos(5, soloSinSaldar), enabled: !!pareja });
+}
+
+/** Gastos para la lista «Últimos»: más de 5 porque los de un mismo plan se agrupan en una fila (ver `agruparPorPlan`). */
+export const MARGEN_ULTIMOS = 30;
+export function useUltimosParaAgrupar(soloSinSaldar = false) {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('ultimos-filas', soloSinSaldar), queryFn: () => leerUltimos(MARGEN_ULTIMOS, soloSinSaldar), enabled: !!pareja });
+}
+
+/** Total y número de gastos de cada plan (`plan_summaries`), para la fila agrupada. null si no responde. */
+export function useResumenesPlanes() {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('resumenes-planes'), queryFn: leerResumenesPlanes, enabled: !!pareja });
 }
 
 export function useGasto(id: string | undefined) {

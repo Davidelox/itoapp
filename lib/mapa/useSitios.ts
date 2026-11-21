@@ -107,6 +107,14 @@ export function useTiempoRealMapa() {
   }, [coupleId, cliente]);
 }
 
+/** Como `useInvalidarMapa`, y recarga también el calendario e Inicio (una visita nueva puede crear un evento). */
+export function useInvalidarVisitas() {
+  const cliente = useQueryClient();
+  const { pareja } = useEstado();
+  const id = pareja?.coupleId ?? 'ninguna';
+  return () => Promise.all([cliente.invalidateQueries({ queryKey: ['mapa', id] }), cliente.invalidateQueries({ queryKey: ['calendario', id] })]);
+}
+
 /** Recarga todo lo del mapa tras guardar, cambiar el estado o borrar. */
 export function useInvalidarMapa() {
   const cliente = useQueryClient();

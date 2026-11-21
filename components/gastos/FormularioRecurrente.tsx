@@ -472,7 +472,7 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
         {extra}
       </ScrollView>
 
-      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
         <BotonNudo
           label={editando ? 'Guardar cambios' : 'Guardar pago'}
           labelHecho="Guardado"
@@ -582,5 +582,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
+  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
 });

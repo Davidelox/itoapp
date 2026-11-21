@@ -93,16 +93,20 @@ export function textoEnDias(inicio: string, hoy: string): string {
   return n === 1 ? 'mañana' : `en ${n} días`;
 }
 
-/** «5 – 8 dic · 4 días · ~900 €»; con gasto en el plan, «312 € de 900 €» (sin presupuesto, «312 € gastados»). */
-export function lineaMultidia(p: Pick<PlanMultidia, 'inicio' | 'fin' | 'presupuestoCents' | 'gastadoCents'>): string {
+/**
+ * «5 – 8 dic · 4 días · ~900 €»; con gasto en el plan, «312 € de 900 €» (sin presupuesto, «312 € gastados»).
+ * Con `presupuestos` apagado nunca sale el presupuesto: solo «312 € gastados» si hay gasto.
+ */
+export function lineaMultidia(p: Pick<PlanMultidia, 'inicio' | 'fin' | 'presupuestoCents' | 'gastadoCents'>, presupuestos = true): string {
   const dias = diasEntre(p.inicio, p.fin) + 1;
   const gastado = p.gastadoCents && p.gastadoCents > 0 ? p.gastadoCents : null;
+  const presupuesto = presupuestos ? p.presupuestoCents : null;
   const dinero = gastado
-    ? p.presupuestoCents
-      ? `${eurosCortos(gastado)} de ${eurosCortos(p.presupuestoCents)}`
+    ? presupuesto
+      ? `${eurosCortos(gastado)} de ${eurosCortos(presupuesto)}`
       : `${eurosCortos(gastado)} gastados`
-    : p.presupuestoCents
-      ? textoPresupuesto(p.presupuestoCents)
+    : presupuesto
+      ? textoPresupuesto(presupuesto)
       : null;
   return [rangoCorto(p.inicio, p.fin), `${dias} días`, dinero].filter(Boolean).join(' · ');
 }

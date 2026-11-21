@@ -10,7 +10,7 @@ import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
 import { ErrorGasto } from '@/lib/gastos/error';
-import { ERROR_GENERICO } from '@/lib/mapa/error';
+import { mensajeErrorPlan } from '@/lib/planificador/error';
 import { crearIdea, editarIdea } from '@/lib/planificador/consultasIdeas';
 import {
   type Idea,
@@ -63,7 +63,7 @@ export function HojaIdea({
       await invalidar();
       onCerrar();
     } catch (e) {
-      setError(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
+      setError(e instanceof ErrorGasto ? e.message : mensajeErrorPlan(e));
       if (e instanceof ErrorGasto && e.codigo === 'version') await invalidar();
     } finally {
       setOcupado(false);
@@ -77,7 +77,12 @@ export function HojaIdea({
       onCerrar={onCerrar}
       bloqueada={ocupado}
       desplazable
-      pie={<BotonPrincipal etiqueta={idea ? 'Guardar cambios' : 'Añadir idea'} cargando={ocupado} onPress={guardar} />}
+      pie={
+        <>
+          <MensajeError texto={error ?? (intentado && hayErroresIdea(errores) ? 'Revisa los campos marcados en rojo.' : null)} />
+          <BotonPrincipal etiqueta={idea ? 'Guardar cambios' : 'Añadir idea'} cargando={ocupado} onPress={guardar} />
+        </>
+      }
     >
       <Grupo etiqueta="Título">
         <TextInput
@@ -116,7 +121,6 @@ export function HojaIdea({
         />
         <MensajeError texto={intentado ? errores.nota : null} />
       </Grupo>
-      <MensajeError texto={error} />
       {idea && onBorrar ? <EnlaceTexto etiqueta="Borrar idea" deshabilitado={ocupado} onPress={onBorrar} /> : null}
     </Hoja>
   );

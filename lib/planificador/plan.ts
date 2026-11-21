@@ -208,8 +208,11 @@ export function vistaPresupuesto(presupuesto: number | null, gastado: number | n
   };
 }
 
-/** Etiqueta de lector de pantalla de una tarjeta (docs/plan-planificador.md §5.4). */
-export function etiquetaPlan(p: Plan & { gastado_cents?: number | null }, hoy: string, pendientes = 0): string {
+/** «312 € gastados»; null si no hay gasto (o no se sabe): sin presupuesto, es lo único que se dice del dinero de un plan. */
+export const textoGastadoPlan = (gastado: number | null | undefined): string | null => (gastado ? `${formatearEuros(gastado)} gastados` : null);
+
+/** Etiqueta de lector de pantalla de una tarjeta (docs/plan-planificador.md §5.4). Con `presupuestos` apagado solo habla de lo gastado. */
+export function etiquetaPlan(p: Plan & { gastado_cents?: number | null }, hoy: string, pendientes = 0, presupuestos = true): string {
   const mismoMes = p.start_date.slice(0, 7) === p.end_date.slice(0, 7);
   const fechas =
     p.start_date === p.end_date
@@ -218,8 +221,11 @@ export function etiquetaPlan(p: Plan & { gastado_cents?: number | null }, hoy: s
         ? `del ${numeroDia(p.start_date)} al ${numeroDia(p.end_date)} de ${mesDe(p.end_date)}`
         : `del ${numeroDia(p.start_date)} de ${mesDe(p.start_date)} al ${numeroDia(p.end_date)} de ${mesDe(p.end_date)}`;
   const v = vistaPresupuesto(p.budget_cents, p.gastado_cents ?? null);
-  const dinero =
-    v.tipo === 'barra'
+  const dinero = !presupuestos
+    ? p.gastado_cents
+      ? `${Math.round(p.gastado_cents / 100)} euros gastados`
+      : null
+    : v.tipo === 'barra'
       ? `${Math.round(v.gastado / 100)} de ${Math.round(v.total / 100)} euros gastados`
       : v.tipo === 'solo'
         ? `presupuesto de ${Math.round(v.total / 100)} euros`

@@ -173,3 +173,14 @@ describe('tramoFueraDeMes', () => {
     expect(tramoFueraDeMes(semanaDe('2026-12-14'), nov)).toEqual({ desde: 0, hasta: 6 });
   });
 });
+
+import { columnaSemana, esDomingo } from '../rejilla';
+describe('columnaSemana y esDomingo', () => {
+  it('mes que empieza en domingo (feb 2026) cae en la columna 6', () => expect(columnaSemana('2026-02-01')).toBe(6));
+  it('mes que empieza en lunes (jun 2026) cae en la columna 0', () => expect(columnaSemana('2026-06-01')).toBe(0));
+  it('mitad de semana (abr 2026, miércoles)', () => expect(columnaSemana('2026-04-01')).toBe(2));
+  it('marca domingos', () => {
+    expect(esDomingo('2026-11-22')).toBe(true);
+    expect(esDomingo('2026-11-21')).toBe(false);
+  });
+});

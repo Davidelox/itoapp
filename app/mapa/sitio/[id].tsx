@@ -35,7 +35,7 @@ import { ETIQUETA_ESTADO, quienGuardo } from '@/lib/mapa/lista';
 import { urlGoogleMaps } from '@/lib/mapa/sitio';
 import type { EstadoSitio } from '@/lib/mapa/tipos';
 import { diaCorto, miNota, puedeValorar, textoEstadisticas } from '@/lib/mapa/valoracion';
-import { useColecciones, useEstadisticasSitio, useInvalidarMapa, usePertenencias, usePlanesDeSitio, useSitio, useVisitasSitio } from '@/lib/mapa/useSitios';
+import { useColecciones, useEstadisticasSitio, useInvalidarMapa, useInvalidarVisitas, usePertenencias, usePlanesDeSitio, useSitio, useVisitasSitio } from '@/lib/mapa/useSitios';
 import { type Visita, fechaSugerida, fechaVisita, gastoDelDia, ordenarVisitas, pedirFechaAlMarcar, textoContadorVisitas, textoUltimaVisita } from '@/lib/mapa/visitas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
@@ -47,6 +47,7 @@ export default function FichaSitio() {
   const { pareja } = useEstado();
   const { sitio, isLoading, isError } = useSitio(id);
   const invalidar = useInvalidarMapa();
+  const invalidarVisitas = useInvalidarVisitas();
   const [editando, setEditando] = useState(false);
   const [llegar, setLlegar] = useState(false);
   const [valorando, setValorando] = useState(false);
@@ -140,11 +141,11 @@ export default function FichaSitio() {
   const apuntarSugerida = async (fecha: string) => {
     setError(null);
     try {
-      await anadirVisita(Crypto.randomUUID(), pareja.coupleId, sitio.id, fecha, '');
+      await anadirVisita(Crypto.randomUUID(), pareja.coupleId, sitio, pareja.yo.slot, fecha, '');
     } catch (e) {
       setError(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
     } finally {
-      await invalidar();
+      await invalidarVisitas();
     }
   };
   const quitar = async () => {
@@ -359,7 +360,8 @@ export default function FichaSitio() {
       {hojaVisita && pareja.coupleId ? (
         <HojaVisita
           titulo={hojaVisita.titulo}
-          sitioId={sitio.id}
+          sitio={sitio}
+          yo={pareja.yo.slot}
           coupleId={pareja.coupleId}
           nombrePareja={p.nombrePareja}
           visita={hojaVisita.visita}

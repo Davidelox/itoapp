@@ -187,3 +187,10 @@ describe('textos', () => {
 // El tipo Evento sigue siendo el que consume la fase: si cambia, este test deja de compilar.
 const _comprobacion: Pick<Evento, 'ends_at' | 'who_paid_resolved_at'> = { ends_at: '', who_paid_resolved_at: null };
 void _comprobacion;
+
+describe('presupuestos apagados', () => {
+  it('lineaQuienPago y textoAntes no dicen el presupuesto', () => {
+    expect(lineaQuienPago('Ayer', 6000, false)).toBe('ayer');
+    expect(textoAntes({ budget_cents: 6000, ends_at: '2026-11-20T22:00:00Z' }, true, false)).not.toMatch(/Presupuesto/);
+  });
+});

@@ -7,12 +7,14 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
+import type { Hueco } from '@/lib/calendario/evento';
 import { colors, fonts, radius } from '@/constants/theme';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { anadirVisita, corregirVisita } from '@/lib/mapa/consultas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
-import { useInvalidarMapa } from '@/lib/mapa/useSitios';
+import { useInvalidarVisitas } from '@/lib/mapa/useSitios';
+import type { SitioDeVisita } from '@/lib/mapa/eventoVisita';
 import { MAX_NOTA_VISITA, type Visita, errorFechaVisita } from '@/lib/mapa/visitas';
 
 /**
@@ -22,7 +24,8 @@ import { MAX_NOTA_VISITA, type Visita, errorFechaVisita } from '@/lib/mapa/visit
  */
 export function HojaVisita({
   titulo,
-  sitioId,
+  sitio,
+  yo,
   coupleId,
   nombrePareja,
   visita,
@@ -31,7 +34,8 @@ export function HojaVisita({
   onCerrar,
 }: {
   titulo: string;
-  sitioId: string;
+  sitio: SitioDeVisita;
+  yo: Hueco;
   coupleId: string;
   nombrePareja: string;
   visita?: Visita;
@@ -39,7 +43,7 @@ export function HojaVisita({
   onQuitar?: () => void;
   onCerrar: () => void;
 }) {
-  const invalidar = useInvalidarMapa();
+  const invalidar = useInvalidarVisitas();
   const hoy = hoyISO();
   const [fecha, setFecha] = useState(visita?.visited_on ?? fechaInicial ?? hoy);
   const [nota, setNota] = useState(visita?.note ?? '');
@@ -55,7 +59,7 @@ export function HojaVisita({
     setError(null);
     try {
       if (visita) await corregirVisita(visita.id, visita.version, fecha, nota, nombrePareja);
-      else await anadirVisita(id, coupleId, sitioId, fecha, nota);
+      else await anadirVisita(id, coupleId, sitio, yo, fecha, nota);
       await invalidar();
       onCerrar();
     } catch (e) {

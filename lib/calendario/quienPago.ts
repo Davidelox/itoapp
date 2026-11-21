@@ -127,8 +127,8 @@ export const textoPresupuesto = (cents: number) => `~${formatearEuros(cents)}`;
  * Antes de terminar: «Presupuesto ~60 €. A partir de las 23:00 os preguntaremos quién pagó.» La hora es la del
  * fin del evento en la zona de la pareja. `plural`: van los dos y la pareja está unida («os» / «te»).
  */
-export function textoAntes(e: Pick<Evento, 'budget_cents' | 'ends_at'> & { all_day?: boolean }, plural: boolean): string {
-  const presupuesto = e.budget_cents === null ? '' : `Presupuesto ${textoPresupuesto(e.budget_cents)}. `;
+export function textoAntes(e: Pick<Evento, 'budget_cents' | 'ends_at'> & { all_day?: boolean }, plural: boolean, presupuestos = true): string {
+  const presupuesto = e.budget_cents === null || !presupuestos ? '' : `Presupuesto ${textoPresupuesto(e.budget_cents)}. `;
   // Uno de todo el día acaba a las 24:00: «a partir de las 00:00» confunde.
   const cuando = e.all_day ? 'Al acabar el día' : `A partir de las ${horaEnZona(e.ends_at)}`;
   return `${presupuesto}${cuando} ${plural ? 'os' : 'te'} preguntaremos quién pagó.`;
@@ -149,7 +149,7 @@ export function textoGastoGuardado(g: PartesGasto, yo: Hueco, nombrePareja: stri
 }
 
 /** «ayer · ~60 €»: segunda línea de la tarjeta «¿Quién pagó?» (la fecha ya viene como «Ayer», «Hoy», «Sáb 7 nov»). */
-export function lineaQuienPago(fechaCorta: string, budgetCents: number | null): string {
+export function lineaQuienPago(fechaCorta: string, budgetCents: number | null, presupuestos = true): string {
   const fecha = fechaCorta.charAt(0).toLowerCase() + fechaCorta.slice(1);
-  return budgetCents === null ? fecha : `${fecha} · ${textoPresupuesto(budgetCents)}`;
+  return budgetCents === null || !presupuestos ? fecha : `${fecha} · ${textoPresupuesto(budgetCents)}`;
 }

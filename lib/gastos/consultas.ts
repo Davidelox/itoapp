@@ -5,6 +5,7 @@
 import { esErrorDeRed } from '@/lib/auth/errores';
 import type { Categoria } from '@/lib/gastos/categorias';
 import { categoriasQueCoinciden } from '@/lib/gastos/categorias';
+import { type ResumenPlan, mapaResumenes } from '@/lib/gastos/agrupar';
 import { soloCambios } from '@/lib/gastos/cambios';
 import type { Party, RepartoPorDefecto, SplitMode } from '@/lib/gastos/reparto';
 import type { AjustesBote, Movimiento } from '@/lib/gastos/bote';
@@ -189,6 +190,16 @@ export async function leerTotales(filtros: Filtros): Promise<{ cuantos: number; 
   }
   const fila = (data as { expense_count: number; total_cents: number }[] | null)?.[0];
   return fila ? { cuantos: Number(fila.expense_count), totalCents: Number(fila.total_cents) } : null;
+}
+
+/** Resumen de cada plan (`plan_summaries`): total y número de gastos de TODO el plan. null si la vista no responde (no se inventa). */
+export async function leerResumenesPlanes(): Promise<Map<string, ResumenPlan> | null> {
+  const { data, error } = await supabase.from('plan_summaries').select('plan_id, spent_cents, expense_count');
+  if (error) {
+    registrarError('gastos.resumenesPlanes', error);
+    return null;
+  }
+  return mapaResumenes((data ?? []) as { plan_id: string; spent_cents: number | string; expense_count: number | string }[]);
 }
 
 /** Todos los gastos de un plan (también los saldados), del más reciente al más antiguo. */

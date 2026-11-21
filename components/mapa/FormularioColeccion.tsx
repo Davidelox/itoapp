@@ -161,7 +161,7 @@ export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { parej
       </ScrollView>
 
       {!coleccion || !esDePlan(coleccion) ? (
-        <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
           <BotonPrincipal etiqueta={editando ? 'Guardar cambios' : 'Crear colección'} cargando={ocupado} onPress={guardar} />
         </View>
       ) : null}
@@ -180,5 +180,5 @@ const styles = StyleSheet.create({
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   vista: { flexDirection: 'row', justifyContent: 'space-around', padding: 16, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
   vistaPin: { alignItems: 'center', gap: 6 },
-  pie: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
+  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
 });

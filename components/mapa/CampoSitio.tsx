@@ -6,6 +6,8 @@ import { Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
+import { Segmentado } from '@/components/onboarding/OpcionRadio';
+import { BuscarLugarNuevo } from '@/components/mapa/BuscarLugarNuevo';
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { colors, fonts, radius } from '@/constants/theme';
 import { personas } from '@/lib/gastos/personas';
@@ -23,6 +25,7 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: string | null; onCambiar: (id: string | null) => void; compartido?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const [texto, setTexto] = useState('');
+  const [modo, setModo] = useState<'guardados' | 'nuevo'>('guardados');
   const { data: sitios, isLoading, isError } = useSitios();
   const { pareja } = useEstado();
   const invalidar = useInvalidarMapa();
@@ -39,6 +42,7 @@ export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: st
   const cerrar = () => {
     setAbierta(false);
     setTexto('');
+    setModo('guardados');
   };
   const revelar = async () => {
     if (!enlazado) return;
@@ -91,6 +95,18 @@ export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: st
         </View>
       ) : null}
       <Hoja visible={abierta} titulo="Elegir sitio" onCerrar={cerrar} desplazable>
+        <Segmentado
+          etiqueta="Origen del sitio"
+          opciones={[
+            { valor: 'guardados', etiqueta: 'Guardados' },
+            { valor: 'nuevo', etiqueta: 'Buscar lugar nuevo' },
+          ]}
+          valor={modo}
+          onCambiar={setModo}
+        />
+        {modo === 'nuevo' && pareja ? <BuscarLugarNuevo sitios={sitios ?? []} coupleId={pareja.coupleId} onElegido={elegir} /> : null}
+        {modo === 'guardados' ? (
+          <>
         <TextInput
           accessibilityLabel="Buscar entre vuestros sitios"
           value={texto}
@@ -138,6 +154,8 @@ export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: st
             {s.id === valor ? <Ionicons name="checkmark" size={20} color={colors.accent} /> : null}
           </Pressable>
         ))}
+          </>
+        ) : null}
       </Hoja>
     </Grupo>
   );

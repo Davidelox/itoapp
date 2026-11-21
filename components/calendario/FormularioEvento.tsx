@@ -55,6 +55,7 @@ import { vaAlEvento } from '@/lib/calendario/quienPago';
 import { diasEntre, sumarDias } from '@/lib/calendario/rejilla';
 import { textoRepeticion } from '@/lib/calendario/repeticion';
 import { leerEuros } from '@/lib/dinero/importe';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { ErrorGasto, soloCambios } from '@/lib/gastos/consultas';
 import { MESES, deISO, fechaCorta, fechaLarga, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
@@ -122,7 +123,9 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
 
   const tienePareja = !!p.otra;
   const esCumple = tipo === 'cumple';
-  const conPresupuesto = leerEuros(f.presupuesto) !== null;
+  const presupuestos = usePresupuestos();
+  // Con «Mostrar presupuestos» apagado el interruptor de «¿Quién pagó?» no depende de ningún presupuesto.
+  const conPresupuesto = leerEuros(f.presupuesto) !== null || !presupuestos;
   const repite = f.repeticion !== 'none';
   const duracion = duracionDias(f);
   const errores = validar(f, hoy);
@@ -155,13 +158,13 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
     try {
       if (inicial) {
         // Solo lo que ha cambiado; el control de versión avisa si tu pareja lo tocó mientras tanto.
-        const cambios = soloCambios(inicial, aDatos(f, yo));
+        const cambios = soloCambios(inicial, aDatos(f, yo, !presupuestos));
         if (Object.keys(cambios).length > 0) {
           alGuardarEdicion?.(true);
           await editarEvento(inicial.id, inicial.version, cambios, p.nombrePareja);
         }
       } else {
-        await crearEvento(idNuevo, pareja.coupleId, plan ? aDatosPlan(f, yo, plan.id) : aDatosNuevo(f, yo));
+        await crearEvento(idNuevo, pareja.coupleId, plan ? aDatosPlan(f, yo, plan.id) : aDatosNuevo(f, yo, !presupuestos));
       }
     } catch (e) {
       // El sitio ya no está (borrado o privado de tu pareja): se quita la selección.
@@ -450,7 +453,8 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
               </Grupo>
             ) : null}
 
-            <Grupo etiqueta="Presupuesto (opcional)">
+            <Grupo etiqueta={presupuestos ? 'Presupuesto (opcional)' : '¿Quién pagó?'}>
+              {presupuestos ? (
               <View style={styles.importeFila}>
                 <TextInput
                   accessibilityLabel="Presupuesto en euros"
@@ -464,6 +468,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
                 />
                 <Text style={styles.euro}>€</Text>
               </View>
+              ) : null}
               <MensajeError texto={visibles.presupuesto} />
               {repite || !vaAlEvento(f.asistentes, yo) ? null : (
                 <Interruptor
@@ -540,7 +545,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
         <MensajeError texto={error} />
       </ScrollView>
 
-      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
         {tipo === 'pago' ? (
           <BotonPrincipal etiqueta="Crear pago" onPress={crearPago} />
         ) : (
@@ -603,5 +608,5 @@ const styles = StyleSheet.create({
   ayuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   plan: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   planTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
+  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
 });

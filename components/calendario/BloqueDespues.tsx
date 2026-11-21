@@ -9,10 +9,13 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
 import { descartarQuienPago } from '@/lib/calendario/consultas';
 import type { Evento } from '@/lib/calendario/evento';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { faseQuienPago, textoAntes, textoGastoGuardado, vaAlEvento } from '@/lib/calendario/quienPago';
 import { useGastosDelEvento } from '@/lib/calendario/useCalendario';
+import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
+import { totalGastadoDelPlan } from '@/lib/gastos/planes';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
@@ -25,6 +28,7 @@ const MS_DIA = 24 * 60 * 60 * 1000;
  */
 export function BloqueDespues({ evento, fecha, pareja }: { evento: Evento; fecha: string; pareja: Pareja }) {
   const router = useRouter();
+  const presupuestos = usePresupuestos();
   const invalidar = useInvalidarGastos();
   const p = personas(pareja);
   const yo = p.yo.slot;
@@ -79,7 +83,7 @@ export function BloqueDespues({ evento, fecha, pareja }: { evento: Evento; fecha
         </Text>
         {fase === 'antes' ? (
           <>
-            <Text style={styles.texto}>{textoAntes(evento, evento.attendees === 'both' && !!p.otra)}</Text>
+            <Text style={styles.texto}>{textoAntes(evento, evento.attendees === 'both' && !!p.otra, presupuestos)}</Text>
             <BotonPrincipal etiqueta="Ya hemos pagado" onPress={() => setHoja('pregunta')} />
           </>
         ) : fase === 'despues' ? (
@@ -117,6 +121,11 @@ export function BloqueDespues({ evento, fecha, pareja }: { evento: Evento; fecha
       <Text accessibilityRole="header" style={styles.seccion}>
         GASTOS
       </Text>
+      {gastos.length > 0 ? (
+        <Text style={styles.total} accessibilityLabel={`Total de los gastos del evento: ${formatearImporte(totalGastadoDelPlan(gastos))}`}>
+          Total {formatearImporte(totalGastadoDelPlan(gastos))}
+        </Text>
+      ) : null}
       {gastos.map((g, i) => (
         <FilaGasto key={g.id} gasto={g} pareja={pareja} conFecha separador={i < gastos.length - 1} onPress={() => verGasto(g.id)} />
       ))}
@@ -136,6 +145,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   seccion: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
+  total: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   texto: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   pregunta: { fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22, color: colors.text },
   botones: { flexDirection: 'row', gap: 8 },

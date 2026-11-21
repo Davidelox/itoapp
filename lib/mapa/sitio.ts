@@ -59,6 +59,18 @@ export function filaNueva(f: FormularioSitio) {
   };
 }
 
+/** Formulario para guardar tal cual un resultado de búsqueda: «Quiero ir» y compartido con la pareja. */
+export const formularioDeResultado = (r: { nombre: string; direccion?: string | null; categoria: CategoriaSitio; lat: number; lng: number; provider_place_id: string }): FormularioSitio => ({
+  nombre: r.nombre,
+  direccion: r.direccion ?? '',
+  categoria: r.categoria,
+  estado: 'want_to_go',
+  privado: false,
+  lat: r.lat,
+  lng: r.lng,
+  lugarId: r.provider_place_id,
+});
+
 /** Quién puede revelar un sitio privado: solo quien lo guardó (el servidor lo exige: TW013). */
 export const puedeRevelar = (s: Pick<Sitio, 'created_by' | 'visible_to_partner'>, userId: string | undefined) =>
   !s.visible_to_partner && !!userId && s.created_by === userId;

@@ -28,6 +28,7 @@ import type { Cobro, Recurrente } from '@/lib/gastos/recurrentes';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useRecurrentes } from '@/lib/gastos/useGastos';
 import { useSitios } from '@/lib/mapa/useSitios';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { usePlanes } from '@/lib/planificador/usePlanificador';
 
@@ -38,6 +39,7 @@ const IGNORAR_TOQUE_MS = 250;
 
 /** Pestaña Calendario (mockup «Agenda», docs/plan-calendario.md §2): ver, abrir un evento o un pago y añadir eventos. */
 export default function Calendario() {
+  const presupuestos = usePresupuestos();
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
   const { pareja } = useEstado();
@@ -216,6 +218,7 @@ export default function Calendario() {
   const lista = construirLista({ vista, ancla, seleccionado, hoy, elementos, filtros });
   const colores = coloresDeHuecos(pareja);
   const contexto = {
+    presupuestos,
     yo: p.yo.slot,
     nombrePareja: p.nombrePareja,
     conPareja: !!p.otra,

@@ -11,6 +11,7 @@ import {
   formularioNuevo,
   hayErroresPlan,
   porcentajeGastado,
+  textoGastadoPlan,
   proximos,
   rangoPlan,
   seccionDe,
@@ -257,5 +258,17 @@ describe('cambios de tipo y de inicio', () => {
     expect(conInicio(base, '2026-12-06').fin).toBe('2026-12-08');
     expect(conInicio(base, '2026-12-10').fin).toBe('2026-12-10');
     expect(conInicio({ ...base, tipo: 'celebration' }, '2026-12-10').fin).toBe('2026-12-10');
+  });
+});
+
+describe('sin presupuestos (preferencia apagada)', () => {
+  it('textoGastadoPlan: solo con gasto', () => {
+    expect(sp(textoGastadoPlan(31200) ?? '')).toBe('312 € gastados');
+    expect(textoGastadoPlan(0)).toBeNull();
+    expect(textoGastadoPlan(null)).toBeNull();
+  });
+  it('etiquetaPlan no menciona el presupuesto', () => {
+    expect(sp(etiquetaPlan({ ...plan(), gastado_cents: 31200 }, HOY, 0, false))).toMatch(/312 euros gastados$/);
+    expect(etiquetaPlan({ ...plan(), gastado_cents: 0 }, HOY, 0, false)).not.toMatch(/presupuesto/);
   });
 });

@@ -390,12 +390,13 @@ export function leerAnioNacimiento(texto: string): number | null {
  * Formulario → columnas de `events`.
  * - Cumpleaños: `2000-MM-DD`, cada año, todo el día, sin presupuesto ni «¿Quién pagó?» (CHECK `events_cumple`).
  * - Varios días: todo el día, sin hora y con `end_date`; un solo día manda `end_date: null` (nunca igual a la fecha).
+ * - `sinCampoPresupuesto` («Mostrar presupuestos» apagado): el interruptor no depende del presupuesto, que se conserva tal cual estaba.
  * - Todo el día limpia la hora; sin presupuesto, con repetición o si tú no vas (`yo`: tu hueco; «solo va tu
  *   pareja») no hay «¿Quién pagó?»: el CHECK de la base de datos lo exige en los dos primeros casos, y en el
  *   último nadie podría responderla (a quien va no le llega si el evento es secreto, y tú no vas).
  * Un aviso que no encaja con el modo se quita.
  */
-export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
+export function aDatos(f: Formulario, yo: Hueco, sinCampoPresupuesto = false): DatosEvento {
   const notas = f.notas.trim();
   if (f.categoria === 'birthday') {
     return {
@@ -429,7 +430,7 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
     recurrence: f.repeticion,
     attendees: f.asistentes,
     budget_cents: presupuesto,
-    ask_who_paid: presupuesto !== null && f.repeticion === 'none' && vaAlEvento(f.asistentes, yo) && f.preguntarQuienPago,
+    ask_who_paid: (presupuesto !== null || sinCampoPresupuesto) && f.repeticion === 'none' && vaAlEvento(f.asistentes, yo) && f.preguntarQuienPago,
     reminder_minutes: f.aviso,
     notes: notas === '' ? null : notas,
     category: f.categoria,
@@ -440,8 +441,8 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
 }
 
 /** Al crear se envía además si es secreto (un cumpleaños nunca lo es). */
-export const aDatosNuevo = (f: Formulario, yo: Hueco): DatosEventoNuevo => ({
-  ...aDatos(f, yo),
+export const aDatosNuevo = (f: Formulario, yo: Hueco, sinCampoPresupuesto = false): DatosEventoNuevo => ({
+  ...aDatos(f, yo, sinCampoPresupuesto),
   is_secret: f.categoria === 'birthday' ? false : f.secreto,
 });
 

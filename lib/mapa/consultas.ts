@@ -5,6 +5,8 @@ import { type EntradaCache, LIMITE_CANDIDATOS, claveCache, guardarCache, leerCac
 import { esConsultaGenerica, ordenarResultados } from '@/lib/mapa/resultados';
 import { mensajeErrorMapa } from '@/lib/mapa/error';
 import { type PlanEnSitio, juntarPlanes } from '@/lib/mapa/conexiones';
+import { type SitioDeVisita, datosEventoVisita, hayEventoEseDia, idEventoDeVisita } from '@/lib/mapa/eventoVisita';
+import type { Hueco } from '@/lib/calendario/evento';
 import { filaNueva } from '@/lib/mapa/sitio';
 import type { FormularioSitio } from '@/lib/mapa/sitio';
 import type { EstadisticasSitio, Sitio } from '@/lib/mapa/tipos';
@@ -127,11 +129,30 @@ export async function leerUltimaVisita(): Promise<{ place_id: string; visited_on
  * Apunta una visita. El id lo genera la app (un reintento no la duplica). `23505` (ya había una ese día, quizá de
  * vuestra pareja) cuenta como hecho: el resultado es el que se quería.
  */
-export async function anadirVisita(id: string, coupleId: string, placeId: string, fecha: string, nota: string): Promise<void> {
+export async function anadirVisita(id: string, coupleId: string, sitio: SitioDeVisita, yo: Hueco, fecha: string, nota: string): Promise<void> {
   const { error } = await supabase
     .from('place_visits')
-    .upsert({ id, couple_id: coupleId, place_id: placeId, visited_on: fecha, note: notaDeVisita(nota) }, { onConflict: 'id', ignoreDuplicates: true });
+    .upsert({ id, couple_id: coupleId, place_id: sitio.id, visited_on: fecha, note: notaDeVisita(nota) }, { onConflict: 'id', ignoreDuplicates: true });
   if (error && (error as { code?: string }).code !== '23505') throw traducir('mapa.anadirVisita', error, 'visita');
+  await crearEventoDeVisita(id, coupleId, sitio, yo, fecha);
+}
+
+/**
+ * Si ese día no hay ya un evento enlazado al sitio, crea uno de todo el día (id derivado de la visita). Nunca bloquea:
+ * la visita ya está guardada y un fallo aquí solo se registra.
+ */
+async function crearEventoDeVisita(idVisita: string, coupleId: string, sitio: SitioDeVisita, yo: Hueco, fecha: string): Promise<void> {
+  try {
+    const { data, error } = await supabase.from('events').select('start_date, end_date').eq('place_id', sitio.id).lte('start_date', fecha).order('start_date', { ascending: false }).limit(50);
+    if (error) throw error;
+    if (hayEventoEseDia((data ?? []) as { start_date: string; end_date: string | null }[], fecha)) return;
+    const { error: e2 } = await supabase
+      .from('events')
+      .upsert({ id: idEventoDeVisita(idVisita), couple_id: coupleId, ...datosEventoVisita(sitio, fecha, yo) }, { onConflict: 'id', ignoreDuplicates: true });
+    if (e2) throw e2;
+  } catch (e) {
+    registrarError('mapa.eventoDeVisita', e);
+  }
 }
 
 /** Corrige la fecha o la nota de una visita, con control de versión (0 filas: la pareja la cambió o la quitó). */

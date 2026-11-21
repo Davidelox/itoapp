@@ -30,6 +30,13 @@ export function inicioSemana(iso: string): string {
   return sumarDias(iso, -((d.getDay() + 6) % 7));
 }
 
+/** Columna de una fecha en la semana de lunes a domingo (lunes = 0, domingo = 6). */
+export function columnaSemana(iso: string): number {
+  return (deISO(iso).getDay() + 6) % 7;
+}
+
+export const esDomingo = (iso: string): boolean => columnaSemana(iso) === 6;
+
 /** Los 7 días (lunes a domingo) de la semana de una fecha. */
 export function semanaDe(iso: string): string[] {
   const lunes = inicioSemana(iso);

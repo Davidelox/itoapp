@@ -13,6 +13,7 @@ import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { listaCategorias, resumenBote, resumenReparto, textoPorcentaje, textosCambios } from '@/lib/ajustes/ajustes';
+import { guardarPresupuestos, usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { type CampoPrivacidad, guardarPrivacidad, responderPropuesta, retirarPropuesta } from '@/lib/ajustes/consultas';
 import { cerrarSesion } from '@/lib/auth/acciones';
 import { enExpoGo, puedeRecibirPush } from '@/lib/avisos/entorno';
@@ -33,6 +34,7 @@ type HojaAbierta = 'perfil' | 'reparto' | 'categorias' | 'bote' | 'contrasena' |
 export default function Ajustes() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const presupuestos = usePresupuestos();
   const { pareja, userId } = useEstado();
   const datos = useDatosAjustes();
   const saldo = useSaldo();
@@ -247,6 +249,16 @@ export default function Ajustes() {
             separador
           />
           <MensajeError texto={errorPrivacidad} />
+        </Seccion>
+
+        {/* Presupuestos: preferencia solo de este móvil */}
+        <Seccion titulo="PRESUPUESTOS">
+          <FilaInterruptor
+            titulo="Mostrar presupuestos"
+            ayuda="Solo en este móvil. Apagado, no salen presupuestos en planes ni eventos; los planes solo dicen lo gastado."
+            valor={presupuestos}
+            onCambiar={guardarPresupuestos}
+          />
         </Seccion>
 
         {/* Avisos */}

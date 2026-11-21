@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { Estrellas } from '@/components/mapa/Valoraciones';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { type Elemento, textoImporte } from '@/lib/calendario/agrupar';
 import { paletaDe } from '@/lib/calendario/colores';
@@ -35,10 +36,11 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 /** Tarjeta granate del próximo plan (mockup Main): cuándo, título y chips; lleva al detalle del evento. */
 export function TarjetaProximoPlan({ plan, distancia, hoy, reservado = false }: { plan: Elemento; distancia: string | null; hoy: string; reservado?: boolean }) {
   const router = useRouter();
+  const presupuestos = usePresupuestos();
   const cuando = etiquetaPlan(plan, hoy);
   const chips = [
     distancia ? { icono: 'location-outline' as const, texto: `A ${distancia}` } : null,
-    plan.importeCents ? { icono: 'receipt-outline' as const, texto: textoPresupuesto(plan.importeCents) } : null,
+    presupuestos && plan.importeCents ? { icono: 'receipt-outline' as const, texto: textoPresupuesto(plan.importeCents) } : null,
     reservado ? { icono: 'checkmark-circle-outline' as const, texto: 'Reservado' } : null,
   ].filter((c) => c !== null);
   return (
@@ -191,6 +193,7 @@ function TituloSeccion({ titulo, enlace, onEnlace }: { titulo: string; enlace?: 
 /** «Esta semana»: lo que viene en los próximos 7 días (mockup Main). */
 export function EstaSemana({ elementos }: { elementos: Elemento[] }) {
   const router = useRouter();
+  const presupuestos = usePresupuestos();
   if (elementos.length === 0) return null;
   const abrir = (e: Elemento) =>
     e.tipo === 'payment'
@@ -209,7 +212,7 @@ export function EstaSemana({ elementos }: { elementos: Elemento[] }) {
                 : e.categoria === 'birthday'
                 ? { texto: 'Cumple', fondo: colors.cumpleChip, tinta: colors.cumpleChipTexto }
                 : { texto: 'Evento', fondo: colors.eventChip, tinta: colors.eventChipText };
-          const linea = e.tipo === 'payment' ? (textoImporte(e) ?? 'Pago') : [e.hora ?? 'Todo el día', e.importeCents ? textoPresupuesto(e.importeCents) : null].filter(Boolean).join(' · ');
+          const linea = e.tipo === 'payment' ? (textoImporte(e) ?? 'Pago') : [e.hora ?? 'Todo el día', presupuestos && e.importeCents ? textoPresupuesto(e.importeCents) : null].filter(Boolean).join(' · ');
           return (
             <Pressable
               key={e.clave}
@@ -245,7 +248,7 @@ export function EstaSemana({ elementos }: { elementos: Elemento[] }) {
 export function TarjetaMultidia({ plan, hoy }: { plan: PlanMultidia; hoy: string }) {
   const router = useRouter();
   const titulo = `${plan.titulo} · ${textoEnDias(plan.inicio, hoy)}`;
-  const linea = lineaMultidia(plan);
+  const linea = lineaMultidia(plan, usePresupuestos());
   const icono = plan.categoria ? INFO_CATEGORIA_EVENTO[plan.categoria].icono : null;
   const abrir = () =>
     plan.origen === 'plan'

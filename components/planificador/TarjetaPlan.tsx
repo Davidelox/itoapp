@@ -2,21 +2,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
-import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
+import { DineroDelPlan } from '@/components/planificador/BarraPresupuesto';
 import { colors, fonts, radius } from '@/constants/theme';
-import { cuentaAtras, etiquetaPlan, etiquetaTipo, textoFechas, vistaPresupuesto } from '@/lib/planificador/plan';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
+import { cuentaAtras, etiquetaPlan, etiquetaTipo, textoFechas } from '@/lib/planificador/plan';
 import { chipsTarjeta, pendientesDe } from '@/lib/planificador/tareas';
 import type { PlanLista, Tarea } from '@/lib/planificador/tipos';
 
-/** Tarjeta de un plan en la lista: icono, nombre, fechas, cuenta atrás, tipo, presupuesto y chips de tareas. Toda ella abre el detalle. */
+/** Tarjeta de un plan en la lista: icono, nombre, fechas, cuenta atrás, tipo, dinero y chips de tareas. Toda ella abre el detalle. */
 export function TarjetaPlan({ plan, tareas, yo, tintaYo, hoy, onPress }: { plan: PlanLista; tareas: Tarea[]; yo: 'm1' | 'm2'; tintaYo: string; hoy: string; onPress: () => void }) {
+  const presupuestos = usePresupuestos();
   const chips = chipsTarjeta(tareas, yo);
   const cuenta = cuentaAtras(plan, hoy);
   const enCurso = cuenta === 'En curso' || cuenta === 'Hoy';
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={etiquetaPlan(plan, hoy, pendientesDe(tareas))}
+      accessibilityLabel={etiquetaPlan(plan, hoy, pendientesDe(tareas), presupuestos)}
       accessibilityHint="Abre el plan"
       onPress={onPress}
       style={({ pressed }) => [styles.tarjeta, pressed && { opacity: 0.8 }]}
@@ -40,7 +42,7 @@ export function TarjetaPlan({ plan, tareas, yo, tintaYo, hoy, onPress }: { plan:
           <Text style={styles.chipTexto}>{etiquetaTipo(plan.type)}</Text>
         </View>
         <View style={styles.presupuesto}>
-          <BarraPresupuesto vista={vistaPresupuesto(plan.budget_cents, plan.gastado_cents)} />
+          <DineroDelPlan presupuestoCents={plan.budget_cents} gastadoCents={plan.gastado_cents} />
         </View>
       </View>
       {chips.hechas.length > 0 || chips.siguiente ? (

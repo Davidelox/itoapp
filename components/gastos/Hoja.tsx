@@ -53,13 +53,13 @@ export function Hoja({
             ) : null}
           </View>
           {desplazable ? (
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContenido} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContenido} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
               {children}
             </ScrollView>
           ) : (
             children
           )}
-          {pie ? <View style={[styles.pie, { paddingBottom: insets.bottom + 14 }]}>{pie}</View> : null}
+          {pie ? <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>{pie}</View> : null}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -84,5 +84,5 @@ const styles = StyleSheet.create({
   alta: { maxHeight: '92%' },
   scroll: { flexShrink: 1 },
   scrollContenido: { gap: 10, paddingBottom: 12 },
-  pie: { marginHorizontal: -20, paddingHorizontal: 20, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: colors.border },
+  pie: { marginHorizontal: -20, paddingHorizontal: 20, paddingTop: 16, gap: 12, borderTopWidth: 1, borderTopColor: colors.border },
 });

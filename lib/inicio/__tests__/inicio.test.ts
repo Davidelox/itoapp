@@ -265,3 +265,11 @@ describe('elementos del itinerario de un plan en Inicio', () => {
     expect(proximosDeLaSemana(lista, HOY, '12:00', []).map((e) => e.titulo)).toEqual(['Cena', 'Cine', 'Museo']);
   });
 });
+
+describe('lineaMultidia con presupuestos apagados', () => {
+  const base = { inicio: '2026-12-05', fin: '2026-12-08', presupuestoCents: 90000 };
+  it('nunca dice el presupuesto; solo lo gastado si lo hay', () => {
+    expect(lineaMultidia(base, false)).toBe('5 – 8 dic · 4 días');
+    expect(lineaMultidia({ ...base, gastadoCents: 31200 }, false)).toBe('5 – 8 dic · 4 días · 312 € gastados');
+  });
+});

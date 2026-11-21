@@ -291,7 +291,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
         <MensajeError texto={error} />
       </ScrollView>
 
-      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
         <BotonNudo
           label={editando ? 'Guardar cambios' : 'Guardar gasto'}
           labelHecho="Guardado"
@@ -345,5 +345,5 @@ const styles = StyleSheet.create({
   },
   notaPlan: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   notaPlanTexto: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
+  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
 });

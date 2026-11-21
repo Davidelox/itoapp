@@ -7,13 +7,14 @@ import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
-import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
 import { Itinerario } from '@/components/planificador/Itinerario';
 import { GastosPlan } from '@/components/planificador/GastosPlan';
 import { ListaTareas } from '@/components/planificador/ListaTareas';
 import { SitiosDelPlan } from '@/components/planificador/SitiosDelPlan';
 import { colors, fonts, radius } from '@/constants/theme';
 import { hoyISO } from '@/lib/gastos/fechas';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
+import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
 import { cuentaAtras, etiquetaTipo, textoFechas, vistaPresupuesto } from '@/lib/planificador/plan';
 import { usePlan, useTareas } from '@/lib/planificador/usePlanificador';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
@@ -26,6 +27,7 @@ export default function DetallePlan() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const presupuestos = usePresupuestos();
   const { pareja, userId } = useEstado();
   const tareas = useTareas();
   const { plan, isLoading, isError, refetch, data } = usePlan(id);
@@ -76,7 +78,6 @@ export default function DetallePlan() {
   }
 
   const cuenta = cuentaAtras(plan, hoy);
-  const vista = vistaPresupuesto(plan.budget_cents, plan.gastado_cents);
   const lineaCuenta = cuenta.startsWith('En ') ? `en ${cuenta.slice(3)}` : cuenta.toLowerCase();
 
   return (
@@ -114,12 +115,14 @@ export default function DetallePlan() {
 
         <SitiosDelPlan plan={plan} pareja={pareja} />
 
-        <View style={styles.seccion}>
-          <Text accessibilityRole="header" style={styles.seccionTitulo}>
-            Presupuesto
-          </Text>
-          <BarraPresupuesto vista={vista} tamano="grande" />
-        </View>
+        {presupuestos ? (
+          <View style={styles.seccion}>
+            <Text accessibilityRole="header" style={styles.seccionTitulo}>
+              Presupuesto
+            </Text>
+            <BarraPresupuesto vista={vistaPresupuesto(plan.budget_cents, plan.gastado_cents)} tamano="grande" />
+          </View>
+        ) : null}
 
         <GastosPlan plan={plan} pareja={pareja} />
 

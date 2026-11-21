@@ -8,6 +8,7 @@ import Animated from 'react-native-reanimated';
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
 import { TarjetasPendientes } from '@/components/inicio/TarjetasPendientes';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
+import { FilaPlanGasto } from '@/components/gastos/FilaPlanGasto';
 import { HojaSaldar } from '@/components/gastos/HojaSaldar';
 import { TarjetaBote, TarjetaSaldo } from '@/components/gastos/TarjetaSaldo';
 import { TarjetaRecurrentes } from '@/components/gastos/TarjetaRecurrentes';
@@ -15,12 +16,15 @@ import { boteConPendiente } from '@/lib/gastos/bote';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { colors, fonts, radius, spacing } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
+import { agruparPorPlan, claveFila } from '@/lib/gastos/agrupar';
 import { personas } from '@/lib/gastos/personas';
-import { useInvalidarGastos, usePagoRechazado, useSaldo, useUltimosGastos } from '@/lib/gastos/useGastos';
+import { useInvalidarGastos, usePagoRechazado, useResumenesPlanes, useSaldo, useUltimosParaAgrupar } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 const CLAVE_RECHAZOS = 'ito.avisos_rechazo_cerrados';
 const CLAVE_SOLO_SIN_SALDAR = 'ito.solo_sin_saldar';
+/** Filas de «Últimos gastos» (un plan cuenta como una). */
+const FILAS_ULTIMOS = 5;
 
 /** Pestaña Gastos (mockup «Dinero»): saldo, bote (solo lectura) y últimos gastos. Saldar llega en la fase 2. */
 export default function Gastos() {
@@ -39,7 +43,8 @@ export default function Gastos() {
     setSoloSinSaldar(v);
     AsyncStorage.setItem(CLAVE_SOLO_SIN_SALDAR, v ? '1' : '0').catch(() => undefined);
   };
-  const ultimos = useUltimosGastos(soloSinSaldar);
+  const ultimos = useUltimosParaAgrupar(soloSinSaldar);
+  const resumenes = useResumenesPlanes();
   const invalidar = useInvalidarGastos();
   // Al entrar en la pestaña se recarga: no depende solo del tiempo real.
   useFocusEffect(
@@ -67,7 +72,8 @@ export default function Gastos() {
   if (!pareja) return null;
   const cargando = saldo.isLoading || ultimos.isLoading;
   const fallo = saldo.isError || ultimos.isError;
-  const gastos = ultimos.data ?? [];
+  // Los gastos de un plan salen en una sola fila con el total de todo el plan; el resto, sueltos. Los saldos no cambian.
+  const gastos = agruparPorPlan(ultimos.data ?? [], resumenes.data).slice(0, FILAS_ULTIMOS);
   const nuevo = () => router.push('/gastos/nuevo');
 
   return (
@@ -153,16 +159,26 @@ export default function Gastos() {
                   <Text style={styles.todoSaldado}>Todo está saldado. No queda nada pendiente entre vosotros.</Text>
                 ) : null}
                 <View style={[styles.lista, gastos.length === 0 && { display: 'none' }]}>
-                  {gastos.map((g, i) => (
-                    <FilaGasto
-                      key={g.id}
-                      gasto={g}
-                      pareja={pareja}
-                      conFecha
-                      separador={i < gastos.length - 1}
-                      onPress={() => router.push({ pathname: '/gastos/[id]', params: { id: g.id } })}
-                    />
-                  ))}
+                  {gastos.map((f, i) =>
+                    f.tipo === 'plan' ? (
+                      <FilaPlanGasto
+                        key={claveFila(f)}
+                        fila={f}
+                        conFecha
+                        separador={i < gastos.length - 1}
+                        onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: f.plan.id } })}
+                      />
+                    ) : (
+                      <FilaGasto
+                        key={claveFila(f)}
+                        gasto={f.gasto}
+                        pareja={pareja}
+                        conFecha
+                        separador={i < gastos.length - 1}
+                        onPress={() => router.push({ pathname: '/gastos/[id]', params: { id: f.gasto.id } })}
+                      />
+                    ),
+                  )}
                 </View>
               </View>
             )}

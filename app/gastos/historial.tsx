@@ -7,15 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Chip } from '@/components/gastos/Controles';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
+import { FilaPlanGasto } from '@/components/gastos/FilaPlanGasto';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { colors, fonts, radius } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
+import { type FilaLista, agruparPorPlan } from '@/lib/gastos/agrupar';
 import type { Gasto } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { ESTADO_PAGO, NOMBRE_METODO, type Pago, textoPago } from '@/lib/gastos/saldar';
 import { aISO, fechaCorta, nombreMes } from '@/lib/gastos/fechas';
-import { useHistorial, usePagos, useTotales } from '@/lib/gastos/useGastos';
+import { useHistorial, usePagos, useResumenesPlanes, useTotales } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 const ESPERA_BUSQUEDA_MS = 300;
@@ -23,6 +25,7 @@ const ESPERA_BUSQUEDA_MS = 300;
 type Elemento =
   | { tipo: 'mes'; clave: string; titulo: string }
   | { tipo: 'gasto'; clave: string; gasto: Gasto }
+  | { tipo: 'plan'; clave: string; fila: Extract<FilaLista<Gasto>, { tipo: 'plan' }> }
   | { tipo: 'pago'; clave: string; pago: Pago };
 
 /** Historial (mockup HistorialGastos): buscador, filtro por categoría, meses y carga por páginas de 50. */
@@ -46,6 +49,9 @@ export default function Historial() {
   const filtros = { categoria, texto: busqueda };
   const historial = useHistorial(filtros);
   const totales = useTotales(filtros);
+  const resumenes = useResumenesPlanes();
+  // Con un filtro (categoría o texto) no se agrupa: el total del plan incluiría gastos que el filtro excluye y no cuadraría con el total de arriba.
+  const agrupar = !categoria && !busqueda.trim();
 
   const elementos = useMemo<Elemento[]>(() => {
     const lista: Elemento[] = [];
@@ -63,19 +69,25 @@ export default function Historial() {
     }
     let mes = '';
     const vistos = new Set<string>();
+    const sinRepetir: Gasto[] = [];
     for (const g of historial.data?.pages.flat() ?? []) {
       // Paginación por desplazamiento: si entra un gasto nuevo mientras se baja, una fila se repite.
       if (vistos.has(g.id)) continue;
       vistos.add(g.id);
-      const m = g.spent_on.slice(0, 7);
+      sinRepetir.push(g);
+    }
+    // Un plan = una fila, en el mes de su gasto más reciente cargado; sus gastos de páginas posteriores se absorben en ella.
+    for (const f of agruparPorPlan(sinRepetir, agrupar ? resumenes.data : null)) {
+      const fecha = f.tipo === 'plan' ? f.fecha : f.gasto.spent_on;
+      const m = fecha.slice(0, 7);
       if (m !== mes) {
-        lista.push({ tipo: 'mes', clave: `mes-${m}`, titulo: nombreMes(g.spent_on) });
+        lista.push({ tipo: 'mes', clave: `mes-${m}`, titulo: nombreMes(fecha) });
         mes = m;
       }
-      lista.push({ tipo: 'gasto', clave: g.id, gasto: g });
+      lista.push(f.tipo === 'plan' ? { tipo: 'plan', clave: `plan-${f.plan.id}`, fila: f } : { tipo: 'gasto', clave: f.gasto.id, gasto: f.gasto });
     }
     return lista;
-  }, [historial.data, pagos.data, verPagos]);
+  }, [historial.data, pagos.data, verPagos, agrupar, resumenes.data]);
 
   const volver = () => (router.canGoBack() ? router.back() : router.replace('/gastos'));
   if (!pareja) return null;
@@ -186,6 +198,10 @@ export default function Historial() {
               </Text>
             ) : item.tipo === 'pago' ? (
               <FilaPago pago={item.pago} onPress={() => router.push({ pathname: '/gastos/pago/[id]', params: { id: item.pago.id } })} />
+            ) : item.tipo === 'plan' ? (
+              <View style={styles.tarjeta}>
+                <FilaPlanGasto fila={item.fila} conFecha onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: item.fila.plan.id } })} />
+              </View>
             ) : (
               <View style={styles.tarjeta}>
                 <FilaGasto

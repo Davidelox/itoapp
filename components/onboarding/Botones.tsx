@@ -12,7 +12,7 @@ type PropsBoton = {
   deshabilitado?: boolean;
 };
 
-/** Botón principal granate de 52 px, ancho completo. */
+/** Botón principal granate de al menos 56 px, ancho completo. */
 export function BotonPrincipal({ etiqueta, onPress, cargando = false, etiquetaCargando, deshabilitado = false }: PropsBoton) {
   const inactivo = deshabilitado || cargando;
   return (
@@ -66,7 +66,9 @@ export function EnlaceTexto({ etiqueta, onPress, deshabilitado = false }: Omit<P
 
 const styles = StyleSheet.create({
   base: {
-    height: 52,
+    minHeight: 56,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: radius.full,
     flexDirection: 'row',
     gap: 10,

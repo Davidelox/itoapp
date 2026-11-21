@@ -490,3 +490,13 @@ describe('reserva', () => {
     expect(puedeMarcarReservado({ ...e, category: 'trip' }, '2026-11-25', '2026-11-20')).toBe(true);
   });
 });
+
+describe('aDatos sin campo de presupuesto (preferencia apagada)', () => {
+  it('«¿Quién pagó?» no necesita presupuesto, pero sigue sin valer en repetidos', () => {
+    expect(aDatos({ ...base, presupuesto: '', preguntarQuienPago: true }, 'm1', true)).toMatchObject({ budget_cents: null, ask_who_paid: true });
+    expect(aDatos({ ...base, repeticion: 'yearly', presupuesto: '', preguntarQuienPago: true }, 'm1', true).ask_who_paid).toBe(false);
+  });
+  it('un presupuesto ya guardado no se pisa con null', () => {
+    expect(aDatos({ ...base, presupuesto: '60' }, 'm1', true).budget_cents).toBe(6000);
+  });
+});

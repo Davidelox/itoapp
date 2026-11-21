@@ -10,6 +10,7 @@ import {
   pareceEmoji,
   pasosGuardado,
   primerEmoji,
+  resolverTextoIcono,
   puedeCambiarVisibilidad,
   quitarDeLasDemas,
   sitiosAnadibles,
@@ -196,4 +197,10 @@ describe('detalle de colección', () => {
     expect(textoQuienComparte({ ...base, plan_id: 'p' }, 'yo', 'Meri')).toBe('De un plan · compartida');
     expect(textoQuienComparte(base, 'yo', null)).toBe('Solo vosotros');
   });
+});
+
+describe('resolverTextoIcono', () => {
+  it('un emoji se elige y cierra', () => expect(resolverTextoIcono('🍣', '📍')).toEqual({ icono: '🍣', cerrar: true }));
+  it('reemplazo: se queda con el primero', () => expect(resolverTextoIcono('🍣🍕', '📍').icono).toBe('🍣'));
+  it('vacío vuelve al defecto sin cerrar', () => expect(resolverTextoIcono('', '📍')).toEqual({ icono: '📍', cerrar: false }));
 });

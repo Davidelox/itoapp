@@ -41,7 +41,7 @@ import {
   validarSitio,
 } from '@/lib/mapa/sitio';
 import type { EstadoSitio, Sitio } from '@/lib/mapa/tipos';
-import { useColecciones, useInvalidarMapa, useSitios } from '@/lib/mapa/useSitios';
+import { useColecciones, useInvalidarVisitas, useSitios } from '@/lib/mapa/useSitios';
 import { type Pareja, useEstado } from '@/lib/pareja/EstadoProvider';
 
 const PAUSA_NUDO_MS = 900;
@@ -70,7 +70,7 @@ export default function NuevoSitio() {
 function Formulario({ pareja }: { pareja: Pareja }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const invalidar = useInvalidarMapa();
+  const invalidar = useInvalidarVisitas();
   const { data: sitios = [] } = useSitios();
   const consultaColecciones = useColecciones();
   const colecciones = consultaColecciones.data ?? [];
@@ -168,7 +168,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
     setError(null);
     try {
       await crearSitio(id, pareja.coupleId, f);
-      if (f.estado === 'been') await anadirVisita(idVisita, pareja.coupleId, id, fechaVisita, '');
+      if (f.estado === 'been') await anadirVisita(idVisita, pareja.coupleId, { id, name: f.nombre.trim(), category: f.categoria, visible_to_partner: !f.privado }, pareja.yo.slot, fechaVisita, '');
       await guardarColeccionesDeSitio(id, pareja.coupleId, pasosGuardado(SIN_SELECCION, seleccion));
       await invalidar();
     } catch (e) {
@@ -349,7 +349,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
         {duplicado ? <EnlaceTexto etiqueta={`Abrir «${duplicado.name}»`} onPress={() => abrirFicha(duplicado.id)} /> : null}
       </ScrollView>
 
-      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
         <BotonNudo label="Guardar sitio" labelHecho="Guardado" labelError="No se ha podido guardar" onPress={guardar} onHecho={() => setTimeout(() => abrirFicha(id), PAUSA_NUDO_MS)} />
       </View>
     </View>
@@ -373,5 +373,5 @@ const styles = StyleSheet.create({
   miUbicacion: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingRight: 60 },
   botonUbicacion: { right: 0, top: 0 },
   resultadoNombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  pie: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
+  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
 });

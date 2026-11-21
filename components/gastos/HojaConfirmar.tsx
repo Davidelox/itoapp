@@ -44,6 +44,6 @@ export function HojaConfirmar({
 
 const styles = StyleSheet.create({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
-  botones: { flexDirection: 'row', gap: 8 },
+  botones: { flexDirection: 'row', gap: 12 },
   boton: { flex: 1 },
 });

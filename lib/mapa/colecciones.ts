@@ -44,6 +44,15 @@ export function primerEmoji(texto: string): string {
   return String.fromCodePoint(...cps.slice(0, fin));
 }
 
+/**
+ * Lo que escribe el campo «Otro…»: con un emoji, ese emoji reemplaza al anterior y el campo se cierra; vacío, vuelve al
+ * icono por defecto (el primero de los sugeridos) y el campo sigue abierto para escribir otro.
+ */
+export function resolverTextoIcono(texto: string, porDefecto: string): { icono: string; cerrar: boolean } {
+  const e = primerEmoji(texto);
+  return e ? { icono: e, cerrar: true } : { icono: porDefecto, cerrar: false };
+}
+
 /** ¿Parece un emoji o un símbolo (y no una letra o un número)? Basta con salir del rango de texto latino y de la puntuación. */
 export const pareceEmoji = (icono: string): boolean => {
   const cps = puntos(icono);

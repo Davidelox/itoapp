@@ -38,6 +38,7 @@ import { ErrorGasto } from '@/lib/gastos/consultas';
 import { aISO, deISO, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { usePlanes } from '@/lib/planificador/usePlanificador';
 
@@ -53,6 +54,7 @@ export default function DetalleEvento() {
   const { id, fecha: fechaParam } = useLocalSearchParams<{ id: string; fecha?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const presupuestos = usePresupuestos();
   const invalidar = useInvalidarGastos();
   const { pareja } = useEstado();
   const consulta = useEvento(id);
@@ -253,7 +255,7 @@ export default function DetalleEvento() {
               {evento.reservation_note ? <Text style={styles.ayuda}>{evento.reservation_note}</Text> : null}
             </Fila>
           ) : null}
-          {evento.budget_cents !== null ? (
+          {presupuestos && evento.budget_cents !== null ? (
             <Fila icono="wallet-outline">
               <Text style={styles.filaTexto}>Presupuesto {formatearImporte(evento.budget_cents)}</Text>
             </Fila>

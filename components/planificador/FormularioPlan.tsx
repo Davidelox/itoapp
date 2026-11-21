@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SelectorIcono } from '@/components/SelectorIcono';
@@ -14,6 +14,7 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { sumarDias } from '@/lib/calendario/rejilla';
+import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { deISO, fechaCorta, fechaLarga, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
@@ -56,7 +57,7 @@ import type { ElementoItinerario } from '@/lib/planificador/itinerario';
 import { useInvalidarPlanificador, useItinerario } from '@/lib/planificador/usePlanificador';
 
 /**
- * Crear o editar un plan (mockup NuevoProyecto): tipo, icono, nombre, destino (viaje), fechas, presupuesto opcional,
+ * Crear o editar un plan (mockup NuevoProyecto): tipo, icono, nombre, destino (viaje), fechas, presupuesto opcional (solo si «Mostrar presupuestos» está activo),
  * «¿Cómo se paga?» y notas. El pie con el botón queda fuera del scroll y no sube con el teclado.
  */
 export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pareja; plan?: Plan; /** Datos de una idea o de un plan duplicado (solo al crear). */ precarga?: Precarga | null }) {
@@ -64,6 +65,7 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarPlanificador();
   const itinerario = useItinerario();
+  const presupuestos = usePresupuestos();
   const ajustes = useAjustesGastos().data;
   const p = personas(pareja);
   const yo = p.yo.slot;
@@ -144,7 +146,7 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
   const fueraTodo = aMover && plan ? quedanFuera(aMover, f.inicio, f.fin, desplazamiento(plan.start_date, f.inicio)) : 0;
 
   return (
-    <View style={styles.raiz}>
+    <KeyboardAvoidingView style={styles.raiz} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.cabecera, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={cerrar} style={styles.cerrar}>
           <Ionicons name="close" size={22} color={colors.text} />
@@ -222,25 +224,27 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
           </Grupo>
         ) : null}
 
-        <Grupo etiqueta="Presupuesto">
-          <View style={styles.importeFila}>
-            <TextInput
-              accessibilityLabel="Presupuesto en euros (opcional)"
-              value={f.presupuesto}
-              onChangeText={(t) => setF((x) => ({ ...x, presupuesto: t.replace(/[^0-9.,]/g, '') }))}
-              placeholder="Opcional"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
-              returnKeyType="done"
-              style={[styles.campo, styles.importe]}
-            />
-            <Text style={styles.euro} importantForAccessibility="no">
-              €
-            </Text>
-          </View>
-          <MensajeError texto={intentado ? errores.presupuesto : null} />
-        </Grupo>
+        {presupuestos ? (
+          <Grupo etiqueta="Presupuesto">
+            <View style={styles.importeFila}>
+              <TextInput
+                accessibilityLabel="Presupuesto en euros (opcional)"
+                value={f.presupuesto}
+                onChangeText={(t) => setF((x) => ({ ...x, presupuesto: t.replace(/[^0-9.,]/g, '') }))}
+                placeholder="Opcional"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                returnKeyType="done"
+                style={[styles.campo, styles.importe]}
+              />
+              <Text style={styles.euro} importantForAccessibility="no">
+                €
+              </Text>
+            </View>
+            <MensajeError texto={intentado ? errores.presupuesto : null} />
+          </Grupo>
+        ) : null}
 
         <Grupo etiqueta="¿Cómo se paga?" rol="radiogroup">
           <FilaChips>
@@ -293,10 +297,10 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
           />
         </Grupo>
 
-        <MensajeError texto={error} />
       </ScrollView>
 
-      <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.pie, { paddingBottom: insets.bottom + 20 }]}>
+        <MensajeError texto={error ?? (intentado && hayErroresPlan(errores) ? 'Revisa los campos marcados en rojo.' : null)} />
         <BotonPrincipal etiqueta={editando ? 'Guardar cambios' : 'Crear plan'} cargando={ocupado} onPress={() => guardar(null)} />
       </View>
 
@@ -313,7 +317,7 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
           </>
         ) : null}
       </Hoja>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -330,5 +334,5 @@ const styles = StyleSheet.create({
   importeFila: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   importe: { flex: 1 },
   euro: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textSecondary },
-  pie: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
+  pie: { gap: 12, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
 });

@@ -327,6 +327,8 @@ export const claveBorrado = (origenId: string, fecha?: string | null) => (fecha 
 export type ContextoLinea = {
   yo: Hueco;
   nombrePareja: string;
+  /** «Mostrar presupuestos» (Ajustes): apagado, la fila de un plan no lleva «~900 €». Por defecto sí. */
+  presupuestos?: boolean;
   /** Si la pareja ya se ha unido (por defecto sí): sin ella, «Vais los dos» o «de parte de los dos» no dicen nada. */
   conPareja?: boolean;
   recurrentes?: ReadonlyMap<string, Pick<Recurrente, 'paid_by' | 'split_mode' | 'split_pct_m1'>>;
@@ -395,7 +397,7 @@ export function textoParteDe(e: Elemento, ctx: ContextoLinea): string | null {
 export function lineaElemento(e: Elemento, ctx: ContextoLinea): string {
   const pendiente = pendienteDeBorrar(e, ctx) ? 'Pendiente de borrar' : null;
   if (e.tipo === 'plan') {
-    return [esVariosDias(e) ? textoVarios(e) : 'Todo el día', e.importeCents ? `~${formatearImporte(e.importeCents)}` : null, pendiente].filter(Boolean).join(' · ');
+    return [esVariosDias(e) ? textoVarios(e) : 'Todo el día', ctx.presupuestos !== false && e.importeCents ? `~${formatearImporte(e.importeCents)}` : null, pendiente].filter(Boolean).join(' · ');
   }
   if (e.tipo === 'event') {
     if (e.categoria === 'birthday') {
