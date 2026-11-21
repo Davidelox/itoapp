@@ -67,9 +67,11 @@ export type FilaRango = {
   birth_year?: number | null;
   /** Sitio del Mapa enlazado (solo eventos). */
   place_id?: string | null;
+  /** Evento: el plan del que es elemento del itinerario (null si es suelto); en la banda, el id del plan. Falta en un servidor sin migrar. */
+  plan_id?: string | null;
 };
 
-/** `plan`: la banda de un plan del Planificador (de `plans`; sus eventos de itinerario no salen aquí). */
+/** `plan`: la banda de un plan del Planificador (de `plans`). Sus elementos de itinerario salen además como eventos con `planId`. */
 export type Tipo = 'event' | 'payment' | 'plan';
 /** Una opción del menú de filtros: opciones que no se solapan y que juntas lo cubren todo («other» = el resto de eventos). */
 export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'other' | 'birthday' | 'payment' | 'plan';
@@ -110,6 +112,8 @@ export type Elemento = {
   anioNacimiento: number | null;
   /** Sitio del Mapa enlazado (eventos que no son cumpleaños); la línea de la fila pone su nombre si esta persona lo ve. */
   placeId?: string | null;
+  /** Evento: el plan del que es elemento del itinerario; null o ausente si es un evento suelto (y en pagos y bandas). */
+  planId?: string | null;
   /** Planes: su emoji (`plans.icon`); en un plan, `importeCents` es su presupuesto. */
   emoji?: string | null;
   /**
@@ -199,6 +203,7 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
       categoria,
       anioNacimiento: categoria === 'birthday' && typeof f.birth_year === 'number' ? f.birth_year : null,
       placeId: f.kind === 'event' && categoria !== 'birthday' ? (f.place_id ?? null) : null,
+      planId: f.kind === 'event' && categoria !== 'birthday' ? (f.plan_id ?? null) : null,
       emoji: f.kind === 'plan' ? (f.icon ?? null) : null,
       frecuencia: f.kind === 'payment' ? (pagos?.get(f.source_id)?.frecuencia ?? null) : null,
       duenoSolo: f.kind === 'payment' ? (pagos?.get(f.source_id)?.duenoSolo ?? null) : null,
@@ -209,10 +214,13 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
 
 const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'birthday']);
 
-/** A qué opción pertenece un elemento: un pago, «Pagos»; un plan, «Planes»; un evento, su categoría (desconocida o sin ella, «Otros»). */
-export function claveFiltro(e: Pick<Elemento, 'tipo' | 'categoria'>): Filtro {
+/**
+ * A qué opción pertenece un elemento: un pago, «Pagos»; un plan o un elemento de su itinerario, «Planes»; un evento, su
+ * categoría (desconocida o sin ella, «Otros»).
+ */
+export function claveFiltro(e: Pick<Elemento, 'tipo' | 'categoria' | 'planId'>): Filtro {
   if (e.tipo === 'payment') return 'payment';
-  if (e.tipo === 'plan') return 'plan';
+  if (e.tipo === 'plan' || e.planId) return 'plan';
   return e.categoria && CATEGORIAS_FILTRO.has(e.categoria) ? (e.categoria as Filtro) : 'other';
 }
 
@@ -255,6 +263,9 @@ export const esCumple = (e: Pick<Elemento, 'tipo' | 'categoria'>): boolean => e.
 /** Un plan de varios días enseña su emoji en su primer día (la barra, de 8 px, no lo puede llevar). */
 const llevaGlifo = (e: Elemento): boolean => (!esVariosDias(e) && !esCumple(e)) || (e.tipo === 'plan' && e.diaN === 1);
 
+/** ¿Es un elemento del itinerario de un plan que ya sale ese día con su banda? Entonces no suma otro glifo a la celda. */
+const dentroDeSuBanda = (e: Elemento, dia: Elemento[]): boolean => e.tipo === 'event' && !!e.planId && dia.some((x) => x.tipo === 'plan' && x.origenId === e.planId);
+
 /**
  * Glifos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras, salvo el
  * emoji de un plan en su primer día, y los cumpleaños, en la esquina: `cumples`), como mucho 2. `restantes`: los glifos que no caben más las barras ocultas
@@ -264,7 +275,7 @@ export function puntosDelDia(
   lista: Elemento[],
   ocultos = 0,
 ): { puntos: Elemento[]; restantes: number; secreto: boolean; cumples: number } {
-  const sueltos = lista.filter(llevaGlifo);
+  const sueltos = lista.filter((e) => llevaGlifo(e) && !dentroDeSuBanda(e, lista));
   return {
     puntos: sueltos.slice(0, MAX_PUNTOS),
     restantes: Math.max(0, sueltos.length - MAX_PUNTOS) + Math.max(0, ocultos),
@@ -323,7 +334,15 @@ export type ContextoLinea = {
   pendientesDeBorrar?: ReadonlySet<string>;
   /** Nombres de los sitios del Mapa que esta persona ve, por id: los eventos enlazados lo muestran en su línea. */
   sitios?: ReadonlyMap<string, string>;
+  /** Planes por id (emoji y nombre): un elemento del itinerario dice de qué plan es. */
+  planes?: ReadonlyMap<string, { emoji: string; nombre: string }>;
 };
+
+/** «Plan: ✈️ Escapada a Lisboa»; null si el elemento no es de un plan o el plan no se conoce (aún no cargado). */
+export function textoPlanDe(e: Pick<Elemento, 'planId'>, ctx: Pick<ContextoLinea, 'planes'>): string | null {
+  const p = e.planId ? ctx.planes?.get(e.planId) : undefined;
+  return p ? `Plan: ${p.emoji} ${p.nombre}` : null;
+}
 
 /**
  * ¿Tiene esta fila una solicitud de borrado pendiente (de toda la serie o de su repetición)? La repetición se
@@ -388,6 +407,7 @@ export function lineaElemento(e: Elemento, ctx: ContextoLinea): string {
       textoCorto(e.repeticion),
       e.asistentes === 'both' ? null : e.asistentes === ctx.yo ? 'Solo vas tú' : `Solo va ${ctx.nombrePareja}`,
       (e.placeId && ctx.sitios?.get(e.placeId)) || null,
+      textoPlanDe(e, ctx),
       pendiente,
     ]
       .filter(Boolean)

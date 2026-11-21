@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SelectorIcono } from '@/components/SelectorIcono';
 import { BarraPorcentaje, Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { BotonFecha, SelectorFecha } from '@/components/gastos/SelectorFecha';
-import { BotonPrincipal } from '@/components/onboarding/Botones';
+import { Hoja } from '@/components/gastos/Hoja';
+import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
@@ -20,8 +21,18 @@ import { ocultaProporcional, pctDeYo } from '@/lib/gastos/reparto';
 import { useAjustesGastos } from '@/lib/gastos/useGastos';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
+import { aplicarPrecarga, type Precarga } from '@/lib/planificador/precarga';
+import { borrarIdea, sitioAlPlan } from '@/lib/planificador/consultasIdeas';
 import { CasillasSugeridas } from '@/components/planificador/TareasSugeridas';
-import { crearPlan, crearTareas, editarPlan } from '@/lib/planificador/consultas';
+import { crearPlan, crearTareas, editarPlan, leerItinerario, moverPlan } from '@/lib/planificador/consultas';
+import {
+  avisoHanQuedadoFuera,
+  avisoQuedaranFuera,
+  desplazamiento,
+  quedanFuera,
+  separarFechas,
+  textoMoverTodo,
+} from '@/lib/planificador/itinerario';
 import {
   EMOJIS_PLAN,
   MAX_DIAS_PLAN,
@@ -41,25 +52,29 @@ import {
 } from '@/lib/planificador/plan';
 import { MAX_SUGERIDAS, PLANTILLAS, elegidas, filasSugeridas } from '@/lib/planificador/plantillas';
 import type { Plan, TipoPlan } from '@/lib/planificador/tipos';
-import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
+import type { ElementoItinerario } from '@/lib/planificador/itinerario';
+import { useInvalidarPlanificador, useItinerario } from '@/lib/planificador/usePlanificador';
 
 /**
  * Crear o editar un plan (mockup NuevoProyecto): tipo, icono, nombre, destino (viaje), fechas, presupuesto opcional,
  * «¿Cómo se paga?» y notas. El pie con el botón queda fuera del scroll y no sube con el teclado.
  */
-export function FormularioPlan({ pareja, plan }: { pareja: Pareja; plan?: Plan }) {
+export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pareja; plan?: Plan; /** Datos de una idea o de un plan duplicado (solo al crear). */ precarga?: Precarga | null }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarPlanificador();
+  const itinerario = useItinerario();
   const ajustes = useAjustesGastos().data;
   const p = personas(pareja);
   const yo = p.yo.slot;
   const editando = !!plan;
   const hoy = hoyISO();
-  const [f, setF] = useState(() => (plan ? formularioDePlan(plan, yo) : formularioNuevo(hoy)));
+  const [f, setF] = useState(() => (plan ? formularioDePlan(plan, yo) : aplicarPrecarga(formularioNuevo(hoy), precarga)));
   const [intentado, setIntentado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Elementos del itinerario del plan al cambiar sus fechas: abre «¿Mover también el itinerario?».
+  const [aMover, setAMover] = useState<ElementoItinerario[] | null>(null);
   // Id fijado al abrir: reintentar tras un fallo de red no duplica el plan.
   const [id] = useState(() => plan?.id ?? Crypto.randomUUID());
   // Tareas sugeridas (solo al crear): desmarcadas por título e ids fijos para reintentar sin duplicar.
@@ -76,7 +91,8 @@ export function FormularioPlan({ pareja, plan }: { pareja: Pareja; plan?: Plan }
 
   const cerrar = () => (router.canGoBack() ? router.back() : router.replace('/planificador'));
 
-  const guardar = async () => {
+  /** `desplazar`: null = aún no se ha preguntado; true = mover también el itinerario; false = solo las fechas del plan. */
+  const guardar = async (desplazar: boolean | null) => {
     setIntentado(true);
     if (hayErroresPlan(errores)) return;
     setOcupado(true);
@@ -85,23 +101,47 @@ export function FormularioPlan({ pareja, plan }: { pareja: Pareja; plan?: Plan }
       const fila = filaDePlan(f, yo);
       if (plan) {
         const cambios = cambiosPlan(filaDePlan(formularioDePlan(plan, yo), yo), fila);
-        if (Object.keys(cambios).length > 0) await editarPlan(plan.id, plan.version, cambios as typeof fila, p.nombrePareja);
+        const { cambianFechas, resto } = separarFechas(cambios);
+        if (cambianFechas && desplazar === null) {
+          const propios = (itinerario.data ?? (await leerItinerario())).filter((e) => e.plan_id === plan.id);
+          if (propios.length > 0) {
+            setAMover(propios);
+            return;
+          }
+        }
+        // Las fechas van solo por `move_plan`; si además cambia otra cosa, primero el update (que da la versión nueva).
+        let version = plan.version;
+        if (Object.keys(resto).length > 0) version = await editarPlan(plan.id, version, resto, p.nombrePareja);
+        let fuera = 0;
+        if (cambianFechas) fuera = (await moverPlan(plan.id, fila.start_date, fila.end_date, version, desplazar === true)).outside;
         await invalidar();
+        setAMover(null);
         cerrar();
+        if (fuera > 0) Alert.alert(avisoHanQuedadoFuera(fuera));
       } else {
         await crearPlan(id, pareja.coupleId, fila);
         const sugeridas = elegidas(f.tipo, desmarcadas);
         if (sugeridas.length > 0) await crearTareas(pareja.coupleId, id, filasSugeridas(sugeridas, idsTareas));
+        // De una idea: su sitio a la colección del plan y, al final, la idea se borra. Cada paso es idempotente: un fallo a mitad se reintenta sin duplicar.
+        if (precarga?.idea) {
+          if (precarga.sitio) await sitioAlPlan(id, pareja.coupleId, precarga.sitio);
+          await borrarIdea(precarga.idea);
+        }
         await invalidar();
         router.replace({ pathname: '/planificador/[id]', params: { id } });
       }
     } catch (e) {
+      setAMover(null);
       setError(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
-      if (e instanceof ErrorGasto && e.codigo === 'version') await invalidar();
+      // Versión vieja (`version` o TW068) o un update ya aplicado antes de fallar el movimiento: se recarga el plan.
+      if (plan) await invalidar();
     } finally {
       setOcupado(false);
     }
   };
+
+  const fueraSolo = aMover ? quedanFuera(aMover, f.inicio, f.fin, 0) : 0;
+  const fueraTodo = aMover && plan ? quedanFuera(aMover, f.inicio, f.fin, desplazamiento(plan.start_date, f.inicio)) : 0;
 
   return (
     <View style={styles.raiz}>
@@ -257,8 +297,22 @@ export function FormularioPlan({ pareja, plan }: { pareja: Pareja; plan?: Plan }
       </ScrollView>
 
       <View style={[styles.pie, { paddingBottom: insets.bottom + 16 }]}>
-        <BotonPrincipal etiqueta={editando ? 'Guardar cambios' : 'Crear plan'} cargando={ocupado} onPress={guardar} />
+        <BotonPrincipal etiqueta={editando ? 'Guardar cambios' : 'Crear plan'} cargando={ocupado} onPress={() => guardar(null)} />
       </View>
+
+      <Hoja visible={aMover !== null} titulo="¿Mover también el itinerario?" onCerrar={() => setAMover(null)} bloqueada={ocupado}>
+        {aMover && plan ? (
+          <>
+            <Text style={styles.nota}>
+              Vais a pasar del {fechaCorta(plan.start_date, deISO(hoy))} al {fechaCorta(f.inicio, deISO(hoy))}. Mover todo desplaza cada elemento los mismos días que el inicio.
+            </Text>
+            <BotonPrincipal etiqueta={textoMoverTodo(aMover.length)} cargando={ocupado} onPress={() => guardar(true)} />
+            {fueraTodo > 0 ? <Text style={styles.nota}>{avisoQuedaranFuera(fueraTodo)}</Text> : null}
+            <BotonSecundario etiqueta="Solo las fechas del plan" deshabilitado={ocupado} onPress={() => guardar(false)} />
+            {fueraSolo > 0 ? <Text style={styles.nota}>{avisoQuedaranFuera(fueraSolo)}</Text> : null}
+          </>
+        ) : null}
+      </Hoja>
     </View>
   );
 }

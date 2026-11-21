@@ -10,6 +10,8 @@ const MENSAJES: Record<string, string> = {
   TW067: 'Ese día está fuera de las fechas del plan. Elige uno del plan.',
   TW068: 'Tu pareja ha cambiado el plan mientras tanto. Revisa las fechas y vuelve a guardar.',
   TW069: 'Un evento no puede cambiar de plan. Bórralo y créalo en el otro plan.',
+  // Reservas enlazadas (F9): un elemento del itinerario tiene como mucho una reserva.
+  TW072: 'Ese elemento del itinerario ya tiene una reserva. Elige otro o edita la que ya tiene.',
   '23503': 'El plan o el sitio ya no existe.',
   '23514': 'Revisa las fechas (un plan dura como mucho 60 días) y el reparto.',
 };

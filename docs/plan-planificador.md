@@ -2,7 +2,7 @@
 
 > 2026-11-20 · Parte de `docs/concepto.md` (§Planificador), `docs/especificacion-correcciones.md` (§1 Planificador y §2,
 > **manda**) y `docs/modelo-datos.md` (§3, §4, §6, §7, §8). Mockups: Planificador, NuevoProyecto, DetalleProyecto y
-> DetalleViaje (ronda 2). **Casi todo el esquema ya existe**: este plan añade tres migraciones pequeñas y la app.
+> DetalleViaje (ronda 2). **Casi todo el esquema ya existe**: este plan añade cuatro migraciones pequeñas (M1–M4) y la app.
 > Terminología (espec. §2): todo lo del Planificador es un **plan** (Viaje, Celebración, Otro); nunca «proyecto».
 
 ## 1. Visión y alcance
@@ -38,7 +38,7 @@ avisos push (encaje en §6, se hacen con Apple Developer).
 | `events.plan_id` | Itinerario = eventos con `plan_id` (cascada al borrar el plan), `time_slot` (mañana/tarde/noche), `position`; un secreto no puede ir en un plan (CHECK). `reserved` + `reservation_note` en `20261129000000_visitas_y_reserva.sql` |
 | `expenses.plan_id` | FK `on delete set null` + `plan_name_snapshot`/`plan_icon_snapshot` (trigger al borrar). Un gasto de un evento del plan hereda `plan_id` (trigger) |
 | `plan_summaries` | Vista `security_invoker`: `expense_count`, `spent_cents`, `open_m2_owes_m1_cents`, `pending_estimate_cents` |
-| `calendar_range` | Ya devuelve `kind = 'plan'` (banda con `icon`) y **excluye** los eventos con `plan_id` |
+| `calendar_range` | Devuelve `kind = 'plan'` (banda con `icon`) y, desde `20261203000000_calendario_itinerario.sql`, también los eventos con `plan_id` (`kind = 'event'`; antes los excluía) |
 | Borrar | `request_deletion(id, 'plan', …)`: siempre con aprobación (salvo pareja sin unir); etiqueta «✈️ Escapada a Lisboa». Borra itinerario y tareas; conserva gastos (snapshot) y sitios |
 | Saldar | `create_settlement(id, expense_ids[], method, expected)` ya admite cualquier lista: «Saldar solo esto» = los gastos abiertos del plan. Neto 0 → confirmada sola |
 
@@ -129,13 +129,30 @@ El «Contrato para la app» completo está en la cabecera de la migración.
    suelto → `pending`, plan → `pending`. Cadena completa en PGlite: todas las partes B anteriores siguen en verde y la
    migración se puede ejecutar dos veces.
 
-### M3 · `20261202000000_reservas_plan.sql` (F9, revisa el arquitecto)
+### M3 · `supabase/migrations/20261202000000_reservas_plan.sql` (F9, revisa el arquitecto; escrita, sin aplicar)
 
-- Una sola fuente de verdad para lo reservado de un elemento del itinerario: trigger `after update of status` en
-  `plan_tasks` con `kind = 'booking'` y `event_id` → `update events set reserved = (new.status = 'done')` (invoker).
-  En sentido contrario no: el formulario del evento oculta «Reservado» si tiene una reserva enlazada («Se marca desde
-  la reserva»). Sin bucles.
-- Pruebas: marcar hecha → `reserved` true; volver a pendiente → false; tarea sin `event_id` no toca nada.
+El «Contrato para la app» completo está en la cabecera de la migración.
+
+1. **Una reserva por elemento**: índice único parcial `plan_tasks_una_reserva_por_evento` (`event_id` where
+   `kind = 'booking'`) y, desde la app, `TW072` en `plan_tasks_before_write` (bloque `[Planificador F9]`).
+2. **Sincronización en los dos sentidos** (cambia lo previsto: antes era solo tarea → evento): reserva hecha ⇔
+   elemento reservado. Triggers `y_booking_event` (after insert/update of `status, event_id, kind` en `plan_tasks`) y
+   `y_booking_tasks` (after update of `reserved` en `events`, solo si cambia), invoker; cada lado escribe solo si el
+   otro es distinto, así el rebote da 0 filas (sin bucles). Desmarcar desde la reserva pone `reservation_note = null`
+   (regla de la app); marcar no toca la nota. Así «Marcar como reservado» del detalle y el formulario del evento
+   siguen sirviendo y no hace falta ocultar «Reservado».
+3. **Al enlazar gana «hecho»**: elemento ya reservado → la reserva nace hecha; reserva hecha → el elemento queda
+   reservado. Desenlazar, borrar la reserva o pasarla a tarea no desmarca el elemento.
+4. Pruebas (parte B, «PRUEBAS DE RESERVAS DEL PLAN (F9): todas correctas»): los dos sentidos, nota, versión del
+   evento (+1 por cambio, formulario viejo → 0 filas), enlazar, `TW072`, `TW060`, tarea normal sin sincronizar,
+   desenlazar, borrar reserva y elemento, sin pareja, escritura del servidor.
+
+### M4 · `supabase/migrations/20261203000000_calendario_itinerario.sql` (revisa el arquitecto; escrita, sin aplicar)
+
+- `calendar_range` (create or replace, misma firma, columnas, orden y permisos): solo quita `and e.plan_id is null`.
+  Ya devolvía `plan_id`: sin columnas nuevas. Pruebas: elementos una vez (también si empiezan antes del rango), banda,
+  repetidos con fecha anulada, cumpleaños, varios días, secreto, pagos previstos = `planned_payment_dates`, la pareja
+  los ve, otra pareja y alguien sin pareja no.
 
 ### Dinero: cómo cuenta un plan (sin cambiar `get_balance` ni `create_settlement`)
 
@@ -158,8 +175,10 @@ El «Contrato para la app» completo está en la cabecera de la migración.
   y el emoji al inicio, en los mismos carriles que las barras de varios días; un plan de un día, chip con su emoji.
 - Lista y día seleccionado: fila «✈️ Escapada a Lisboa · Día 2 de 4» con etiqueta «Plan»; toque →
   `/planificador/<id>` (con `?dia=<fecha>` cuando exista el itinerario).
-- Filtro «Planes» en `lib/calendario/filtros.ts`. Los eventos del itinerario siguen fuera del calendario global
-  (la banda los representa; espec. §1).
+- Filtro «Planes» en `lib/calendario/filtros.ts`. **Cambio (David, 21 nov)**: los elementos del itinerario también
+  salen en el calendario como eventos normales (hora, icono por categoría, sitio) además de la banda: M4
+  (`20261203000000_calendario_itinerario.sql`). Fila `kind = 'event'` con `plan_id` no null; `FilaRango` debe declarar
+  `plan_id`; la franja (`time_slot`) y `reserved` no vienen en `calendar_range` (leerlos de `events` por id si hacen falta).
 - **Crear eventos desde el plan** (F6): `/calendario/nuevo?plan=<id>&fecha=<d>` → `FormularioEvento` en modo plan:
   envía `plan_id`; fecha limitada a las del plan; sin secreto, sin repetir, sin cumpleaños; «Cuándo» = hora, franja
   (Mañana/Tarde/Noche → `time_slot`) o todo el día; quién va precargado del plan; sitio y reserva como siempre.
@@ -315,10 +334,12 @@ precarga del formulario de plan), pestaña Ideas, hoja de idea, «Convertir en p
 (id fijo durante el formulario, `upsert` ignorando duplicados) → sitio de la idea a la colección del plan
 (`on conflict` ignorado) → borrar la idea; un fallo a mitad se reintenta sin duplicar. Tests: `ideas`.
 
-**F9 · Reservas enlazadas** — M3 (**revisa el arquitecto**). Reserva con «elemento del itinerario» (`event_id`) y
-«gasto» (`expense_id`, «Hecho y apuntar gasto» → `/gastos/nuevo?plan=&tarea=`); «Pendiente de reservar» en el
-itinerario; «Estimado pendiente ~489 €» (`pending_estimate_cents`) en el presupuesto; formulario de evento oculta
-«Reservado» si hay reserva enlazada. Tests: textos y estados de reserva.
+**F9 · Reservas enlazadas** — M3 (**revisa el arquitecto**). Reserva con «elemento del itinerario» (`event_id`; el
+selector solo ofrece elementos del plan sin reserva) y «gasto» (`expense_id`, «Hecho y apuntar gasto» →
+`/gastos/nuevo?plan=&tarea=`); «Pendiente de reservar» en el itinerario; «Estimado pendiente ~489 €»
+(`pending_estimate_cents`) en el presupuesto. Marcar se hace por cualquiera de los dos lados (sincronización en el
+servidor); con nota, `update events set reserved, reservation_note` con `version`. Error `TW072`. Invalidar tareas y
+eventos al llegar el Realtime del otro lado. Tests: textos y estados de reserva.
 
 **F10 · Pasados y resumen** — pestaña Pasados («Gastado 640 €», «Ver resumen»), `lib/planificador/resumen.ts`
 (gastado total, por categoría, quién pagó cuánto, presupuesto vs real, sitios de la colección con visita en las
@@ -332,12 +353,12 @@ fechas del plan y «¿Fuisteis? Añadir visita» para los que no), pantalla de r
 | F6 → F9 | F9 enlaza reservas con el itinerario |
 | F10 | Al final |
 
-Revisión del arquitecto solo en F1, F4, F6 (M2) y F9 (M3); el resto, typecheck, lint y tests.
+Revisión del arquitecto solo en F1, F4, F6 (M2), F9 (M3) y M4; el resto, typecheck, lint y tests.
 
 ## 8. Lo que hace David a mano
 
 1. Confirmar que `20261129000000_visitas_y_reserva.sql` está aplicada (no figura en `docs/estado.md`); si no, darle el sí.
-2. Dar el sí para aplicar M1 (F1), M2 (F6) y M3 (F9) con la CLI (`supabase db query --remote -f … --yes`, como siempre).
+2. Dar el sí para aplicar M1 (F1), M2 (F6), M3 (F9) y M4 (calendario con itinerario) con la CLI (`supabase db query --remote -f … --yes`, como siempre). M4, junto con el cambio de la app en el calendario.
 3. Probar en el iPhone con las dos cuentas: crear un viaje y una celebración, tareas asignadas, gasto desde el plan y
    «Saldar solo esto» (cada uno ve el mismo total), pedir borrar y aprobar (gastos y sitios se quedan), banda en el
    calendario, «Próximo plan» en Inicio, tiempo real de tareas.

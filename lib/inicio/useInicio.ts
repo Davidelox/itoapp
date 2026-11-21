@@ -32,9 +32,12 @@ export function useAgenda() {
   const posicion = usePosicion();
   const hora = horaEnZona(new Date());
   const lista = rango.data ? aElementos(rango.data) : [];
-  const evento = proximoPlan(lista, hoy, hora);
   const multidia = proximoPlanMultidia(planes.data ?? [], lista, hoy);
-  const semana = proximosDeLaSemana(lista, hoy, hora, [evento?.clave ?? null]);
+  // Los elementos del itinerario de un plan que ya se enseña (tarjeta «Próximo plan» o banda como próximo evento) no se repiten.
+  const planMultidia = multidia?.origen === 'plan' ? [multidia.id] : [];
+  const evento = proximoPlan(lista, hoy, hora, planMultidia);
+  const planesMostrados = evento?.tipo === 'plan' ? [...planMultidia, evento.origenId] : planMultidia;
+  const semana = proximosDeLaSemana(lista, hoy, hora, [evento?.clave ?? null], 4, planesMostrados);
   // `calendar_range` no trae la reserva: se lee del evento (una fila) solo para el que se enseña.
   const detalle = useEvento(evento?.tipo === 'event' ? evento.origenId : undefined);
   const sitio = evento?.placeId ? sitios.data?.find((s) => s.id === evento.placeId) : undefined;

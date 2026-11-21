@@ -29,6 +29,7 @@ import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useRecurrentes } from '@/lib/gastos/useGastos';
 import { useSitios } from '@/lib/mapa/useSitios';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
+import { usePlanes } from '@/lib/planificador/usePlanificador';
 
 /** Cuánto se ve resaltada la fila del evento o pago recién guardado. */
 const RESALTADO_MS = 2500;
@@ -67,6 +68,7 @@ export default function Calendario() {
   ]);
   const recurrentes = useRecurrentes();
   const sitios = useSitios();
+  const planes = usePlanes();
   const borrados = useBorradosPendientes();
   const { refetch } = consulta;
   const { refetch: recargarRecurrentes } = recurrentes;
@@ -220,6 +222,7 @@ export default function Calendario() {
     recurrentes: new Map((recurrentes.data ?? []).map((r) => [r.id, r])),
     pendientesDeBorrar: borrados.data,
     sitios: new Map((sitios.data ?? []).map((s) => [s.id, s.name])),
+    planes: new Map((planes.data ?? []).map((pl) => [pl.id, { emoji: pl.icon, nombre: pl.name }])),
   };
 
   const irAHoy = () => {

@@ -78,13 +78,13 @@ export async function crearEvento(id: string, coupleId: string, datos: DatosEven
   if (datos.is_secret && !guardado.is_secret) {
     throw new ErrorGasto('Este evento ya se guardó como compartido y no se puede volver secreto. Revísalo en el calendario.', 'TW051');
   }
-  const { is_secret: secreto, ...editables } = datos;
+  const { is_secret: secreto, plan_id: _plan, ...editables } = datos;
   const cambios: Partial<DatosEvento> & { is_secret?: false } = soloCambios(guardado, editables);
   if (!secreto && guardado.is_secret) cambios.is_secret = false;
   if (Object.keys(cambios).length > 0) await editarEvento(id, guardado.version, cambios, 'Tu pareja');
 }
 
-const cambiado = (nombrePareja: string) => `${nombrePareja} lo ha cambiado mientras tanto. Revisa el evento y vuelve a guardar.`;
+const cambiado = (nombrePareja: string) => `${nombrePareja} ha cambiado este evento mientras tanto. Revisa el evento y vuelve a guardar.`;
 
 /** Edición con control de versión, enviando solo lo que cambia. En un evento repetido cambia TODA la serie. */
 export async function editarEvento(

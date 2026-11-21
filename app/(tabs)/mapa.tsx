@@ -54,13 +54,19 @@ export default function Mapa() {
     busqueda.alMoverse(r);
   };
   // Llegada desde la ficha (`?sitio=<uuid>`): abre el mapa en ese sitio con su tarjeta; el parámetro se usa una vez y se limpia.
-  const { sitio: sitioParam } = useLocalSearchParams<{ sitio?: string }>();
+  const { sitio: sitioParam, coleccion: coleccionParam } = useLocalSearchParams<{ sitio?: string; coleccion?: string }>();
   const idEnfocar = sitioDeParametro(typeof sitioParam === 'string' ? sitioParam : undefined);
   const [procesado, setProcesado] = useState<string | null>(null);
   const [enfoque, setEnfoque] = useState<{ lat: number; lng: number; clave: number } | null>(null);
   useEffect(() => {
     if (sitioParam && procesado === sitioParam) router.setParams({ sitio: undefined });
   }, [sitioParam, procesado, router]);
+  // Llegada desde un plan (`?coleccion=<uuid>`): filtra el mapa por la colección del plan; también se usa una vez.
+  const idColeccion = sitioDeParametro(typeof coleccionParam === 'string' ? coleccionParam : undefined);
+  const [procesadaColeccion, setProcesadaColeccion] = useState<string | null>(null);
+  useEffect(() => {
+    if (coleccionParam && procesadaColeccion === coleccionParam) router.setParams({ coleccion: undefined });
+  }, [coleccionParam, procesadaColeccion, router]);
 
   // Al entrar en la pestaña se recarga: no depende solo del tiempo real.
   useFocusEffect(
@@ -83,6 +89,17 @@ export default function Mapa() {
       setSeleccionado(destino.id);
       busqueda.setSeleccionado(null);
       setEnfoque((e) => ({ lat: destino.lat, lng: destino.lng, clave: (e?.clave ?? 0) + 1 }));
+    }
+  }
+  if (!coleccionParam && procesadaColeccion !== null) setProcesadaColeccion(null);
+  if (coleccionParam && procesadaColeccion !== coleccionParam && (!idColeccion || colecciones.data)) {
+    // Sin uuid válido o colección que no ves: se ignora y se limpia el parámetro.
+    setProcesadaColeccion(String(coleccionParam));
+    if (idColeccion && listaColecciones.some((c) => c.id === idColeccion)) {
+      setVista('mapa');
+      setFiltros({ ...SIN_FILTROS_MAPA, colecciones: [idColeccion] });
+      setSeleccionado(null);
+      busqueda.setSeleccionado(null);
     }
   }
   const sitios = filtrarMapa(todos, filtros, pareja.yo.userId, pertenencias.data);

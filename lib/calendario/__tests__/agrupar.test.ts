@@ -610,3 +610,46 @@ describe('planes (bandas del Planificador)', () => {
     expect(lista.secciones[0].elementos.map((e) => e.tipo)).toEqual(['event', 'plan']);
   });
 });
+
+describe('elementos del itinerario de un plan (M4)', () => {
+  const banda = fila({ kind: 'plan', source_id: 'p1', occurs_on: '2026-12-05', ends_on: '2026-12-08', title: 'Lisboa', icon: '✈️', plan_id: 'p1' });
+  const cena = fila({ source_id: 'c1', occurs_on: '2026-12-05', title: 'Cena en El Olivo', start_time: '21:30:00', all_day: false, category: 'eating_out', plan_id: 'p1' });
+  const suelto = fila({ source_id: 's1', occurs_on: '2026-12-05', title: 'Cine', category: 'leisure', plan_id: null });
+  const planes = new Map([['p1', { emoji: '✈️', nombre: 'Lisboa' }]]);
+
+  it('el evento lleva su planId; la banda y los eventos sueltos, no', () => {
+    const [b] = aElementos([banda]);
+    expect([b.tipo, b.planId]).toEqual(['plan', null]);
+    expect(aElementos([cena])[0]).toMatchObject({ tipo: 'event', planId: 'p1', categoria: 'eating_out', hora: '21:30' });
+    expect(aElementos([suelto])[0].planId).toBeNull();
+  });
+  it('con la BD actual (sin plan_id en las filas) todo sigue igual', () => {
+    const sin = { ...cena } as Partial<FilaRango>;
+    delete sin.plan_id;
+    expect(aElementos([sin as FilaRango])[0].planId).toBeNull();
+  });
+  it('el filtro «Planes» incluye banda y elementos; «Comer fuera» solo los eventos sueltos de esa categoría', () => {
+    const lista = aElementos([banda, cena, suelto, fila({ source_id: 'c2', title: 'Comida', category: 'eating_out', plan_id: null })]);
+    expect(claveFiltro(lista.find((e) => e.origenId === 'c1')!)).toBe('plan');
+    expect(filtrar(lista, ['plan']).map((e) => e.origenId).sort()).toEqual(['c1', 'p1']);
+    expect(filtrar(lista, ['eating_out']).map((e) => e.origenId)).toEqual(['c2']);
+  });
+  it('la rejilla no cuenta dos veces: con la banda del plan ese día, sus elementos no suman glifos', () => {
+    const dia = aElementos([banda, cena, fila({ source_id: 'c3', title: 'Museo', category: 'leisure', plan_id: 'p1' }), fila({ source_id: 'c4', title: 'Fado', category: 'leisure', plan_id: 'p1' })]);
+    const r = puntosDelDia(dia.map((e) => ({ ...e, fecha: '2026-12-05', diaN: e.tipo === 'plan' ? 1 : null })));
+    expect(r.puntos).toHaveLength(1);
+    expect(r.restantes).toBe(0);
+  });
+  it('sin la banda (otro filtro o BD sin M4) los elementos cuentan como eventos normales', () => {
+    const dia = aElementos([cena, suelto, fila({ source_id: 'c3', title: 'Museo', plan_id: 'p1' })]);
+    const r = puntosDelDia(dia);
+    expect(r.puntos).toHaveLength(2);
+    expect(r.restantes).toBe(1);
+  });
+  it('la línea dice de qué plan es; sin planes cargados no dice nada', () => {
+    const [e] = aElementos([cena]);
+    expect(lineaElemento(e, { ...ctx, planes })).toBe('21:30 · Plan: ✈️ Lisboa');
+    expect(lineaElemento(e, ctx)).toBe('21:30');
+    expect(lineaElemento(aElementos([suelto])[0], { ...ctx, planes })).toBe('Todo el día');
+  });
+});

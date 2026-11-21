@@ -10,6 +10,8 @@ import { HojaReserva } from '@/components/calendario/HojaReserva';
 import { HojaRevelar } from '@/components/calendario/HojaRevelar';
 import { Marcador } from '@/components/calendario/Marcador';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
+import { QuitarDelItinerario } from '@/components/planificador/QuitarDelItinerario';
 import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonSecundario } from '@/components/onboarding/Botones';
@@ -58,6 +60,8 @@ export default function DetalleEvento() {
   // Red de seguridad: si el id es de un plan (un aviso o un enlace viejo), se abre su detalle en vez de «ya no existe».
   const planes = usePlanes();
   const esPlan = !evento && !consulta.isLoading && !!planes.data?.some((p) => p.id === id);
+  // Elemento del itinerario de un plan: se enseña el plan, no se borra con aprobación y no cambia de plan.
+  const planDelEvento = evento?.plan_id ? planes.data?.find((p) => p.id === evento.plan_id) : undefined;
   useEffect(() => {
     if (esPlan) router.replace({ pathname: '/planificador/[id]', params: { id } });
   }, [esPlan, id, router]);
@@ -153,16 +157,18 @@ export default function DetalleEvento() {
     <View style={styles.raiz}>
       {cabecera}
       <ScrollView contentContainerStyle={[styles.contenido, { paddingBottom: insets.bottom + 24 }]}>
-        <BorrarGasto
-          gasto={{ id: evento.id, visible_to_partner: !evento.is_secret }}
-          pareja={pareja}
-          tipo="event"
-          fecha={cumple ? null : fecha}
-          fin={cumple ? null : fin}
-          repetido={repite && !cumple}
-          nombre={cumple ? 'cumpleaños' : undefined}
-          parte="banda"
-        />
+        {evento.plan_id ? null : (
+          <BorrarGasto
+            gasto={{ id: evento.id, visible_to_partner: !evento.is_secret }}
+            pareja={pareja}
+            tipo="event"
+            fecha={cumple ? null : fecha}
+            fin={cumple ? null : fin}
+            repetido={repite && !cumple}
+            nombre={cumple ? 'cumpleaños' : undefined}
+            parte="banda"
+          />
+        )}
 
         <Text accessibilityRole="header" style={styles.titulo}>
           {titulo}
@@ -216,6 +222,24 @@ export default function DetalleEvento() {
                 </View>
                 <Text style={styles.filaTexto}>{quien}</Text>
               </View>
+            </Fila>
+          ) : null}
+          {evento.plan_id ? (
+            <Fila icono="airplane-outline">
+              {planDelEvento ? (
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={`Plan: ${planDelEvento.name}`}
+                  accessibilityHint="Abre el plan"
+                  onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: planDelEvento.id } })}
+                  style={styles.enlacePlan}
+                >
+                  <EmojiIcono emoji={planDelEvento.icon} size={18} />
+                  <Text style={styles.enlacePlanTexto}>Plan: {planDelEvento.name}</Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.filaTexto}>Plan</Text>
+              )}
             </Fila>
           ) : null}
           {evento.place_id && !cumple ? (
@@ -292,16 +316,20 @@ export default function DetalleEvento() {
           </>
         ) : null}
 
-        <BorrarGasto
-          gasto={{ id: evento.id, visible_to_partner: !evento.is_secret }}
-          pareja={pareja}
-          tipo="event"
-          fecha={cumple ? null : fecha}
-          fin={cumple ? null : fin}
-          repetido={repite && !cumple}
-          nombre={cumple ? 'cumpleaños' : undefined}
-          parte="pie"
-        />
+        {evento.plan_id ? (
+          <QuitarDelItinerario eventoId={evento.id} />
+        ) : (
+          <BorrarGasto
+            gasto={{ id: evento.id, visible_to_partner: !evento.is_secret }}
+            pareja={pareja}
+            tipo="event"
+            fecha={cumple ? null : fecha}
+            fin={cumple ? null : fin}
+            repetido={repite && !cumple}
+            nombre={cumple ? 'cumpleaños' : undefined}
+            parte="pie"
+          />
+        )}
       </ScrollView>
     </View>
   );
@@ -376,5 +404,7 @@ const styles = StyleSheet.create({
   seccion: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   notas: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
   reservar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44 },
+  enlacePlan: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  enlacePlanTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.accent, textDecorationLine: 'underline' },
   reservarTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
 });

@@ -1,5 +1,8 @@
 /** Lecturas y escrituras de los planes (docs/modelo-datos.md §3). La RLS ya limita todo a la pareja. */
+import { aEvento } from '@/lib/calendario/evento';
 import { ErrorGasto } from '@/lib/gastos/error';
+import { ERROR_GENERICO } from '@/lib/mapa/error';
+import { COLUMNAS_ITINERARIO, type ElementoItinerario, resultadoMover } from '@/lib/planificador/itinerario';
 import { mensajeErrorPlan } from '@/lib/planificador/error';
 import type { FilaPlan, FilaTarea, Plan, PlanLista, Tarea } from '@/lib/planificador/tipos';
 import { registrarError } from '@/lib/registro';
@@ -26,7 +29,7 @@ export async function leerPlanes(): Promise<PlanLista[]> {
   return ((planes.data ?? []) as Plan[]).map((p) => ({ ...p, gastado_cents: resumenes.error ? null : (gastado.get(p.id) ?? 0) }));
 }
 
-const traducir = (contexto: string, error: unknown): ErrorGasto => {
+export const traducir = (contexto: string, error: unknown): ErrorGasto => {
   registrarError(contexto, error);
   return new ErrorGasto(mensajeErrorPlan(error), (error as { code?: string } | null)?.code);
 };
@@ -37,16 +40,39 @@ export async function crearPlan(id: string, coupleId: string, fila: FilaPlan): P
   if (error) throw traducir('planificador.crear', error);
 }
 
-/** Edición con control de versión: si la otra persona lo cambió antes, no toca nada y avisa (`codigo: 'version'`). */
-export async function editarPlan(id: string, version: number, fila: FilaPlan, nombrePareja: string): Promise<void> {
-  const { data, error } = await supabase.from('plans').update(fila).eq('id', id).eq('version', version).select('id');
+/** Edición con control de versión: si la otra persona lo cambió antes, no toca nada y avisa (`codigo: 'version'`). Devuelve la versión nueva. */
+export async function editarPlan(id: string, version: number, fila: Partial<FilaPlan>, nombrePareja: string): Promise<number> {
+  const { data, error } = await supabase.from('plans').update(fila).eq('id', id).eq('version', version).select('id, version');
   if (error) throw traducir('planificador.editar', error);
   if (!data || data.length === 0) {
     throw new ErrorGasto(`${nombrePareja} acaba de cambiar este plan. Revísalo y vuelve a intentarlo.`, 'version');
   }
+  return (data[0] as { version: number }).version;
 }
 
-const COLUMNAS_TAREA = 'id, plan_id, kind, title, detail, assignee, status, done_by, due_date, place_id, position, version';
+/**
+ * Cambia las fechas del plan (`move_plan`): con `desplazar`, también todo su itinerario los mismos días que el inicio.
+ * Devuelve la versión nueva, cuántos elementos se movieron y cuántos han quedado fuera de las fechas.
+ */
+export async function moverPlan(id: string, inicio: string, fin: string, version: number, desplazar: boolean) {
+  const { data, error } = await supabase.rpc('move_plan', { p_plan_id: id, p_start: inicio, p_end: fin, p_version: version, p_shift: desplazar });
+  if (error) throw traducir('planificador.mover', error);
+  const resultado = resultadoMover(data);
+  if (!resultado) throw new ErrorGasto(ERROR_GENERICO);
+  return resultado;
+}
+
+/** Elementos del itinerario de todos los planes (eventos con `plan_id`; la RLS decide qué ves). */
+export async function leerItinerario(): Promise<ElementoItinerario[]> {
+  const { data, error } = await supabase.from('events').select(COLUMNAS_ITINERARIO).not('plan_id', 'is', null);
+  if (error) {
+    registrarError('planificador.itinerario', error);
+    throw error;
+  }
+  return ((data ?? []) as unknown as (ElementoItinerario & { start_time: string | null })[]).map((f) => ({ ...aEvento(f), time_slot: f.time_slot, position: f.position }));
+}
+
+const COLUMNAS_TAREA = 'id, plan_id, kind, title, detail, assignee, status, done_by, due_date, place_id, event_id, position, version';
 
 /** Todas las tareas de todos los planes en una sola lectura: la tarjeta de cada plan y el detalle filtran de aquí. */
 export async function leerTareas(): Promise<Tarea[]> {

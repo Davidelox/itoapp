@@ -25,14 +25,24 @@ const porDiaYHora = (hoy: string) => (a: Elemento, b: Elemento) =>
   diaEfectivo(a, hoy).localeCompare(diaEfectivo(b, hoy)) || (a.hora ?? '').localeCompare(b.hora ?? '') || a.titulo.localeCompare(b.titulo, 'es');
 
 /**
+ * Un elemento del itinerario de un plan que ya sale en Inicio (la tarjeta «Próximo plan» o el plan como próximo evento):
+ * no se repite como evento suelto. Los de otros planes sí cuentan, con su línea «Plan: …» al abrirlos.
+ */
+const delPlanMostrado = (e: Pick<Elemento, 'tipo' | 'planId'>, planes: readonly string[]): boolean => e.tipo === 'event' && !!e.planId && planes.includes(e.planId);
+
+/**
  * El próximo evento de un día (no cumpleaños, pago ni viaje de varios días; un plan de un día, como una celebración,
  * sí): el primero que aún no ha pasado. Uno de hoy con hora ya pasada se descarta; uno de todo el día cuenta hoy.
  * `hora` es `HH:MM`.
  */
-export function proximoPlan(lista: Elemento[], hoy: string, hora: string): Elemento | null {
+export function proximoPlan(lista: Elemento[], hoy: string, hora: string, planesYaMostrados: readonly string[] = []): Elemento | null {
   const candidatos = lista.filter(
     (e) =>
-      (e.tipo === 'plan' || (e.tipo === 'event' && e.categoria !== 'birthday')) && !esVariosDias(e) && e.fin >= hoy && !(e.fin === hoy && e.hora !== null && e.hora < hora),
+      (e.tipo === 'plan' || (e.tipo === 'event' && e.categoria !== 'birthday')) &&
+      !delPlanMostrado(e, planesYaMostrados) &&
+      !esVariosDias(e) &&
+      e.fin >= hoy &&
+      !(e.fin === hoy && e.hora !== null && e.hora < hora),
   );
   return candidatos.sort(porDiaYHora(hoy))[0] ?? null;
 }
@@ -98,12 +108,13 @@ export function lineaMultidia(p: Pick<PlanMultidia, 'inicio' | 'fin' | 'presupue
 }
 
 /** «Esta semana»: lo que ocurre en los próximos 7 días (cumpleaños y pagos incluidos), sin lo que ya sale arriba. */
-export function proximosDeLaSemana(lista: Elemento[], hoy: string, hora: string, excluir: (string | null)[], max = 4): Elemento[] {
+export function proximosDeLaSemana(lista: Elemento[], hoy: string, hora: string, excluir: (string | null)[], max = 4, planesYaMostrados: readonly string[] = []): Elemento[] {
   const hasta = sumarDias(hoy, 6);
   return lista
     .filter(
       (e) =>
         !excluir.includes(e.clave) &&
+        !delPlanMostrado(e, planesYaMostrados) &&
         !esVariosDias(e) &&
         e.fecha >= hoy &&
         e.fecha <= hasta &&

@@ -16,6 +16,7 @@ export function FilaTarea({
   tintaYo,
   tintaPareja,
   sitio,
+  elemento,
   ocupada,
   onMarcar,
   onAbrir,
@@ -27,6 +28,8 @@ export function FilaTarea({
   tintaPareja: string;
   /** Nombre del sitio enlazado, si lo hay. */
   sitio: string | null;
+  /** Línea de la reserva enlazada a un elemento del itinerario: «Reserva · Cena en El Olivo · Sáb 5, 21:30». */
+  elemento: string | null;
   ocupada: boolean;
   onMarcar: () => void;
   onAbrir: () => void;
@@ -47,7 +50,7 @@ export function FilaTarea({
       >
         <View style={[styles.casilla, hecha && styles.casillaHecha]}>{hecha ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}</View>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={etiquetaTarea(tarea, yo, nombrePareja)} accessibilityHint="Abre la tarea para editarla" onPress={onAbrir} style={styles.cuerpo}>
+      <Pressable accessibilityRole="button" accessibilityLabel={etiquetaTarea(tarea, yo, nombrePareja, elemento)} accessibilityHint="Abre la tarea para editarla" onPress={onAbrir} style={styles.cuerpo}>
         <Text style={[styles.titulo, hecha && styles.tachado]}>{tarea.title}</Text>
         <Text style={styles.linea}>
           {l.prefijo}
@@ -55,6 +58,7 @@ export function FilaTarea({
           {l.fecha ? ` · ${l.fecha}` : ''}
           {sitio ? ` · ${sitio}` : ''}
         </Text>
+        {elemento ? <Text style={styles.linea}>{elemento}</Text> : null}
       </Pressable>
       {elegirSitio ? (
         <Pressable accessibilityRole="button" accessibilityLabel={`Elegir sitio: ${tarea.title}`} onPress={onAbrir} style={styles.pildora}>

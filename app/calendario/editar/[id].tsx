@@ -9,6 +9,7 @@ import type { Evento } from '@/lib/calendario/evento';
 import { useEvento } from '@/lib/calendario/useCalendario';
 import { personas } from '@/lib/gastos/personas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
+import { usePlanes } from '@/lib/planificador/usePlanificador';
 
 /**
  * Editar un evento (en uno repetido, toda la serie). Como al editar un gasto o un pago recurrente, el
@@ -19,6 +20,7 @@ export default function EditarEvento() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const evento = useEvento(id);
+  const planes = usePlanes();
   const [copia, setCopia] = useState<Evento | null>(null);
   // Tras guardar tú, la versión sube por tu propio cambio: no es un aviso de tu pareja.
   const [guardandoYo, setGuardandoYo] = useState(false);
@@ -26,7 +28,7 @@ export default function EditarEvento() {
   // La primera versión que llega se congela como punto de partida del formulario.
   if (!copia && evento.data) setCopia(evento.data);
 
-  if (!pareja || (evento.isLoading && !copia)) {
+  if (!pareja || (evento.isLoading && !copia) || (copia?.plan_id && planes.isLoading)) {
     return (
       <View style={styles.centro}>
         <CargandoHilo size="large" color={colors.accent} />
@@ -41,12 +43,21 @@ export default function EditarEvento() {
     );
   }
 
+  // Elemento del itinerario: su plan limita la fecha y no se puede cambiar (TW069).
+  const plan = copia.plan_id ? planes.data?.find((p) => p.id === copia.plan_id) : undefined;
+  if (copia.plan_id && !plan) {
+    return (
+      <View style={styles.centro}>
+        <Text style={styles.texto}>Este plan ya no existe.</Text>
+      </View>
+    );
+  }
   const masNuevo = !guardandoYo && evento.data && evento.data.version > copia.version ? evento.data : null;
   const nombre = personas(pareja).nombrePareja;
 
   return (
     <View style={styles.raiz}>
-      <FormularioEvento key={`${copia.id}:${copia.version}`} pareja={pareja} inicial={copia} alGuardarEdicion={setGuardandoYo} />
+      <FormularioEvento key={`${copia.id}:${copia.version}`} pareja={pareja} inicial={copia} plan={plan} alGuardarEdicion={setGuardandoYo} />
       {masNuevo ? (
         <View style={styles.aviso} accessibilityRole="alert" accessibilityLiveRegion="polite">
           <Text style={styles.avisoTexto}>{nombre} ha cambiado este evento mientras lo editabas.</Text>

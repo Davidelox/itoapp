@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, Text, TextInput } from 'react-native';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -13,6 +13,7 @@ import { ErrorGasto } from '@/lib/gastos/error';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { crearTareas, editarTarea } from '@/lib/planificador/consultas';
+import { cuandoElemento, elementosEnlazables, elementosPorDia, recargaTrasError } from '@/lib/planificador/reservas';
 import {
   MAX_NOTA_TAREA,
   MAX_TITULO_TAREA,
@@ -24,7 +25,7 @@ import {
   formularioTareaNuevo,
 } from '@/lib/planificador/tareas';
 import type { Tarea } from '@/lib/planificador/tipos';
-import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
+import { useInvalidarPlanificador, useItinerario, useTareas } from '@/lib/planificador/usePlanificador';
 
 /**
  * Crear o editar una tarea o reserva en hoja inferior: título, tipo, a quién se asigna, fecha límite opcional, nota y, en una
@@ -53,6 +54,8 @@ export function HojaTarea({
   onCerrar: () => void;
 }) {
   const invalidar = useInvalidarPlanificador();
+  const itinerario = useItinerario();
+  const todas = useTareas();
   const [f, setF] = useState(() => (tarea ? formularioDeTarea(tarea, yo) : formularioTareaNuevo()));
   const [intentado, setIntentado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -61,6 +64,8 @@ export function HojaTarea({
   const [id] = useState(() => tarea?.id ?? Crypto.randomUUID());
   const errTitulo = errorTitulo(f.titulo);
   const errNota = errorNotaTarea(f.nota);
+  // Solo se ofrecen los elementos de este plan que no tienen ya otra reserva (la propia sí).
+  const enlazables = elementosEnlazables(itinerario.data ?? [], todas.data ?? [], planId, tarea?.id);
 
   const guardar = async () => {
     setIntentado(true);
@@ -75,7 +80,8 @@ export function HojaTarea({
       onCerrar();
     } catch (e) {
       setError(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
-      if (e instanceof ErrorGasto && e.codigo === 'version') await invalidar();
+      // Con el elemento ya reservado por otra, o dos personas a la vez, se recarga para ver el estado real.
+      if (e instanceof ErrorGasto && recargaTrasError(e.codigo)) await invalidar();
     } finally {
       setOcupado(false);
     }
@@ -132,6 +138,27 @@ export function HojaTarea({
         )}
       </Grupo>
       {f.tipo === 'booking' ? <CampoSitio valor={f.sitio} onCambiar={(sitio) => setF((x) => ({ ...x, sitio }))} compartido /> : null}
+      {f.tipo === 'booking' ? (
+        <Grupo etiqueta="Elemento del itinerario" rol="radiogroup">
+          <FilaChips>
+            <Chip rol="radio" etiqueta="Sin enlazar" activo={f.elemento === null} onPress={() => setF((x) => ({ ...x, elemento: null }))} />
+          </FilaChips>
+          {elementosPorDia(enlazables).map((d) => (
+            <FilaChips key={d.fecha}>
+              {d.elementos.map((e) => (
+                <Chip
+                  key={e.id}
+                  rol="radio"
+                  etiqueta={`${e.title} · ${cuandoElemento(e)}`}
+                  activo={f.elemento === e.id}
+                  onPress={() => setF((x) => ({ ...x, elemento: e.id }))}
+                />
+              ))}
+            </FilaChips>
+          ))}
+          {enlazables.length === 0 ? <Text style={styles.ayuda}>No hay elementos libres en el itinerario de este plan.</Text> : null}
+        </Grupo>
+      ) : null}
       <Grupo etiqueta="Nota (opcional)">
         <TextInput
           accessibilityLabel="Nota de la tarea"
@@ -153,5 +180,6 @@ export function HojaTarea({
 }
 
 const styles = StyleSheet.create({
+  ayuda: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
 });

@@ -9,6 +9,7 @@ import { HojaDiaMes } from '@/components/calendario/HojaDiaMes';
 import { SelectorHora } from '@/components/calendario/SelectorHora';
 import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
 import { CampoSitio } from '@/components/mapa/CampoSitio';
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonFecha, SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
@@ -30,6 +31,7 @@ import {
   SIN_ERRORES,
   aDatos,
   aDatosNuevo,
+  aDatosPlan,
   avisosDisponibles,
   conCategoria,
   conDiaMes,
@@ -50,7 +52,7 @@ import {
   validar,
 } from '@/lib/calendario/evento';
 import { vaAlEvento } from '@/lib/calendario/quienPago';
-import { sumarDias } from '@/lib/calendario/rejilla';
+import { diasEntre, sumarDias } from '@/lib/calendario/rejilla';
 import { textoRepeticion } from '@/lib/calendario/repeticion';
 import { leerEuros } from '@/lib/dinero/importe';
 import { ErrorGasto, soloCambios } from '@/lib/gastos/consultas';
@@ -58,6 +60,8 @@ import { MESES, deISO, fechaCorta, fechaLarga, hoyISO } from '@/lib/gastos/fecha
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
+import type { Plan } from '@/lib/planificador/tipos';
+import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
 
 const PAUSA_NUDO_MS = 900;
 
@@ -76,14 +80,22 @@ type Props = {
   categoriaInicial?: CategoriaEvento;
   /** Al crear un evento: el sitio del Mapa ya elegido («Planear aquí» en la ficha). */
   sitioInicial?: string | null;
+  /**
+   * Elemento del itinerario de este plan (modo plan): la fecha se limita a las del plan, no hay secreto, repetición, varios
+   * días ni cumpleaños, y `plan_id` se envía solo al crear (cambiarlo en uno creado da TW069).
+   */
+  plan?: Pick<Plan, 'id' | 'name' | 'icon' | 'start_date' | 'end_date'>;
   alGuardarEdicion?: (enCurso: boolean) => void;
 };
 
 /** Nuevo o editar evento y cumpleaños (mockup NuevoEvento, docs/plan-calendario.md §2 y docs/plan-calendario-v2.md §2.4). */
-export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, sitioInicial, alGuardarEdicion }: Props) {
+export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, sitioInicial, plan, alGuardarEdicion }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const invalidar = useInvalidarGastos();
+  const invalidarGastos = useInvalidarGastos();
+  const invalidarPlan = useInvalidarPlanificador();
+  // Un elemento del plan toca el itinerario, el calendario y el mapa (su sitio entra en la colección del plan).
+  const invalidar = plan ? invalidarPlan : invalidarGastos;
   const p = personas(pareja);
   const yo = p.yo.slot;
   const editando = !!inicial;
@@ -96,7 +108,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
       : formularioNuevo(fechaInicial ?? hoy, tipoInicial === 'cumple' ? 'birthday' : (categoriaInicial ?? 'other'), yo, sitioInicial ?? null),
   );
   // Si se ha tocado «Varios días», elegir Viaje ya no lo activa solo.
-  const [variosTocado, setVariosTocado] = useState(editando);
+  const [variosTocado, setVariosTocado] = useState(editando || !!plan);
   const [diaMesAbierto, setDiaMesAbierto] = useState(false);
   const cambiar = (parcial: Partial<Formulario>) => setF((x) => ({ ...x, ...parcial }));
   // Lo que había en «¿Quién va?» antes de activar «Evento secreto», para volver a ello al desactivarlo.
@@ -149,11 +161,13 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
           await editarEvento(inicial.id, inicial.version, cambios, p.nombrePareja);
         }
       } else {
-        await crearEvento(idNuevo, pareja.coupleId, aDatosNuevo(f, yo));
+        await crearEvento(idNuevo, pareja.coupleId, plan ? aDatosPlan(f, yo, plan.id) : aDatosNuevo(f, yo));
       }
     } catch (e) {
       // El sitio ya no está (borrado o privado de tu pareja): se quita la selección.
       if (e instanceof ErrorGasto && e.codigo === 'TW064') cambiar({ sitioId: null });
+      // La reserva enlazada de un plan sube la versión del evento al marcarse: se recarga para que salga el aviso con «Recargar».
+      if (e instanceof ErrorGasto && e.codigo === 'version') invalidar();
       setError(e instanceof ErrorGasto ? e.message : 'No se ha podido guardar. Inténtalo de nuevo.');
       alGuardarEdicion?.(false);
       throw e;
@@ -165,6 +179,8 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
     const id = inicial?.id ?? idNuevo;
     setTimeout(() => {
       if (editando) router.back();
+      // Un elemento nuevo del plan vuelve a su itinerario.
+      else if (plan) router.dismissTo({ pathname: '/planificador/[id]', params: { id: plan.id } });
       // Un evento nuevo lleva al calendario, con el día de su inicio seleccionado y el evento resaltado. `dismissTo`
       // cierra el formulario (y, si se vino de «Crear pago», también el del pago) sin apilar otro calendario.
       else router.dismissTo({ pathname: '/calendario', params: paramsAlCalendario(diaDelEventoNuevo(f, esCumple, hoy), id) });
@@ -206,7 +222,16 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={styles.contenido}
       >
-        {!editando ? (
+        {plan ? (
+          <View style={styles.plan} accessible accessibilityLabel={`Plan: ${plan.name}`}>
+            <EmojiIcono emoji={plan.icon} size={20} />
+            <Text style={styles.planTexto} numberOfLines={1}>
+              Plan: {plan.name}
+            </Text>
+          </View>
+        ) : null}
+
+        {!editando && !plan ? (
           <Grupo etiqueta="Tipo">
             <Segmentado
               etiqueta="Tipo"
@@ -239,7 +264,7 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
           </Grupo>
         ) : null}
 
-        {tipo === 'evento' && !editando ? (
+        {tipo === 'evento' && !editando && !plan ? (
           <Interruptor
             titulo="Evento secreto"
             ayuda="Solo lo verás tú. Ideal para sorpresas"
@@ -324,11 +349,24 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
           </>
         ) : (
           <>
-            <Grupo etiqueta={tipo === 'pago' ? 'Día del primer cobro' : f.variosDias ? 'Desde' : 'Fecha'} rol="radiogroup">
-              <SelectorFecha valor={f.fecha} onCambiar={(fecha) => setF((x) => conFecha(x, fecha))} modo={tipo === 'pago' ? 'futuras' : 'todas'} />
-            </Grupo>
+            {plan ? (
+              <Grupo etiqueta="Día">
+                <BotonFecha
+                  valor={f.fecha}
+                  texto={`${fechaCorta(f.fecha, deISO(hoy))} · Día ${diasEntre(plan.start_date, f.fecha) + 1}`}
+                  etiqueta={`Día: ${fechaLarga(f.fecha, deISO(hoy))}, día ${diasEntre(plan.start_date, f.fecha) + 1} del plan`}
+                  minimo={plan.start_date}
+                  maximo={plan.end_date}
+                  onCambiar={(fecha) => setF((x) => conFecha(x, fecha))}
+                />
+              </Grupo>
+            ) : (
+              <Grupo etiqueta={tipo === 'pago' ? 'Día del primer cobro' : f.variosDias ? 'Desde' : 'Fecha'} rol="radiogroup">
+                <SelectorFecha valor={f.fecha} onCambiar={(fecha) => setF((x) => conFecha(x, fecha))} modo={tipo === 'pago' ? 'futuras' : 'todas'} />
+              </Grupo>
+            )}
 
-            {tipo === 'evento' ? (
+            {tipo === 'evento' && !plan ? (
               <>
                 <Interruptor
                   titulo="Varios días"
@@ -372,33 +410,35 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
               </Grupo>
             )}
 
-            <Grupo etiqueta="Repetir" rol="radiogroup">
-              <FilaChips>
-                {REPETICIONES.map((r) => {
-                  const motivo = motivoRepeticion(r.valor, duracion);
-                  return (
-                    <Chip
-                      key={r.valor}
-                      rol="radio"
-                      etiqueta={r.etiqueta}
-                      activo={f.repeticion === r.valor}
-                      deshabilitado={!!motivo}
-                      pista={motivo ?? undefined}
-                      onPress={() => cambiar({ repeticion: r.valor })}
-                    />
-                  );
-                })}
-              </FilaChips>
-              {sinRepeticion.length > 0 ? <Text style={styles.ayuda}>{sinRepeticion.map((r) => r.motivo).join('. ')}.</Text> : null}
-              {/* Sin esperar al intento de guardar: la repetición elegida ya no cabe en la duración. */}
-              <MensajeError texto={errores.repeticion} />
-              {repite ? (
-                <Text style={styles.ayuda} accessibilityLiveRegion="polite">
-                  {textoRepeticion(f.repeticion, f.fecha)}
-                  {editando ? '. Al editar se cambia toda la serie.' : ''}
-                </Text>
-              ) : null}
-            </Grupo>
+            {plan ? null : (
+              <Grupo etiqueta="Repetir" rol="radiogroup">
+                <FilaChips>
+                  {REPETICIONES.map((r) => {
+                    const motivo = motivoRepeticion(r.valor, duracion);
+                    return (
+                      <Chip
+                        key={r.valor}
+                        rol="radio"
+                        etiqueta={r.etiqueta}
+                        activo={f.repeticion === r.valor}
+                        deshabilitado={!!motivo}
+                        pista={motivo ?? undefined}
+                        onPress={() => cambiar({ repeticion: r.valor })}
+                      />
+                    );
+                  })}
+                </FilaChips>
+                {sinRepeticion.length > 0 ? <Text style={styles.ayuda}>{sinRepeticion.map((r) => r.motivo).join('. ')}.</Text> : null}
+                {/* Sin esperar al intento de guardar: la repetición elegida ya no cabe en la duración. */}
+                <MensajeError texto={errores.repeticion} />
+                {repite ? (
+                  <Text style={styles.ayuda} accessibilityLiveRegion="polite">
+                    {textoRepeticion(f.repeticion, f.fecha)}
+                    {editando ? '. Al editar se cambia toda la serie.' : ''}
+                  </Text>
+                ) : null}
+              </Grupo>
+            )}
 
             {tienePareja ? (
               <Grupo etiqueta="¿Quién va?" rol="radiogroup">
@@ -561,5 +601,7 @@ const styles = StyleSheet.create({
   importe: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 18 },
   euro: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
+  plan: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
+  planTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
 });

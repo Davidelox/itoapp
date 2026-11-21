@@ -8,8 +8,10 @@ import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
+import { Itinerario } from '@/components/planificador/Itinerario';
 import { GastosPlan } from '@/components/planificador/GastosPlan';
 import { ListaTareas } from '@/components/planificador/ListaTareas';
+import { SitiosDelPlan } from '@/components/planificador/SitiosDelPlan';
 import { colors, fonts, radius } from '@/constants/theme';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { cuentaAtras, etiquetaTipo, textoFechas, vistaPresupuesto } from '@/lib/planificador/plan';
@@ -18,7 +20,7 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /**
  * Detalle de un plan: cabecera con su icono, fechas y cuenta atrás, «Editar», «En el calendario», tareas, presupuesto,
- * gastos del plan con su saldo, notas y «Pedir borrar este plan». El itinerario (F6) se añade debajo.
+ * gastos del plan con su saldo, notas y «Pedir borrar este plan». El itinerario (F6) va entre las tareas y el presupuesto.
  */
 export default function DetallePlan() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -107,6 +109,10 @@ export default function DetallePlan() {
         </Pressable>
 
         {userId ? <ListaTareas plan={plan} tareas={(tareas.data ?? []).filter((t) => t.plan_id === plan.id)} pareja={pareja} userId={userId} /> : null}
+
+        <Itinerario plan={plan} pareja={pareja} />
+
+        <SitiosDelPlan plan={plan} pareja={pareja} />
 
         <View style={styles.seccion}>
           <Text accessibilityRole="header" style={styles.seccionTitulo}>

@@ -2,9 +2,9 @@
  * Eventos del calendario (docs/plan-calendario.md §2 y §4): el formulario, la fila de `events`, los avisos
  * (`reminder_minutes`) y los textos del detalle. Sin red ni React: todo se puede probar.
  *
- * Nunca se envían `time_zone`, `created_by`, `starts_at` ni `ends_at` (los pone el servidor), ni `plan_id`
- * (llega con el Planificador): un evento de esta pantalla no va en un plan, así que un secreto cumple siempre el
- * CHECK `not (is_secret and plan_id is not null)`. `place_id` es el sitio del Mapa (opcional).
+ * Nunca se envían `time_zone`, `created_by`, `starts_at` ni `ends_at` (los pone el servidor). `plan_id` solo se
+ * envía al CREAR un elemento del itinerario de un plan (`DatosEventoNuevo.plan_id`; nunca se cambia después, TW069)
+ * y entonces el evento no es secreto ni se repite. `place_id` es el sitio del Mapa (opcional).
  */
 import { vaAlEvento } from '@/lib/calendario/quienPago';
 import { type Repeticion, edad, esBisiesto, proximaRepeticion, textoCorto } from '@/lib/calendario/repeticion';
@@ -68,6 +68,8 @@ export type Evento = {
   /** Reserva hecha (mesa, hotel…) y su nota («a nombre de David, 21:30»). */
   reserved: boolean;
   reservation_note: string | null;
+  /** Plan al que pertenece (elemento del itinerario); null en un evento suelto. */
+  plan_id: string | null;
   created_by: string | null;
   version: number;
   starts_at: string;
@@ -76,7 +78,7 @@ export type Evento = {
 
 /** Columnas de `events` que lee la app (la fila completa de `Evento`, sin `time_zone`, `plan_id`, etc.). */
 export const COLUMNAS_EVENTO =
-  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, place_id, reserved, reservation_note, created_by, version, starts_at, ends_at';
+  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, place_id, reserved, reservation_note, plan_id, created_by, version, starts_at, ends_at';
 
 /** `start_time` llega como `HH:MM:SS`. */
 export type FilaEvento = Omit<Evento, 'start_time'> & { start_time: string | null };
@@ -100,7 +102,7 @@ export type DatosEvento = {
   reserved: boolean;
   reservation_note: string | null;
 };
-export type DatosEventoNuevo = DatosEvento & { is_secret: boolean };
+export type DatosEventoNuevo = DatosEvento & { is_secret: boolean; /** Solo al crear un elemento del itinerario. */ plan_id?: string };
 
 export const MAX_TITULO = 120;
 export const HORA_POR_DEFECTO = '21:00';
@@ -441,6 +443,12 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
 export const aDatosNuevo = (f: Formulario, yo: Hueco): DatosEventoNuevo => ({
   ...aDatos(f, yo),
   is_secret: f.categoria === 'birthday' ? false : f.secreto,
+});
+
+/** Elemento nuevo del itinerario de `planId`: siempre compartido y sin repetición (CHECK de la base de datos). */
+export const aDatosPlan = (f: Formulario, yo: Hueco, planId: string): DatosEventoNuevo => ({
+  ...aDatosNuevo({ ...f, secreto: false, repeticion: 'none' }, yo),
+  plan_id: planId,
 });
 
 /** Formulario tras marcar «Todo el día» o quitarlo: el aviso se adapta. */

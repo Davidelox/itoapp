@@ -15,6 +15,7 @@ import { HojaVisita } from '@/components/mapa/HojaVisita';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { AVISO_VALORAR, HojaValoracion } from '@/components/mapa/HojaValoracion';
 import { MiniMapa } from '@/components/mapa/MiniMapa';
+import { AnadirAlItinerario } from '@/components/planificador/AnadirAlItinerario';
 import { ValoracionesPareja } from '@/components/mapa/Valoraciones';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
@@ -264,6 +265,7 @@ export default function FichaSitio() {
           etiqueta="Planear aquí"
           onPress={() => router.push({ pathname: '/calendario/nuevo', params: paramsPlanearAqui(sitio, hoyISO()) })}
         />
+        <AnadirAlItinerario sitioId={sitio.id} />
 
         <View style={styles.tarjeta}>
           <Text accessibilityRole="header" style={styles.notaTitulo}>

@@ -17,7 +17,8 @@ import { borrarTarea, marcarTarea } from '@/lib/planificador/consultas';
 import { PLANTILLAS } from '@/lib/planificador/plantillas';
 import { contadorTareas, ordenarTareas, siguientePosicion } from '@/lib/planificador/tareas';
 import type { Plan, Tarea } from '@/lib/planificador/tipos';
-import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
+import { lineaReservaEnlazada } from '@/lib/planificador/reservas';
+import { useInvalidarPlanificador, useItinerario } from '@/lib/planificador/usePlanificador';
 
 type Hoja = { tipo: 'nueva' } | { tipo: 'editar'; tarea: Tarea } | { tipo: 'borrar'; tarea: Tarea } | { tipo: 'sugeridas' };
 
@@ -26,6 +27,7 @@ export function ListaTareas({ plan, tareas, pareja, userId }: { plan: Plan; tare
   const invalidar = useInvalidarPlanificador();
   const p = personas(pareja);
   const { data: sitios } = useSitios();
+  const itinerario = useItinerario();
   const [hoja, setHoja] = useState<Hoja | null>(null);
   const [marcando, setMarcando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function ListaTareas({ plan, tareas, pareja, userId }: { plan: Plan; tare
           tintaYo={p.tintaYo}
           tintaPareja={p.tintaPareja}
           sitio={t.place_id ? nombreDeSitio(sitios, t.place_id) : null}
+          elemento={lineaReservaEnlazada(t, itinerario.data ?? [])}
           ocupada={marcando === t.id}
           onMarcar={() => marcar(t)}
           onAbrir={() => setHoja({ tipo: 'editar', tarea: t })}

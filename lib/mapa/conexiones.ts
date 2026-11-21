@@ -31,6 +31,10 @@ export function paramsPlanearAqui(sitio: Pick<Sitio, 'id' | 'category'>, hoy: st
 export const sitioDeParametro = (v: string | undefined): string | null =>
   v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v.toLowerCase() : null;
 
+/** El sitio de `?sitio=` solo si esta persona lo ve (la RLS oculta los privados de la pareja); si no, null. */
+export const sitioInicialVisible = (sitios: Pick<Sitio, 'id'>[] | undefined, id: string | null): string | null =>
+  id && sitios?.some((s) => s.id === id) ? id : null;
+
 /** Evento o gasto enlazado a un sitio, para la lista de la ficha. */
 export type PlanEnSitio = { tipo: 'evento' | 'gasto'; id: string; titulo: string; fecha: string; importe_cents: number | null };
 

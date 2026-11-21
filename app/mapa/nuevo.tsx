@@ -25,6 +25,7 @@ import { PAUSA_BUSQUEDA_MS, type SitioBuscado, textoBuscable } from '@/lib/mapa/
 import { leerCentro, leerParamsGuardar, lineaResultado } from '@/lib/mapa/resultados';
 import { usePosicion } from '@/lib/mapa/usePosicion';
 import { SIN_SELECCION, type Seleccion, pasosGuardado } from '@/lib/mapa/colecciones';
+import { sitioDeParametro } from '@/lib/mapa/conexiones';
 import { anadirVisita, buscarSitios, crearSitio, sitioDeBusqueda } from '@/lib/mapa/consultas';
 import { guardarColeccionesDeSitio } from '@/lib/mapa/consultasColecciones';
 import { DELTA_MINIMO, encuadre } from '@/lib/mapa/encuadre';
@@ -71,9 +72,17 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarMapa();
   const { data: sitios = [] } = useSitios();
-  const { data: colecciones = [] } = useColecciones();
+  const consultaColecciones = useColecciones();
+  const colecciones = consultaColecciones.data ?? [];
   const [seleccion, setSeleccion] = useState<Seleccion>(SIN_SELECCION);
-  const params = useLocalSearchParams<{ lat?: string; lng?: string; cLat?: string; cLng?: string; nombre?: string; direccion?: string; categoria?: string; lugarId?: string }>();
+  const params = useLocalSearchParams<{ coleccion?: string; lat?: string; lng?: string; cLat?: string; cLng?: string; nombre?: string; direccion?: string; categoria?: string; lugarId?: string }>();
+  // Venido del detalle de un plan (`?coleccion=<uuid>`): su colección sale marcada, si esta persona la ve.
+  const [coleccionAplicada, setColeccionAplicada] = useState(false);
+  const idColeccion = sitioDeParametro(typeof params.coleccion === 'string' ? params.coleccion : undefined);
+  if (!coleccionAplicada && (!idColeccion || consultaColecciones.data)) {
+    setColeccionAplicada(true);
+    if (idColeccion && colecciones.some((c) => c.id === idColeccion)) setSeleccion({ ids: [idColeccion], principal: idColeccion });
+  }
   // Venido de la búsqueda del mapa: el resultado ya viene elegido (no hace falta volver a buscar).
   const [prefill] = useState(() => leerParamsGuardar(params));
   // Centro de las distancias: tu ubicación si ya la dio (o la obtuvo «Mi ubicación»); si no, el centro del mapa del que vienes.

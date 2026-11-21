@@ -31,7 +31,7 @@ export type FilaPlan = Pick<
 
 export type TipoTarea = 'task' | 'booking';
 
-/** Fila de `plan_tasks` tal como la lee la app (sin importes ni enlaces a evento o gasto: llegan en F9). */
+/** Fila de `plan_tasks` tal como la lee la app (con el elemento del itinerario enlazado; el gasto enlazado llega aparte). */
 export type Tarea = {
   id: string;
   plan_id: string;
@@ -43,9 +43,11 @@ export type Tarea = {
   done_by: string | null;
   due_date: string | null;
   place_id: string | null;
+  /** Reserva: elemento del itinerario (evento de este plan) al que está enlazada. */
+  event_id: string | null;
   position: number;
   version: number;
 };
 
 /** Lo que se escribe al crear o editar una tarea (el estado de hecha se cambia aparte). */
-export type FilaTarea = Pick<Tarea, 'kind' | 'title' | 'detail' | 'assignee' | 'due_date' | 'place_id'>;
+export type FilaTarea = Pick<Tarea, 'kind' | 'title' | 'detail' | 'assignee' | 'due_date' | 'place_id'> & { event_id?: string | null };

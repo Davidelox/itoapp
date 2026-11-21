@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { leerPlanes, leerTareas } from '@/lib/planificador/consultas';
+import { leerItinerario, leerPlanes, leerTareas } from '@/lib/planificador/consultas';
+import { leerIdeas } from '@/lib/planificador/consultasIdeas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +32,20 @@ export function useTareas() {
   return useQuery({ queryKey: k('tareas'), queryFn: leerTareas, enabled: !!pareja && !!userId });
 }
 
+/** Ideas de la pareja (pestaña Ideas). */
+export function useIdeas() {
+  const { pareja, userId } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('ideas'), queryFn: leerIdeas, enabled: !!pareja && !!userId });
+}
+
+/** Elementos del itinerario de todos los planes (el detalle de cada plan filtra por `plan_id`). Los cambios de `events` la recargan (tiempo real de Gastos y de Mapa). */
+export function useItinerario() {
+  const { pareja, userId } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('itinerario'), queryFn: leerItinerario, enabled: !!pareja && !!userId });
+}
+
 /** Tras guardar: recarga los planes y lo que los enseña (el calendario pinta su banda y el mapa, su colección). */
 export function useInvalidarPlanificador() {
   const cliente = useQueryClient();
@@ -44,7 +59,7 @@ export function useInvalidarPlanificador() {
     ]);
 }
 
-/** Tiempo real: un cambio en los planes, sus tareas o los gastos (lo gastado) recarga el Planificador. Vive en el layout de las pestañas. */
+/** Tiempo real: un cambio en los planes, sus tareas, las ideas o los gastos (lo gastado) recarga el Planificador. Vive en el layout de las pestañas. */
 export function useTiempoRealPlanificador() {
   const { pareja } = useEstado();
   const cliente = useQueryClient();
@@ -57,6 +72,7 @@ export function useTiempoRealPlanificador() {
       .channel(`planificador:${coupleId}:${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'plans', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_tasks', filter: `couple_id=eq.${coupleId}` }, invalidar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .subscribe((estado, error) => {
         if (error) registrarError('planificador.tiempoReal', error);

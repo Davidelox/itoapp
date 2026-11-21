@@ -145,10 +145,10 @@ Convenciones comunes:
 
 | Tabla | Columnas principales | Por qué |
 |---|---|---|
-| `events` | `start_date`/`start_time`, `end_date`/`end_time`, `all_day`, `time_slot`, `time_zone`, `starts_at`/`ends_at` (calculados), `recurrence` + `recurrence_until`, `attendees`, `place_id`, `plan_id`, `position`, `budget_cents`, `ask_who_paid`, `who_paid_resolved_at`, **`is_secret`**, **`reserved`** + `reservation_note` (≤ 200) | Mover un evento de día u hora es un `UPDATE` directo, sin aprobación. "¿Quién pagó?" se pregunta 90 minutos después de empezar si no tiene hora de fin. La reserva («a nombre de David, 21:30») vale también para el itinerario de un plan; las reservas por hacer son `plan_tasks` `booking`. |
+| `events` | `start_date`/`start_time`, `end_date`/`end_time`, `all_day`, `time_slot`, `time_zone`, `starts_at`/`ends_at` (calculados), `recurrence` + `recurrence_until`, `attendees`, `place_id`, `plan_id`, `position`, `budget_cents`, `ask_who_paid`, `who_paid_resolved_at`, **`is_secret`**, **`reserved`** + `reservation_note` (≤ 200) | Mover un evento de día u hora es un `UPDATE` directo, sin aprobación. "¿Quién pagó?" se pregunta 90 minutos después de empezar si no tiene hora de fin. La reserva («a nombre de David, 21:30») vale también para el itinerario de un plan; las reservas por hacer son `plan_tasks` `booking`. Un elemento del itinerario sale en `calendar_range` como evento (`kind = 'event'` con `plan_id`) además de la banda del plan. |
 | `event_exceptions` | (`event_id`, `occurrence_date`) | Fechas anuladas de un evento que se repite. Las crea un borrado aprobado ("solo este día") o "editar solo este". |
 | `plans` | `type`, `name`, `icon`, `cover`, `start_date`/`end_date`, `attendees`, `budget_cents` (opcional), `default_split_mode` + `default_split_pct_m1` | Un trigger crea y sincroniza su colección automática. |
-| `plan_tasks` | `kind` (`booking`, `task`), `assignee`, `status`, `estimated_cents`, `place_id`, `event_id`, `expense_id`, `position` | Se borran directamente: son una checklist. |
+| `plan_tasks` | `kind` (`booking`, `task`), `assignee`, `status`, `estimated_cents`, `place_id`, `event_id`, `expense_id`, `position` | Se borran directamente: son una checklist. Una reserva (`booking`) con `event_id` se sincroniza en los dos sentidos con `events.reserved` (hecha ⇔ reservado; al enlazar gana «hecho»); una por elemento (`TW072`). |
 | `ideas` | `title`, `icon`, `type`, `place_id` | Se borran directamente (al convertirlas también). |
 | `places` | `name`, `lat`/`lng`, `provider` + `provider_place_id`, `source_url`, `category`, `status`, **`primary_collection_id`**, `visible_to_partner` | Ver §8. |
 | `collection_places` | PK (`collection_id`, `place_id`), `added_by`, `added_at` | Relación muchos a muchos. Quitar un sitio de una colección es directo. |
@@ -426,6 +426,8 @@ La app los traduce por `error.code`:
 | `TW067` | Elemento del itinerario fuera de las fechas de su plan (al crearlo o cambiarle el día) |
 | `TW068` | `move_plan`: la pareja ha cambiado el plan mientras tanto (versión distinta) |
 | `TW069` | Un evento no cambia de plan: `plan_id` solo se fija al crearlo (ni entra en un plan, ni sale, ni pasa a otro) |
+| `TW070`–`TW071` | Bote: reembolso o ajuste no válido (el bote no debe tanto) · ya había otro movimiento con ese id |
+| `TW072` | Un elemento del itinerario ya tiene una reserva enlazada (como mucho una `plan_tasks` `booking` por `event_id`) |
 
 `join_couple` devuelve `{ok:false, error}` con uno de estos valores: `invalid_code`, `code_used`, `code_expired`, `couple_full`, `too_many_attempts`, `already_in_couple`.
 

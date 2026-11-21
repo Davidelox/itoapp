@@ -47,9 +47,11 @@ export type FormularioTarea = {
   fecha: string | null;
   nota: string;
   sitio: string | null;
+  /** Reserva: elemento del itinerario al que se enlaza (null = sin enlazar). */
+  elemento: string | null;
 };
 
-export const formularioTareaNuevo = (): FormularioTarea => ({ titulo: '', tipo: 'task', asignada: null, fecha: null, nota: '', sitio: null });
+export const formularioTareaNuevo = (): FormularioTarea => ({ titulo: '', tipo: 'task', asignada: null, fecha: null, nota: '', sitio: null, elemento: null });
 
 export function formularioDeTarea(t: Tarea, yo: 'm1' | 'm2'): FormularioTarea {
   return {
@@ -59,10 +61,11 @@ export function formularioDeTarea(t: Tarea, yo: 'm1' | 'm2'): FormularioTarea {
     fecha: t.due_date,
     nota: t.detail ?? '',
     sitio: t.place_id,
+    elemento: t.event_id,
   };
 }
 
-/** Solo las reservas llevan sitio: al pasar a «Tarea» se descarta. */
+/** Solo las reservas llevan sitio y elemento del itinerario: al pasar a «Tarea» se descartan. */
 export function filaDeTarea(f: FormularioTarea, yo: 'm1' | 'm2'): FilaTarea {
   const otra = yo === 'm1' ? 'm2' : 'm1';
   return {
@@ -72,6 +75,7 @@ export function filaDeTarea(f: FormularioTarea, yo: 'm1' | 'm2'): FilaTarea {
     assignee: f.asignada === 'yo' ? yo : f.asignada === 'pareja' ? otra : null,
     due_date: f.fecha,
     place_id: f.tipo === 'booking' ? f.sitio : null,
+    event_id: f.tipo === 'booking' ? f.elemento : null,
   };
 }
 
@@ -103,7 +107,7 @@ export function lineaTarea(t: Tarea, yo: { slot: 'm1' | 'm2'; userId: string }, 
 }
 
 /** «Reservar cena, reserva, asignada a ti, pendiente, para el 12 dic». */
-export function etiquetaTarea(t: Tarea, yo: { slot: 'm1' | 'm2'; userId: string }, nombrePareja: string): string {
+export function etiquetaTarea(t: Tarea, yo: { slot: 'm1' | 'm2'; userId: string }, nombrePareja: string, elemento?: string | null): string {
   const l = lineaTarea(t, yo, nombrePareja);
   const quien =
     t.status === 'done'
@@ -113,7 +117,7 @@ export function etiquetaTarea(t: Tarea, yo: { slot: 'm1' | 'm2'; userId: string 
       : t.assignee === null
         ? 'sin asignar, pendiente'
         : `asignada a ${l.de === 'yo' ? 'ti' : nombrePareja}, pendiente`;
-  return [t.title, t.kind === 'booking' ? 'reserva' : null, quien, l.fecha ? `para el ${l.fecha}` : null].filter(Boolean).join(', ');
+  return [t.title, t.kind === 'booking' ? 'reserva' : null, elemento ? `enlazada a ${elemento}` : null, quien, l.fecha ? `para el ${l.fecha}` : null].filter(Boolean).join(', ');
 }
 
 export const etiquetaMarcar = (t: Pick<Tarea, 'title' | 'status'>): string =>

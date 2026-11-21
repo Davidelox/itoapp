@@ -7,6 +7,8 @@ import Animated from 'react-native-reanimated';
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
+import { ListaIdeas } from '@/components/planificador/ListaIdeas';
+import { ListaPasados } from '@/components/planificador/ListaPasados';
 import { TarjetaPlan } from '@/components/planificador/TarjetaPlan';
 import { colors, fonts } from '@/constants/theme';
 import { hoyISO } from '@/lib/gastos/fechas';
@@ -18,7 +20,7 @@ import { usePlanes, useTareas } from '@/lib/planificador/usePlanificador';
 
 type Vista = 'proximos' | 'ideas' | 'pasados';
 
-/** Pestaña Planificador (docs/plan-planificador.md §5): planes próximos y en curso; Ideas y Pasados llegan en fases posteriores. */
+/** Pestaña Planificador (docs/plan-planificador.md §5): planes próximos y en curso, Ideas y Pasados. */
 export default function Planificador() {
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
@@ -38,18 +40,10 @@ export default function Planificador() {
   };
 
   let cuerpo;
-  if (vista === 'ideas' || vista === 'pasados') {
-    cuerpo = (
-      <View style={styles.centro}>
-        <Ionicons name={vista === 'ideas' ? 'bulb-outline' : 'time-outline'} size={44} color={colors.accent} />
-        <Text accessibilityRole="header" style={styles.vacioTitulo}>
-          Llegará pronto
-        </Text>
-        <Text style={styles.vacioTexto}>
-          {vista === 'ideas' ? 'Aquí podréis apuntar lo que os apetezca hacer algún día.' : 'Aquí aparecerán los planes que ya han terminado.'}
-        </Text>
-      </View>
-    );
+  if (vista === 'ideas') {
+    cuerpo = pareja ? <ListaIdeas pareja={pareja} onScroll={onScroll} /> : null;
+  } else if (vista === 'pasados') {
+    cuerpo = <ListaPasados onScroll={onScroll} />;
   } else if (consulta.isError && !consulta.data) {
     cuerpo = (
       <View style={styles.centro}>

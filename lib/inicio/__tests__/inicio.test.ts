@@ -250,3 +250,18 @@ describe('movimientosRecientes', () => {
   });
   it('recorta al máximo', () => expect(movimientosRecientes(base, 2)).toHaveLength(2));
 });
+
+describe('elementos del itinerario de un plan en Inicio', () => {
+  const dePlan = (titulo: string, planId: string, extra: Partial<Elemento> = {}) => el({ titulo, planId, origenId: titulo, clave: `event:${titulo}`, ...extra });
+  it('el próximo evento no es un elemento del plan que ya sale como «Próximo plan»', () => {
+    const lista = [dePlan('Cena', 'p1', { hora: '20:00' }), dePlan('Museo', 'p2', { hora: '22:00' })];
+    expect(proximoPlan(lista, HOY, '12:00')?.titulo).toBe('Cena');
+    expect(proximoPlan(lista, HOY, '12:00', ['p1'])?.titulo).toBe('Museo');
+    expect(proximoPlan(lista, HOY, '12:00', ['p1', 'p2'])).toBeNull();
+  });
+  it('«Esta semana» no repite los elementos de los planes ya mostrados, pero sí los de otros', () => {
+    const lista = [dePlan('Cena', 'p1', { hora: '20:00' }), dePlan('Museo', 'p2', { hora: '22:00' }), el({ titulo: 'Cine', hora: '21:00' })];
+    expect(proximosDeLaSemana(lista, HOY, '12:00', [], 4, ['p1']).map((e) => e.titulo)).toEqual(['Cine', 'Museo']);
+    expect(proximosDeLaSemana(lista, HOY, '12:00', []).map((e) => e.titulo)).toEqual(['Cena', 'Cine', 'Museo']);
+  });
+});

@@ -12,6 +12,7 @@ import {
   resumenDia,
   textoImporte,
   textoParteDe,
+  textoPlanDe,
   textoFechasPlan,
   textoQuienPago,
   textoTipoPago,
@@ -186,6 +187,7 @@ export function lineaSemana(l: LineaDia, ctx: ContextoLinea): PartesLinea {
       categoria === 'other' ? null : info.etiqueta.toLowerCase(),
       quien,
       e.secreto ? 'secreto' : null,
+      textoPlanDe(e, ctx),
       pendiente,
     ]
       .filter(Boolean)

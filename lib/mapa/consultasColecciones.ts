@@ -19,7 +19,7 @@ export async function leerColecciones(): Promise<Coleccion[]> {
 }
 
 export async function leerPertenencias(): Promise<Pertenencia[]> {
-  const { data, error } = await supabase.from('collection_places').select('collection_id, place_id, added_at');
+  const { data, error } = await supabase.from('collection_places').select('collection_id, place_id, added_at, added_by');
   if (error) {
     registrarError('mapa.pertenencias', error);
     throw error;

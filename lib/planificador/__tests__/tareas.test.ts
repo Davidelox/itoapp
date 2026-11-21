@@ -27,6 +27,7 @@ const t = (o: Partial<Tarea> = {}): Tarea => ({
   done_by: null,
   due_date: null,
   place_id: null,
+  event_id: null,
   position: 0,
   version: 1,
   ...o,
@@ -75,7 +76,7 @@ describe('formulario', () => {
   });
   it('convierte entre formulario y fila según quién mira', () => {
     const f = { ...formularioTareaNuevo(), titulo: '  Cena ', tipo: 'booking' as const, asignada: 'pareja' as const, fecha: '2026-12-02', nota: ' ', sitio: 's1' };
-    expect(filaDeTarea(f, 'm1')).toEqual({ kind: 'booking', title: 'Cena', detail: null, assignee: 'm2', due_date: '2026-12-02', place_id: 's1' });
+    expect(filaDeTarea(f, 'm1')).toEqual({ kind: 'booking', title: 'Cena', detail: null, assignee: 'm2', due_date: '2026-12-02', place_id: 's1', event_id: null });
     expect(filaDeTarea({ ...f, asignada: 'yo' }, 'm2').assignee).toBe('m2');
     expect(filaDeTarea({ ...f, asignada: null }, 'm1').assignee).toBeNull();
   });

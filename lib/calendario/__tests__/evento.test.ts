@@ -61,6 +61,7 @@ const fila: Evento = {
   place_id: null,
   reserved: false,
   reservation_note: null,
+  plan_id: null,
   created_by: 'u1',
   version: 3,
   starts_at: '2026-03-14T23:00:00Z',

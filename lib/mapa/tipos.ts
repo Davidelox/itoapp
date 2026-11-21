@@ -48,4 +48,4 @@ export type Coleccion = {
 };
 
 /** Fila de `collection_places`: un sitio dentro de una colección. */
-export type Pertenencia = { collection_id: string; place_id: string; added_at: string };
+export type Pertenencia = { collection_id: string; place_id: string; added_at: string; /** Quién lo metió en la colección. */ added_by?: string | null };
