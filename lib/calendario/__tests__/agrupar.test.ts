@@ -6,6 +6,7 @@ import {
   agruparPorDia,
   aElementos,
   claveFiltro,
+  clavesFiltro,
   construirLista as construir,
   etiquetaAccesible,
   etiquetaDia,
@@ -651,5 +652,36 @@ describe('elementos del itinerario de un plan (M4)', () => {
     expect(lineaElemento(e, { ...ctx, planes })).toBe('21:30 · Plan: ✈️ Lisboa');
     expect(lineaElemento(e, ctx)).toBe('21:30');
     expect(lineaElemento(aElementos([suelto])[0], { ...ctx, planes })).toBe('Todo el día');
+  });
+});
+
+describe('planes de viaje en los filtros', () => {
+  const [banda, item, suelto, fiesta] = aElementos([
+    fila({ kind: 'plan', source_id: 'p1', title: 'Lisboa', occurs_on: '2026-12-05', ends_on: '2026-12-08' }),
+    fila({ kind: 'event', source_id: 'e2', title: 'Vuelo', category: 'trip', occurs_on: '2026-12-05', plan_id: 'p1' } as Partial<FilaRango>),
+    fila({ kind: 'event', source_id: 'e3', title: 'Cine', category: 'leisure', occurs_on: '2026-12-06' }),
+    fila({ kind: 'plan', source_id: 'p2', title: 'Aniversario', occurs_on: '2026-12-10', ends_on: '2026-12-10' }),
+  ]);
+  const todos = [banda, item, suelto, fiesta];
+  const tipos = new Map<string, 'trip' | 'celebration' | 'other'>([['p1', 'trip'], ['p2', 'celebration']]);
+
+  it('la banda y el itinerario de un viaje entran en «Viajes» y en «Planes»', () => {
+    expect(clavesFiltro(banda, tipos)).toEqual(['plan', 'trip']);
+    expect(clavesFiltro(item, tipos)).toEqual(['plan', 'trip']);
+    expect(filtrar(todos, ['trip'], tipos).map((e) => e.origenId)).toEqual(['p1', 'e2']);
+    expect(filtrar(todos, ['plan'], tipos).map((e) => e.origenId)).toEqual(['p1', 'e2', 'p2']);
+  });
+  it('una celebración solo entra en «Planes»', () => {
+    expect(clavesFiltro(fiesta, tipos)).toEqual(['plan']);
+    expect(filtrar([fiesta], ['trip'], tipos)).toHaveLength(0);
+  });
+  it('varias opciones (o) sin duplicar elementos; sin filtros, todos una vez', () => {
+    expect(filtrar(todos, ['trip', 'plan'], tipos)).toHaveLength(3);
+    expect(filtrar(todos, ['trip', 'leisure'], tipos).map((e) => e.origenId)).toEqual(['p1', 'e2', 'e3']);
+    expect(filtrar(todos, [], tipos)).toHaveLength(4);
+  });
+  it('sin tipos conocidos se comporta como antes', () => {
+    expect(filtrar(todos, ['trip']).map((e) => e.origenId)).toEqual([]);
+    expect(clavesFiltro(banda)).toEqual(['plan']);
   });
 });

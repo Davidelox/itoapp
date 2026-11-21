@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  notas: { height: undefined, minHeight: 96, paddingTop: 14, paddingBottom: 14 },
+  notas: { height: undefined, minHeight: 96, maxHeight: 240, paddingTop: 14, paddingBottom: 14 },
   boton: {
     flexDirection: 'row',
     alignItems: 'center',

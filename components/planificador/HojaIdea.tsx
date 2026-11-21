@@ -128,5 +128,5 @@ export function HojaIdea({
 
 const styles = StyleSheet.create({
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-  nota: { height: undefined, minHeight: 84, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
+  nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
 });

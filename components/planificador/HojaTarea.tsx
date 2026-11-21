@@ -168,8 +168,9 @@ export function HojaTarea({
           placeholder="A nombre de quién, qué recordar…"
           placeholderTextColor={colors.textSecondary}
           autoCapitalize="sentences"
-          returnKeyType="done"
-          style={styles.campo}
+          multiline
+          textAlignVertical="top"
+          style={[styles.campo, styles.nota]}
         />
         <MensajeError texto={intentado ? errNota : null} />
       </Grupo>
@@ -180,6 +181,7 @@ export function HojaTarea({
 }
 
 const styles = StyleSheet.create({
+  nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14 },
   ayuda: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
 });

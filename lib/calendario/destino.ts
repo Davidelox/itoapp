@@ -3,7 +3,7 @@
  * `/calendario?dia=YYYY-MM-DD&evento=<id>` lleva el calendario a ese día, lo selecciona y resalta un momento
  * la fila de ese evento (o pago: en los pagos es el id del recurrente). Funciones puras.
  */
-import { type Elemento, type Filtros, claveFiltro, filtrar } from '@/lib/calendario/agrupar';
+import { type Elemento, type Filtros, type TiposPlan, claveFiltro, filtrar } from '@/lib/calendario/agrupar';
 import { type Formulario, fechaCumple } from '@/lib/calendario/evento';
 import { anadirFiltro } from '@/lib/calendario/filtros';
 import { proximaRepeticion } from '@/lib/calendario/repeticion';
@@ -53,9 +53,9 @@ export function leerObjetivo(dia: string | string[] | undefined, evento: string 
  * Los filtros con los que se ve `elemento`: los actuales si lo dejan pasar (o no hay ninguno) y, si no, se AÑADE su
  * opción (no se sustituyen: se respeta lo que había elegido). Sin elemento, los actuales.
  */
-export function filtroParaVer(filtros: Filtros, elemento: Elemento | undefined): Filtros {
+export function filtroParaVer(filtros: Filtros, elemento: Elemento | undefined, tipos?: TiposPlan): Filtros {
   if (!elemento || filtros.length === 0) return filtros;
-  return filtrar([elemento], filtros).length > 0 ? filtros : anadirFiltro(filtros, claveFiltro(elemento));
+  return filtrar([elemento], filtros, tipos).length > 0 ? filtros : anadirFiltro(filtros, claveFiltro(elemento));
 }
 
 /**

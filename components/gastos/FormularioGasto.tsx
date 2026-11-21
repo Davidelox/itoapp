@@ -6,6 +6,8 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
+import { Hoja } from '@/components/gastos/Hoja';
+import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { ControlesReparto } from '@/components/gastos/ControlesReparto';
 import { CampoSitio } from '@/components/mapa/CampoSitio';
 import { CampoPlan } from '@/components/planificador/CampoPlan';
@@ -17,6 +19,9 @@ import { leerEuros } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { type AjustesGastos, ErrorGasto, type Gasto, crearGasto, editarGasto, soloCambios } from '@/lib/gastos/consultas';
 import { hoyISO } from '@/lib/gastos/fechas';
+import { marcarSalida } from '@/lib/gastos/marcarSalida';
+import { decidirAccion } from '@/lib/gastos/visitaAutomatica';
+import { useInvalidarVisitas } from '@/lib/mapa/useSitios';
 import { personas } from '@/lib/gastos/personas';
 import { planesElegibles, repartoInicialDePlan } from '@/lib/gastos/planes';
 import {
@@ -59,6 +64,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
+  const invalidarVisitas = useInvalidarVisitas();
   const p = personas(pareja);
   const yo = p.yo.slot;
   const editando = !!inicial;
@@ -93,6 +99,9 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
   const [intentado, setIntentado] = useState(false);
   // Id del gasto nuevo fijado al abrir: un reintento tras un fallo de red no lo duplica.
   const [idNuevo] = useState(() => Crypto.randomUUID());
+  // «¿Ya habéis ido?» (gasto de hoy): hoja abierta tras guardar.
+  const [preguntando, setPreguntando] = useState(false);
+  const [marcando, setMarcando] = useState(false);
 
   // El bote se ofrece si está activo, o si el gasto que se edita ya lo usa.
   const conBote = ajustes.boteActivo || desdeDatos?.pagador === 'bote' || desdeDatos?.reparto === 'bote';
@@ -172,6 +181,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
         }
       } else {
         await crearGasto(idNuevo, pareja.coupleId, { ...fila, visible_to_partner: visibleFinal });
+        if (accionSalida() === 'registrar') await marcarSalida(pareja.coupleId, pareja.yo.slot, datosSalida());
       }
     } catch (e) {
       // El sitio ya no está (borrado o privado de tu pareja): se quita la selección.
@@ -182,13 +192,34 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
     }
   };
 
+  // Solo un gasto nuevo a mano: fecha pasada → se fue; hoy → se pregunta; futura, rutinario o de un plan → nada.
+  const accionSalida = () => (!editando && categoria ? decidirAccion({ fecha, hoy: hoyISO(), categoria, planId }) : 'nada');
+  const datosSalida = () => ({ id: idNuevo, concepto: conceptoLimpio, categoria: categoria as Categoria, fecha, privado: !visibleFinal, sitioId });
+
+  const irAlGasto = () => {
+    const id = inicial?.id ?? idNuevo;
+    if (editando) router.back();
+    else router.replace({ pathname: '/gastos/[id]', params: { id } });
+  };
+
   const alTerminar = () => {
     invalidar();
-    const id = inicial?.id ?? idNuevo;
-    setTimeout(() => {
-      if (editando) router.back();
-      else router.replace({ pathname: '/gastos/[id]', params: { id } });
-    }, PAUSA_NUDO_MS);
+    invalidarVisitas();
+    if (accionSalida() === 'preguntar') {
+      setTimeout(() => setPreguntando(true), PAUSA_NUDO_MS);
+      return;
+    }
+    setTimeout(irAlGasto, PAUSA_NUDO_MS);
+  };
+
+  // Cerrar la hoja equivale a «Vamos después».
+  const responderSalida = async (fuimos: boolean) => {
+    if (fuimos) {
+      setMarcando(true);
+      await marcarSalida(pareja.coupleId, pareja.yo.slot, datosSalida());
+      await Promise.all([invalidar(), invalidarVisitas()]);
+    }
+    irAlGasto();
   };
 
   return (
@@ -300,6 +331,14 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
           onHecho={alTerminar}
         />
       </View>
+
+      <Hoja visible={preguntando} titulo="¿Ya habéis ido?" onCerrar={() => responderSalida(false)} bloqueada={marcando}>
+        <Text style={styles.preguntaTexto}>Si ya fuisteis, lo apuntamos hoy en el calendario.</Text>
+        <View style={styles.preguntaBotones}>
+          <BotonPrincipal etiqueta="Sí, ya fuimos" cargando={marcando} onPress={() => responderSalida(true)} />
+          <BotonSecundario etiqueta="Vamos después" deshabilitado={marcando} onPress={() => responderSalida(false)} />
+        </View>
+      </Hoja>
     </View>
   );
 }
@@ -345,5 +384,7 @@ const styles = StyleSheet.create({
   },
   notaPlan: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   notaPlanTexto: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
+  preguntaTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
+  preguntaBotones: { gap: 12 },
   pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
 });

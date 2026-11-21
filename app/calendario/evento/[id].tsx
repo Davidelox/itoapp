@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { TextoLargo } from '@/components/TextoLargo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -274,7 +275,7 @@ export default function DetalleEvento() {
             <Text accessibilityRole="header" style={styles.seccion}>
               NOTAS
             </Text>
-            <Text style={styles.notas}>{evento.notes}</Text>
+            <TextoLargo texto={evento.notes} style={styles.notas} />
           </View>
         ) : null}
 

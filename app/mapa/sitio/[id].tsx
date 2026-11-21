@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { TextoLargo } from '@/components/TextoLargo';
 import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -288,7 +289,7 @@ export default function FichaSitio() {
                 <View style={styles.filaTextos}>
                   <Text style={styles.visitaFecha}>{fechaVisita(v.visited_on, hoy)}</Text>
                   {detalle ? (
-                    <Text style={styles.notaTitulo} numberOfLines={2}>
+                    <Text style={styles.notaTitulo}>
                       {detalle}
                     </Text>
                   ) : null}
@@ -341,7 +342,7 @@ export default function FichaSitio() {
         {notas.map((n) => (
           <View key={n.nombre} style={[styles.tarjeta, n.paleta && { backgroundColor: n.paleta.bg, borderColor: n.paleta.ink }]} accessible accessibilityLabel={`${n.nombre}: ${n.texto}`}>
             <Text style={[styles.notaTitulo, n.paleta && { color: n.paleta.ink }]}>{n.nombre}</Text>
-            <Text style={styles.filaTexto}>{n.texto}</Text>
+            <TextoLargo texto={n.texto} style={styles.filaTexto} />
           </View>
         ))}
 

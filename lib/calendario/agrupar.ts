@@ -214,6 +214,9 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
 
 const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'birthday']);
 
+/** Tipo de cada plan por id (`plans.type`): decide en qué filtros entran un plan y los elementos de su itinerario. */
+export type TiposPlan = ReadonlyMap<string, 'trip' | 'celebration' | 'other'>;
+
 /**
  * A qué opción pertenece un elemento: un pago, «Pagos»; un plan o un elemento de su itinerario, «Planes»; un evento, su
  * categoría (desconocida o sin ella, «Otros»).
@@ -224,10 +227,22 @@ export function claveFiltro(e: Pick<Elemento, 'tipo' | 'categoria' | 'planId'>):
   return e.categoria && CATEGORIAS_FILTRO.has(e.categoria) ? (e.categoria as Filtro) : 'other';
 }
 
-/** Qué elementos pasan los filtros: los de cualquiera de las opciones elegidas; sin ninguna, todos. */
-export function filtrar(lista: Elemento[], filtros: Filtros): Elemento[] {
+/**
+ * Todas las opciones en las que entra un elemento. Un plan es un evento largo con itinerario: además de «Planes»,
+ * un plan de tipo viaje y los elementos de su itinerario entran en «Viajes». Un plan de celebración u otro solo en
+ * «Planes» (una celebración no es siempre un cumpleaños: no hay categoría clara a la que llevarlo).
+ */
+export function clavesFiltro(e: Pick<Elemento, 'tipo' | 'categoria' | 'planId' | 'origenId'>, tipos?: TiposPlan): Filtro[] {
+  const base = claveFiltro(e);
+  const idPlan = e.tipo === 'plan' ? e.origenId : e.planId;
+  if (base === 'plan' && idPlan && tipos?.get(idPlan) === 'trip') return ['plan', 'trip'];
+  return [base];
+}
+
+/** Qué elementos pasan los filtros: los de cualquiera de las opciones elegidas; sin ninguna, todos (sin duplicados). */
+export function filtrar(lista: Elemento[], filtros: Filtros, tipos?: TiposPlan): Elemento[] {
   if (filtros.length === 0) return lista;
-  return lista.filter((e) => filtros.includes(claveFiltro(e)));
+  return lista.filter((e) => clavesFiltro(e, tipos).some((c) => filtros.includes(c)));
 }
 
 /** Lo máximo que se reparte un evento (el servidor ya limita a 31 días): por si llegara algo raro. */

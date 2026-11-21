@@ -1,7 +1,8 @@
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 
+import { IconoMonedas } from '@/components/calendario/IconoMonedas';
 import type { MarcadorSpec } from '@/lib/calendario/colores';
 import { RADIO_CUADRADO } from '@/lib/calendario/disposicion';
 import { franjasInsignia } from '@/lib/calendario/rayado';
@@ -127,7 +128,7 @@ function Pago({ marcador, tamano }: { marcador: MarcadorSpec; tamano: number }) 
       ]}
     >
       <View style={{ transform: [{ translateX: desplazo }, { translateY: desplazo }] }}>
-        <FontAwesome5 name="coins" solid size={Math.round(tamano * (recurrente ? 0.56 : 0.6))} color={marcador.tinta} />
+        <IconoMonedas tamano={Math.round(tamano * (recurrente ? 0.64 : 0.7))} tinta={marcador.tinta} fondo={marcador.relleno} />
       </View>
       {recurrente ? (
         <View style={[styles.bucle, { width: lado, height: lado }]}>

@@ -3,6 +3,7 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TextoLargo } from '@/components/TextoLargo';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
@@ -131,7 +132,7 @@ export default function DetallePlan() {
             <Text accessibilityRole="header" style={styles.seccionTitulo}>
               Notas
             </Text>
-            <Text style={styles.notas}>{plan.notes}</Text>
+            <TextoLargo texto={plan.notes} style={styles.notas} />
           </View>
         ) : null}
 

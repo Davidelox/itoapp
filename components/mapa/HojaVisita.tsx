@@ -84,8 +84,9 @@ export function HojaVisita({
           placeholder="Qué tal fue, qué pedisteis…"
           placeholderTextColor={colors.textSecondary}
           autoCapitalize="sentences"
-          returnKeyType="done"
-          style={styles.campo}
+          multiline
+          textAlignVertical="top"
+          style={[styles.campo, styles.nota]}
         />
       </Grupo>
       <MensajeError texto={error} />
@@ -95,5 +96,6 @@ export function HojaVisita({
 }
 
 const styles = StyleSheet.create({
+  nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14 },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
 });

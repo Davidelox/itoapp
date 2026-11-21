@@ -108,7 +108,7 @@ export default function Calendario() {
     const elemento = objetivo.evento ? aElementos(consulta.data).find((e) => e.origenId === objetivo.evento) : undefined;
     setObjetivo(null);
     if (elemento) {
-      setFiltros(filtroParaVer(filtros, elemento));
+      setFiltros(filtroParaVer(filtros, elemento, new Map((planes.data ?? []).map((pl) => [pl.id, pl.type] as const))));
       setResaltado(elemento.origenId);
     }
   }
@@ -213,7 +213,8 @@ export default function Calendario() {
   };
 
   // `calendar_range` no dice si un pago es único o recurrente, ni si es en solitario: sale de la lista de recurrentes.
-  const elementos = filtrar(aElementos(consulta.data ?? [], infoPagos(recurrentes.data ?? [])), filtros);
+  const tiposPlan = new Map((planes.data ?? []).map((pl) => [pl.id, pl.type] as const));
+  const elementos = filtrar(aElementos(consulta.data ?? [], infoPagos(recurrentes.data ?? [])), filtros, tiposPlan);
   const porDia = agruparPorDia(elementos);
   const lista = construirLista({ vista, ancla, seleccionado, hoy, elementos, filtros });
   const colores = coloresDeHuecos(pareja);

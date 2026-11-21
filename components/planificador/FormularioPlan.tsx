@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-  notas: { height: undefined, minHeight: 96, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
+  notas: { height: undefined, minHeight: 96, maxHeight: 240, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   importeFila: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   importe: { flex: 1 },
