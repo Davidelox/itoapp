@@ -30,11 +30,11 @@ export function Avisos() {
     const registrar = async () => {
       const estado = await estadoPermiso();
       if (!vivo) return;
-      if (estado === 'concedido') await registrarDispositivo();
+      if (estado === 'concedido') void registrarDispositivo(true);
       else if (estado === 'pendiente' && !(await yaPreguntado()) && vivo) setPreguntar(true);
     };
-    registrar();
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && registrar());
+    void registrar().catch(() => undefined);
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && void registrar().catch(() => undefined));
     return () => {
       vivo = false;
       sub.remove();
@@ -65,7 +65,7 @@ export function Avisos() {
           for (const k of ['gastos', 'calendario', 'mapa']) cliente.invalidateQueries({ queryKey: [k] });
         }),
         N.addNotificationResponseReceivedListener(abrir),
-        N.addPushTokenListener(() => void registrarDispositivo()),
+        N.addPushTokenListener(() => void registrarDispositivo(true)),
       );
       abrir(await N.getLastNotificationResponseAsync());
     });

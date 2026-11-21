@@ -17,10 +17,15 @@ export function HojaPermisoAvisos({ onCerrar }: { onCerrar: () => void }) {
 
   const activar = async () => {
     setOcupado(true);
-    const estado = await pedirPermiso();
-    await marcarPreguntado();
-    if (estado === 'concedido') await registrarDispositivo();
-    onCerrar();
+    try {
+      const estado = await pedirPermiso();
+      await marcarPreguntado();
+      // El registro sigue por su cuenta: la hoja no espera al token. El resultado se ve en Ajustes → Avisos.
+      if (estado === 'concedido') void registrarDispositivo();
+    } finally {
+      setOcupado(false);
+      onCerrar();
+    }
   };
   const ahoraNo = async () => {
     await marcarPreguntado();

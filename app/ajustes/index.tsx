@@ -17,7 +17,8 @@ import { type CampoPrivacidad, guardarPrivacidad, responderPropuesta, retirarPro
 import { cerrarSesion } from '@/lib/auth/acciones';
 import { enExpoGo, puedeRecibirPush } from '@/lib/avisos/entorno';
 import { AVISOS, AVISO_EXPO_GO, type CampoAviso, type EstadoPermiso, textoEstadoPermiso } from '@/lib/avisos/estado';
-import { estadoPermiso, probarAviso } from '@/lib/avisos/registro';
+import { type Intento, textoIntento } from '@/lib/avisos/plazo';
+import { alCambiarIntento, estadoPermiso, probarAviso, registrarDispositivo, ultimoIntento } from '@/lib/avisos/registro';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { MESES } from '@/lib/gastos/fechas';
@@ -54,6 +55,21 @@ export default function Ajustes() {
   useEffect(() => {
     estadoPermiso().then(setPermiso);
   }, [abierta]);
+  const [intento, setIntento] = useState<Intento | null>(null);
+  const [reintentando, setReintentando] = useState(false);
+  useEffect(() => {
+    const leer = () => void ultimoIntento().then(setIntento);
+    leer();
+    return alCambiarIntento(leer);
+  }, []);
+  const reintentar = async () => {
+    setReintentando(true);
+    try {
+      await registrarDispositivo();
+    } finally {
+      setReintentando(false);
+    }
+  };
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? null));
   }, []);
@@ -253,6 +269,17 @@ export default function Ajustes() {
             />
           ))}
           <MensajeError texto={errorAvisos} />
+          {intento && puedePush ? (
+            <>
+              {!intento.ok ? <MensajeError texto="No se pudo activar los avisos en este móvil. Se reintentará al abrir la app." /> : null}
+              <Fila
+                titulo={reintentando ? 'Reintentando…' : intento.ok ? 'Registro de avisos' : 'Reintentar'}
+                valor={textoIntento(intento)}
+                onPress={!intento.ok && !reintentando && permiso === 'concedido' ? reintentar : undefined}
+                separador
+              />
+            </>
+          ) : null}
           <Fila
             titulo={prueba.ocupado ? 'Enviando…' : 'Probar aviso'}
             valor={prueba.texto ?? (!puedePush ? 'Disponible en la app instalada' : permiso === 'concedido' ? undefined : 'Activa antes los avisos en este móvil')}
