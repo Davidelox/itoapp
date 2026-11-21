@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { type ComponentProps, type ReactNode, useState } from 'react';
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BloqueDespues } from '@/components/calendario/BloqueDespues';
+import { HojaReserva } from '@/components/calendario/HojaReserva';
 import { HojaRevelar } from '@/components/calendario/HojaRevelar';
 import { Marcador } from '@/components/calendario/Marcador';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
@@ -17,6 +18,7 @@ import { coloresDeHuecos, marcador } from '@/lib/calendario/colores';
 import { revelarEvento } from '@/lib/calendario/consultas';
 import {
   INFO_CATEGORIA_EVENTO,
+  puedeMarcarReservado,
   textoAsistentes,
   textoAviso,
   textoCuando,
@@ -35,6 +37,7 @@ import { aISO, deISO, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
+import { usePlanes } from '@/lib/planificador/usePlanificador';
 
 const esFecha = (s: string | undefined): s is string => !!s && aISO(deISO(s)) === s;
 
@@ -52,7 +55,14 @@ export default function DetalleEvento() {
   const { pareja } = useEstado();
   const consulta = useEvento(id);
   const evento = consulta.data;
+  // Red de seguridad: si el id es de un plan (un aviso o un enlace viejo), se abre su detalle en vez de «ya no existe».
+  const planes = usePlanes();
+  const esPlan = !evento && !consulta.isLoading && !!planes.data?.some((p) => p.id === id);
+  useEffect(() => {
+    if (esPlan) router.replace({ pathname: '/planificador/[id]', params: { id } });
+  }, [esPlan, id, router]);
   const [revelando, setRevelando] = useState(false);
+  const [reservando, setReservando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [errorRevelar, setErrorRevelar] = useState<string | null>(null);
 
@@ -80,7 +90,7 @@ export default function DetalleEvento() {
     </View>
   );
 
-  if (!pareja || consulta.isLoading) {
+  if (!pareja || consulta.isLoading || esPlan) {
     return (
       <View style={styles.raiz}>
         {cabecera}
@@ -213,6 +223,12 @@ export default function DetalleEvento() {
               <SitioEnlazado placeId={evento.place_id} acciones />
             </Fila>
           ) : null}
+          {evento.reserved && !cumple ? (
+            <Fila icono="checkmark-circle-outline">
+              <Text style={styles.filaTexto}>Reservado</Text>
+              {evento.reservation_note ? <Text style={styles.ayuda}>{evento.reservation_note}</Text> : null}
+            </Fila>
+          ) : null}
           {evento.budget_cents !== null ? (
             <Fila icono="wallet-outline">
               <Text style={styles.filaTexto}>Presupuesto {formatearImporte(evento.budget_cents)}</Text>
@@ -244,6 +260,16 @@ export default function DetalleEvento() {
             <Text style={styles.filaTexto}>{textoAviso(evento.reminder_minutes, evento.all_day, evento.start_time)}</Text>
             <Text style={styles.ayuda}>Llegará cuando ito tenga notificaciones.</Text>
           </View>
+        ) : null}
+
+        {puedeMarcarReservado(evento, fin, hoy) ? (
+          <>
+            <Pressable accessibilityRole="button" onPress={() => setReservando(true)} style={styles.reservar}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={colors.accent} />
+              <Text style={styles.reservarTexto}>Marcar como reservado</Text>
+            </Pressable>
+            {reservando ? <HojaReserva evento={evento} nombrePareja={p.nombrePareja} onCerrar={() => setReservando(false)} /> : null}
+          </>
         ) : null}
 
         {evento.is_secret && p.otra ? (
@@ -349,4 +375,6 @@ const styles = StyleSheet.create({
   },
   seccion: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   notas: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
+  reservar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44 },
+  reservarTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
 });

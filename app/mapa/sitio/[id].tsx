@@ -1,14 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
+import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { HojaColecciones } from '@/components/mapa/HojaColecciones';
 import { HojaComoLlegar } from '@/components/mapa/HojaComoLlegar';
 import { HojaEditarSitio } from '@/components/mapa/HojaEditarSitio';
+import { HojaVisita } from '@/components/mapa/HojaVisita';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { AVISO_VALORAR, HojaValoracion } from '@/components/mapa/HojaValoracion';
 import { MiniMapa } from '@/components/mapa/MiniMapa';
@@ -24,14 +27,15 @@ import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
 import { type Seleccion, coleccionesDeSitio } from '@/lib/mapa/colecciones';
-import { paramsPlanearAqui, preguntarYaHabeisIdo } from '@/lib/mapa/conexiones';
-import { editarSitio } from '@/lib/mapa/consultas';
+import { paramsPlanearAqui } from '@/lib/mapa/conexiones';
+import { anadirVisita, editarSitio, quitarVisita } from '@/lib/mapa/consultas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { ETIQUETA_ESTADO, quienGuardo } from '@/lib/mapa/lista';
 import { urlGoogleMaps } from '@/lib/mapa/sitio';
 import type { EstadoSitio } from '@/lib/mapa/tipos';
 import { diaCorto, miNota, puedeValorar, textoEstadisticas } from '@/lib/mapa/valoracion';
-import { useColecciones, useEstadisticasSitio, useInvalidarMapa, usePertenencias, usePlanesDeSitio, useSitio } from '@/lib/mapa/useSitios';
+import { useColecciones, useEstadisticasSitio, useInvalidarMapa, usePertenencias, usePlanesDeSitio, useSitio, useVisitasSitio } from '@/lib/mapa/useSitios';
+import { type Visita, fechaSugerida, fechaVisita, gastoDelDia, ordenarVisitas, pedirFechaAlMarcar, textoContadorVisitas, textoUltimaVisita } from '@/lib/mapa/visitas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Ficha de un sitio (docs/plan-mapa.md §5.3): estado, «Cómo llegar», «Ver en Google Maps», editar y pedir borrar. */
@@ -50,6 +54,12 @@ export default function FichaSitio() {
   const pertenencias = usePertenencias();
   const estadisticas = useEstadisticasSitio(id);
   const planes = usePlanesDeSitio(id);
+  const visitas = useVisitasSitio(id);
+  // Hoja de visita abierta: nueva (con su título y, si se sugiere, su fecha) o corrigiendo una; y la que se va a quitar.
+  const [hojaVisita, setHojaVisita] = useState<{ titulo: string; fecha?: string; visita?: Visita } | null>(null);
+  const [quitando, setQuitando] = useState<Visita | null>(null);
+  const [quitandoOcupado, setQuitandoOcupado] = useState(false);
+  const [errorQuitar, setErrorQuitar] = useState<string | null>(null);
   // El estado elegido se ve al momento; vuelve a lo guardado cuando el servidor responde.
   const [estadoPendiente, setEstadoPendiente] = useState<EstadoSitio | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +107,8 @@ export default function FichaSitio() {
   const estado = estadoPendiente ?? sitio.status;
   const cambiarEstado = async (nuevo: EstadoSitio) => {
     if (nuevo === estado) return;
+    // «Hemos ido» sin visitas: se pide la fecha y la visita pone el sitio en «Hemos ido» (lo hace el servidor).
+    if (nuevo === 'been' && pedirFechaAlMarcar(estadisticas.data)) return setHojaVisita({ titulo: '¿Cuándo fuisteis?' });
     setEstadoPendiente(nuevo);
     setError(null);
     try {
@@ -119,6 +131,35 @@ export default function FichaSitio() {
       const color = mia ? pareja.yo.color : pareja.otra?.color;
       return { nombre: mia ? 'Tu nota' : `Nota de ${p.nombrePareja}`, texto: (n.note as string).trim(), paleta: color ? personColors[color] : null };
     });
+  const hoy = hoyISO();
+  const listaVisitas = ordenarVisitas(visitas.data ?? []);
+  const textoUltima = textoUltimaVisita(estado, { visit_count: listaVisitas.length, last_visit_on: listaVisitas[0]?.visited_on ?? null }, hoy);
+  const sugerida = fechaSugerida(estadisticas.data);
+  const quienVisita = (v: Visita) => (v.created_by === pareja.yo.userId ? 'Tú' : v.created_by ? p.nombrePareja : null);
+  const apuntarSugerida = async (fecha: string) => {
+    setError(null);
+    try {
+      await anadirVisita(Crypto.randomUUID(), pareja.coupleId, sitio.id, fecha, '');
+    } catch (e) {
+      setError(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
+    } finally {
+      await invalidar();
+    }
+  };
+  const quitar = async () => {
+    if (!quitando) return;
+    setQuitandoOcupado(true);
+    setErrorQuitar(null);
+    try {
+      await quitarVisita(quitando.id);
+      await invalidar();
+      setQuitando(null);
+    } catch (e) {
+      setErrorQuitar(e instanceof ErrorGasto ? e.message : ERROR_GENERICO);
+    } finally {
+      setQuitandoOcupado(false);
+    }
+  };
   const textoStats = textoEstadisticas(estadisticas.data);
   const tieneMia = !!miNota(sitio.place_notes, pareja.yo.userId);
   const tieneNota = !!miNota(sitio.place_notes, pareja.yo.userId)?.note?.trim();
@@ -212,17 +253,50 @@ export default function FichaSitio() {
             {textoStats}
           </Text>
         ) : null}
-        {preguntarYaHabeisIdo(estado, estadisticas.data) ? (
+        {sugerida ? (
           <View style={styles.tarjeta} accessibilityRole="alert">
-            <Text style={styles.notaTitulo}>¿Ya habéis ido?</Text>
-            <Text style={styles.filaTexto}>Hay un plan o un gasto pasado en este sitio, pero sigue en «Quiero ir».</Text>
-            <BotonSecundario etiqueta="Marcar Hemos ido" onPress={() => cambiarEstado('been')} />
+            <Text style={styles.notaTitulo}>{`¿Fuisteis el ${fechaVisita(sugerida, hoy)}?`}</Text>
+            <Text style={styles.filaTexto}>Hay un plan o un gasto en este sitio ese día y no tiene visita apuntada.</Text>
+            <BotonSecundario etiqueta="Añadir visita" onPress={() => apuntarSugerida(sugerida)} />
           </View>
         ) : null}
         <BotonSecundario
           etiqueta="Planear aquí"
           onPress={() => router.push({ pathname: '/calendario/nuevo', params: paramsPlanearAqui(sitio, hoyISO()) })}
         />
+
+        <View style={styles.tarjeta}>
+          <Text accessibilityRole="header" style={styles.notaTitulo}>
+            Historial de visitas
+          </Text>
+          <Text style={styles.stats}>{[listaVisitas.length > 0 ? textoContadorVisitas(listaVisitas.length) : null, textoUltima].filter(Boolean).join(' · ') || 'Aún no hay visitas apuntadas'}</Text>
+          {listaVisitas.map((v) => {
+            const gasto = gastoDelDia(planes.data, v.visited_on);
+            const detalle = [quienVisita(v), v.note].filter(Boolean).join(' · ');
+            return (
+              <Pressable
+                key={v.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Visita del ${fechaVisita(v.visited_on, hoy)}${detalle ? `, ${detalle}` : ''}${gasto !== null ? `, ${formatearImporte(gasto)}` : ''}`}
+                accessibilityHint="Abre para corregirla o quitarla"
+                onPress={() => setHojaVisita({ titulo: 'Visita', visita: v })}
+                style={styles.fila}
+              >
+                <View style={styles.filaTextos}>
+                  <Text style={styles.visitaFecha}>{fechaVisita(v.visited_on, hoy)}</Text>
+                  {detalle ? (
+                    <Text style={styles.notaTitulo} numberOfLines={2}>
+                      {detalle}
+                    </Text>
+                  ) : null}
+                </View>
+                {gasto !== null ? <Text style={styles.visitaFecha}>{formatearImporte(gasto)}</Text> : null}
+                <Ionicons name="chevron-forward" size={18} color={colors.icon} />
+              </Pressable>
+            );
+          })}
+          <BotonSecundario etiqueta="+ Añadir visita" onPress={() => setHojaVisita({ titulo: 'Añadir visita' })} />
+        </View>
 
         {planes.data && planes.data.length > 0 ? (
           <View style={styles.tarjeta}>
@@ -280,6 +354,33 @@ export default function FichaSitio() {
       {coleccionando ? (
         <HojaColecciones sitio={sitio} coupleId={pareja.coupleId} colecciones={colecciones.data ?? []} actual={actualColecciones} onCerrar={() => setColeccionando(false)} />
       ) : null}
+      {hojaVisita && pareja.coupleId ? (
+        <HojaVisita
+          titulo={hojaVisita.titulo}
+          sitioId={sitio.id}
+          coupleId={pareja.coupleId}
+          nombrePareja={p.nombrePareja}
+          visita={hojaVisita.visita}
+          fechaInicial={hojaVisita.fecha}
+          onQuitar={() => {
+            setQuitando(hojaVisita.visita ?? null);
+            setErrorQuitar(null);
+            setHojaVisita(null);
+          }}
+          onCerrar={() => setHojaVisita(null)}
+        />
+      ) : null}
+      {quitando ? (
+        <HojaConfirmar
+          titulo="¿Quitar esta visita?"
+          texto={`Se quita la visita del ${fechaVisita(quitando.visited_on, hoy)} del historial. Los gastos y eventos de ese día no se tocan.`}
+          etiqueta="Quitar visita"
+          ocupado={quitandoOcupado}
+          error={errorQuitar}
+          onConfirmar={quitar}
+          onCerrar={() => setQuitando(null)}
+        />
+      ) : null}
       {editando ? <HojaEditarSitio sitio={sitio} pareja={pareja} onCerrar={() => setEditando(false)} /> : null}
     </View>
   );
@@ -300,5 +401,7 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   filaTexto: { flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.text },
   stats: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary },
+  filaTextos: { flex: 1, gap: 1 },
+  visitaFecha: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   notaTitulo: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
 });

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
 import { useUrlAvatar } from '@/lib/avatar';
+import { paletaDe } from '@/lib/calendario/colores';
 
 type Props = {
   nombre: string;
@@ -16,15 +17,18 @@ type Props = {
   cargando?: boolean;
   /** Texto de la inicial cuando aún no hay nombre. */
   vacio?: string;
+  /** Anillo fino con el color de perfil (`ink`; el azul de reserva si no hay color) alrededor de la foto o la inicial. */
+  anillo?: boolean;
 };
 
 /** Foto, o la inicial en la tinta del color sobre su fondo pastel. Se reutilizará en toda la app. */
-export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44, cargando = false, vacio = '?' }: Props) {
+export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44, cargando = false, vacio = '?', anillo = false }: Props) {
   const firmada = useUrlAvatar(avatarPath);
   const paleta = color ? personColors[color] : { bg: colors.surface, ink: colors.icon };
   const inicial = nombre.trim().charAt(0).toUpperCase() || vacio;
   const uri = uriLocal ?? firmada;
-  return (
+  const aro = anillo ? ANILLO : 0;
+  const circulo = (
     <View
       accessible
       accessibilityRole="image"
@@ -48,7 +52,24 @@ export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44
       )}
     </View>
   );
+  if (!anillo) return circulo;
+  // El anillo va fuera: el círculo mantiene `tamano` y el aro lo rodea con el color de la persona.
+  return (
+    <View
+      style={{
+        width: tamano + aro * 2,
+        height: tamano + aro * 2,
+        borderRadius: (tamano + aro * 2) / 2,
+        borderWidth: aro,
+        borderColor: paletaDe(color).borde,
+      }}
+    >
+      {circulo}
+    </View>
+  );
 }
+
+const ANILLO = 3;
 
 const styles = StyleSheet.create({
   circulo: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

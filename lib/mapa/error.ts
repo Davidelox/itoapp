@@ -24,12 +24,24 @@ const MENSAJES_COLECCION: Record<string, string> = {
   '23514': 'La colección de un plan siempre es visible para los dos.',
 };
 
+/** Mensajes propios de las visitas (`place_visits`): pisan a los del sitio (23505 y 23514 significan otra cosa aquí). */
+const MENSAJES_VISITA: Record<string, string> = {
+  '23505': 'Ya teníais apuntada una visita ese día.',
+  '23514': 'Revisa la fecha o acorta la nota (200 caracteres como mucho).',
+  TW065: 'La fecha de la visita no puede ser futura.',
+};
+
+/** Qué se estaba guardando: cambia el texto de algunos códigos. `true` equivale a `'coleccion'`. */
+export type ContextoErrorMapa = 'sitio' | 'coleccion' | 'visita';
+
 /** Código del servidor (`error.code`) de un error cualquiera, si lo trae. */
 export const codigoDe = (error: unknown): string | undefined => (error as { code?: string } | null)?.code;
 
 /** Texto listo para mostrar. Un código sin traducción da el mensaje genérico (nunca `error.message`). */
-export function mensajeErrorMapa(error: unknown, deColeccion = false): string {
+export function mensajeErrorMapa(error: unknown, contexto: ContextoErrorMapa | boolean = 'sitio'): string {
   if (esErrorDeRed(error)) return SIN_CONEXION;
   const codigo = codigoDe(error);
-  return (codigo && ((deColeccion && MENSAJES_COLECCION[codigo]) || MENSAJES[codigo])) || ERROR_GENERICO;
+  if (!codigo) return ERROR_GENERICO;
+  const propios: Record<string, string> = contexto === true || contexto === 'coleccion' ? MENSAJES_COLECCION : contexto === 'visita' ? MENSAJES_VISITA : {};
+  return propios[codigo] || MENSAJES[codigo] || ERROR_GENERICO;
 }

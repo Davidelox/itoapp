@@ -24,6 +24,7 @@ import {
   type Evento,
   type Formulario,
   MAX_DIAS_VARIOS,
+  MAX_NOTA_RESERVA,
   MAX_TITULO,
   REPETICIONES,
   SIN_ERRORES,
@@ -446,6 +447,30 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
 
         {tipo !== 'pago' ? (
           <>
+            {tipo === 'evento' ? (
+              <Grupo etiqueta="Reserva">
+                <Interruptor
+                  titulo="Reservado"
+                  ayuda={f.reservado ? 'Ya está reservado' : 'Mesa, hotel, entradas…'}
+                  valor={f.reservado}
+                  onCambiar={(reservado) => cambiar({ reservado })}
+                />
+                {f.reservado ? (
+                  <TextInput
+                    accessibilityLabel="Nota de la reserva"
+                    value={f.notaReserva}
+                    onChangeText={(t) => cambiar({ notaReserva: t })}
+                    maxLength={MAX_NOTA_RESERVA}
+                    placeholder="A nombre de David, 21:30"
+                    placeholderTextColor={colors.textSecondary}
+                    autoCapitalize="sentences"
+                    returnKeyType="done"
+                    style={styles.campo}
+                  />
+                ) : null}
+              </Grupo>
+            ) : null}
+
             <Grupo etiqueta="Aviso" rol="radiogroup">
               <FilaChips>
                 {avisos.map((a) => (

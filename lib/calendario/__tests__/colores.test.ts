@@ -210,3 +210,13 @@ describe('contraste (WCAG)', () => {
     expect(contraste(colors.textSecondary, colors.finde)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('planes: granate suave, no los colores de persona', () => {
+  const plan = { tipo: 'plan' as const, categoria: null, asistentes: 'both' as const, emoji: '✈️' };
+  it('el marcador lleva el emoji y el granate suave', () => {
+    expect(marcador(plan, 'menta', 'lavanda')).toMatchObject({ forma: 'insignia', emoji: '✈️', relleno: colors.accentSoft, borde: colors.accent });
+  });
+  it('la banda es granate suave con contorno granate y de un solo color', () => {
+    expect(colorBarra(plan, 'menta', 'lavanda')).toEqual({ relleno: colors.accentSoft, borde: colors.accent, relleno2: null, borde2: null });
+  });
+});

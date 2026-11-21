@@ -17,6 +17,7 @@ import {
   pendienteDeBorrar,
   puntosDelDia,
   resumenDia,
+  textoFechasPlan,
 } from '@/lib/calendario/agrupar';
 import { rangoCorto } from '@/lib/calendario/rejilla';
 
@@ -37,11 +38,11 @@ const construirLista = (p: Parameters<typeof construir>[0]) => construir(p)!;
 const texto = (s: string) => s.replace(/\u00a0/g, ' ');
 
 describe('aElementos', () => {
-  it('descarta los planes y recorta la hora', () => {
-    const l = aElementos([fila({ kind: 'plan', source_id: 'p1' }), fila({ start_time: '21:30:00' })]);
-    expect(l).toHaveLength(1);
-    expect(l[0].hora).toBe('21:30');
-    expect(l[0].todoElDia).toBe(false);
+  it('recorta la hora y trata un plan como un elemento `plan`, no como un evento', () => {
+    const l = aElementos([fila({ kind: 'plan', source_id: 'p1', start_time: null }), fila({ start_time: '21:30:00' })]);
+    expect(l).toHaveLength(2);
+    expect(l.find((e) => e.tipo === 'event')).toMatchObject({ hora: '21:30', todoElDia: false });
+    expect(l.find((e) => e.tipo === 'plan')).toMatchObject({ origenId: 'p1', categoria: null, estado: null });
   });
   it('tolera un servidor sin migrar: sin recurrence, attendees, is_secret ni occurrence_id', () => {
     const [e] = aElementos([fila({ kind: 'payment', status: 'paid', amount_cents: 1299 })]);
@@ -561,5 +562,51 @@ describe('etiqueta accesible de una fila', () => {
     expect(etiquetaAccesible(pago, lineaElemento(pago, ctx), ctx)).toMatch(/^Luz\. .*\. Pago$/);
     const [secreto] = aElementos([fila({ title: 'Sorpresa', is_secret: true, attendees: 'm1' })]);
     expect(etiquetaAccesible(secreto, lineaElemento(secreto, ctx), ctx)).toContain('Secreto, solo tú');
+  });
+});
+
+describe('planes (bandas del Planificador)', () => {
+  const plan = (extra: Partial<FilaRango> = {}) =>
+    fila({ kind: 'plan', source_id: 'p1', title: 'Escapada a Lisboa', icon: '✈️', occurs_on: '2026-12-05', ends_on: '2026-12-08', amount_cents: 90000, ...extra });
+  const [p] = aElementos([plan()]);
+
+  it('guarda emoji, fechas y presupuesto', () => {
+    expect(p).toMatchObject({ tipo: 'plan', emoji: '✈️', inicio: '2026-12-05', fin: '2026-12-08', importeCents: 90000, titulo: 'Escapada a Lisboa' });
+  });
+  it('lo lee como «Planes» en los filtros', () => {
+    expect(claveFiltro(p)).toBe('plan');
+    expect(filtrar([p], ['plan'])).toHaveLength(1);
+    expect(filtrar([p], ['trip'])).toHaveLength(0);
+  });
+  it('se reparte por sus días y su emoji sale solo el primer día, dentro del máximo de 2 glifos', () => {
+    const dias = agruparPorDia([p]);
+    expect(Object.keys(dias)).toEqual(['2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08']);
+    expect(puntosDelDia(dias['2026-12-05']).puntos).toHaveLength(1);
+    expect(puntosDelDia(dias['2026-12-06']).puntos).toHaveLength(0);
+    const [celebracion] = aElementos([plan({ source_id: 'p2', ends_on: '2026-12-05', icon: '🎂' })]);
+    const dia = agruparPorDia([p, celebracion, ...aElementos([fila({ source_id: 'x', occurs_on: '2026-12-05' })])])['2026-12-05'];
+    expect(puntosDelDia(dia)).toMatchObject({ restantes: 1 });
+    expect(puntosDelDia(dia).puntos).toHaveLength(2);
+  });
+  it('se lee «Plan: …, del sábado 5 al martes 8 de diciembre»', () => {
+    expect(textoFechasPlan('2026-12-05', '2026-12-08')).toBe('del sábado 5 al martes 8 de diciembre');
+    expect(textoFechasPlan('2026-11-28', '2026-12-01')).toBe('del sábado 28 de noviembre al martes 1 de diciembre');
+    expect(textoFechasPlan('2026-12-05', '2026-12-05')).toBe('el sábado 5 de diciembre');
+    expect(etiquetaAccesible(p, lineaElemento(p, ctx), ctx)).toBe('Plan: Escapada a Lisboa, del sábado 5 al martes 8 de diciembre');
+  });
+  it('la línea y el resumen del día', () => {
+    const d2 = agruparPorDia([p])['2026-12-06'][0];
+    expect(texto(lineaElemento(d2, ctx))).toBe('Día 2 de 4 · hasta el mar 8 · ~900,00 €');
+    expect(resumenDia([d2])).toBe('Plan: Escapada a Lisboa, día 2 de 4');
+    const [uno] = aElementos([plan({ ends_on: '2026-12-05', amount_cents: null })]);
+    expect(lineaElemento(uno, ctx)).toBe('Todo el día');
+    expect(resumenDia([uno])).toBe('Plan: Escapada a Lisboa');
+  });
+  it('en «Próximos» sale una vez, con los eventos, ordenado: los de varios días primero', () => {
+    const lista = construirLista({
+      vista: 'mes', ancla: '2026-12-01', seleccionado: null, hoy: '2026-12-01', filtros: [],
+      elementos: aElementos([fila({ source_id: 'e9', occurs_on: '2026-12-03', title: 'Cena' }), plan()]),
+    });
+    expect(lista.secciones[0].elementos.map((e) => e.tipo)).toEqual(['event', 'plan']);
   });
 });

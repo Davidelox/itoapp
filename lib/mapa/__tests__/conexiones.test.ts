@@ -1,4 +1,4 @@
-import { avisarSitioPrivado, buscarEnSitios, juntarPlanes, nombreDeSitio, paramsPlanearAqui, preguntarYaHabeisIdo, sitioDeParametro, sitioEnlazado } from '@/lib/mapa/conexiones';
+import { avisarSitioPrivado, buscarEnSitios, juntarPlanes, nombreDeSitio, paramsPlanearAqui, sitioDeParametro, sitioEnlazado } from '@/lib/mapa/conexiones';
 import type { Sitio } from '@/lib/mapa/tipos';
 
 const sitio = (id: string, name: string, address: string | null = null, category: Sitio['category'] = 'restaurant'): Sitio => ({
@@ -38,15 +38,6 @@ describe('nombreDeSitio', () => {
     expect(nombreDeSitio(sitios, 'x')).toBeNull();
     expect(nombreDeSitio(sitios, null)).toBeNull();
     expect(nombreDeSitio(undefined, 'a')).toBeNull();
-  });
-});
-
-describe('preguntarYaHabeisIdo', () => {
-  it('solo en «Quiero ir» con visitas', () => {
-    expect(preguntarYaHabeisIdo('want_to_go', { visit_count: 1 })).toBe(true);
-    expect(preguntarYaHabeisIdo('want_to_go', { visit_count: 0 })).toBe(false);
-    expect(preguntarYaHabeisIdo('been', { visit_count: 3 })).toBe(false);
-    expect(preguntarYaHabeisIdo('want_to_go', null)).toBe(false);
   });
 });
 

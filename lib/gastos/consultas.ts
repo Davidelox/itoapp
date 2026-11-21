@@ -24,7 +24,7 @@ import { supabase } from '@/lib/supabase';
 export { soloCambios };
 
 export const COLUMNAS =
-  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, event_id, event_title_snapshot, place_id, version, created_at, liquidacion:settlements(id, status, method, created_at)';
+  'id, created_by, concept, amount_cents, category, spent_on, paid_by, split_mode, split_pct_m1, share_m1_cents, share_m2_cents, share_pot_cents, visible_to_partner, settlement_id, recurring_occurrence_id, event_id, event_title_snapshot, place_id, plan_id, plan_name_snapshot, plan_icon_snapshot, version, created_at, liquidacion:settlements(id, status, method, created_at), plan:plans(id, name, icon)';
 
 export type Gasto = {
   id: string;
@@ -49,6 +49,12 @@ export type Gasto = {
   event_title_snapshot: string | null;
   /** Sitio del Mapa enlazado; null si no hay o se borró. */
   place_id: string | null;
+  /** Plan del Planificador al que pertenece; null si no tiene o se borró (entonces quedan los `snapshot`). */
+  plan_id: string | null;
+  plan_name_snapshot: string | null;
+  plan_icon_snapshot: string | null;
+  /** El plan vivo (lectura embebida); null si no hay o se borró. */
+  plan: { id: string; name: string; icon: string } | null;
   version: number;
   created_at: string;
   /** Pago que lo cubre (si lo hay). */
@@ -185,6 +191,13 @@ export async function leerTotales(filtros: Filtros): Promise<{ cuantos: number; 
   return fila ? { cuantos: Number(fila.expense_count), totalCents: Number(fila.total_cents) } : null;
 }
 
+/** Todos los gastos de un plan (también los saldados), del más reciente al más antiguo. */
+export async function leerGastosPlan(planId: string): Promise<Gasto[]> {
+  const { data, error } = await ordenar(supabase.from('expenses').select(COLUMNAS).eq('plan_id', planId));
+  if (error) fallo('gastos.plan', error);
+  return (data ?? []) as unknown as Gasto[];
+}
+
 export async function leerGasto(id: string): Promise<Gasto | null> {
   const { data, error } = await supabase.from('expenses').select(COLUMNAS).eq('id', id).maybeSingle();
   if (error) fallo('gastos.uno', error);
@@ -206,12 +219,14 @@ export type DatosGasto = {
   event_id?: string;
   /** Sitio del Mapa (opcional); null lo quita. */
   place_id?: string | null;
+  /** Plan del Planificador (opcional); null lo quita. Un gasto de un plan es siempre compartido (TW066). */
+  plan_id?: string | null;
 };
 
 export { ErrorGasto };
 
 /** Lo que se puede pedir borrar (desde Gastos y desde el Calendario). */
-export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event' | 'place' | 'collection';
+export type TipoBorrable = 'expense' | 'pot_movement' | 'recurring_payment' | 'event' | 'place' | 'collection' | 'plan';
 
 const MENSAJES: Record<string, string> = {
   TW020: 'Algo ha cambiado mientras tanto (un gasto se ha editado, saldado o pedido borrar). Revisa la lista.',
@@ -229,17 +244,21 @@ const MENSAJES: Record<string, string> = {
   TW012: 'El bote común ya no está activado. Elige quién pagó.',
   TW013: 'Solo quien apuntó el gasto puede cambiar su visibilidad.',
   TW014: 'La moneda del gasto no es la de vuestro espacio.',
+  TW066: 'Un gasto de un plan lo veis los dos: no puede ser privado.',
   // Eventos (calendario).
   TW050: 'El evento no puede terminar antes de empezar. Revisa la fecha y la hora.',
   TW051: 'Un evento compartido no se puede volver secreto.',
   TW052: 'El rango de fechas del calendario no es válido.',
   TW064: 'Ese sitio ya no está disponible.',
+  TW067: 'Ese día está fuera de las fechas del plan. Elige uno del plan.',
+  TW069: 'Un evento no puede cambiar de plan. Bórralo y créalo en el otro plan.',
 };
 
 /** Mensajes de TW060 cuando lo que se pide borrar es un evento (en gastos significa «este gasto ya no existe»). */
 const MENSAJES_EVENTO: Record<string, string> = {
   TW060: 'Este evento ya no existe, o no ocurre ese día. Revisa el calendario.',
 };
+const MENSAJES_PLAN: Record<string, string> = { TW060: 'Este plan ya no existe.' };
 const MENSAJES_SITIO: Record<string, string> = { TW060: 'Este sitio ya no existe.' };
 const MENSAJES_COLECCION: Record<string, string> = {
   TW060: 'Esta colección ya no existe.',
@@ -413,7 +432,7 @@ export async function pedirBorrar(
 ): Promise<ResultadoBorrado> {
   const params = { p_id: id, p_type: tipo, p_target_id: gastoId, ...(fecha ? { p_occurrence_date: fecha } : {}) };
   const { data, error } = await supabase.rpc('request_deletion', params);
-  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : tipo === 'place' ? MENSAJES_SITIO : tipo === 'collection' ? MENSAJES_COLECCION : undefined);
+  if (error) throw traducir('gastos.pedirBorrar', error, tipo === 'event' ? MENSAJES_EVENTO : tipo === 'place' ? MENSAJES_SITIO : tipo === 'collection' ? MENSAJES_COLECCION : tipo === 'plan' ? MENSAJES_PLAN : undefined);
   const resultado = resultadoBorrado(data);
   if (resultado) return resultado;
   // cancelled / rejected / expired: el id era de una solicitud ya resuelta.
@@ -450,7 +469,7 @@ export type Pendiente =
       fecha: string | null;
     };
 
-const BORRABLES_EN_TARJETA: TipoBorrable[] = ['expense', 'pot_movement', 'event', 'recurring_payment'];
+const BORRABLES_EN_TARJETA: TipoBorrable[] = ['expense', 'pot_movement', 'event', 'recurring_payment', 'plan'];
 
 /**
  * Tarjetas de Inicio (vista pending_actions): pagos por confirmar, borrados por aprobar, cobros variables,
@@ -511,7 +530,7 @@ export async function leerPendientes(yo: HuecoEvento): Promise<Pendiente[]> {
       if (pago) lista.push({ tipo: 'pago', id: f.item_id, pago });
     } else {
       const solicitud = solsPorId.get(f.item_id);
-      // Gastos, movimientos del bote, eventos y pagos recurrentes: sitios y planes llegarán con sus pestañas.
+      // Gastos, movimientos del bote, eventos, pagos recurrentes y planes: los sitios llegarán con su pestaña.
       if (solicitud && BORRABLES_EN_TARJETA.includes(solicitud.target_type as TipoBorrable)) {
         lista.push({
           tipo: 'borrado',

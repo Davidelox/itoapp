@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
+import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonUbicacion } from '@/components/mapa/BotonUbicacion';
 import { SelectorColecciones } from '@/components/mapa/SelectorColecciones';
 import { SelectorUbicacion } from '@/components/mapa/SelectorUbicacion';
@@ -16,6 +17,7 @@ import { EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, radius } from '@/constants/theme';
+import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { CATEGORIAS_SITIO, INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
@@ -23,7 +25,7 @@ import { PAUSA_BUSQUEDA_MS, type SitioBuscado, textoBuscable } from '@/lib/mapa/
 import { leerCentro, leerParamsGuardar, lineaResultado } from '@/lib/mapa/resultados';
 import { usePosicion } from '@/lib/mapa/usePosicion';
 import { SIN_SELECCION, type Seleccion, pasosGuardado } from '@/lib/mapa/colecciones';
-import { buscarSitios, crearSitio, sitioDeBusqueda } from '@/lib/mapa/consultas';
+import { anadirVisita, buscarSitios, crearSitio, sitioDeBusqueda } from '@/lib/mapa/consultas';
 import { guardarColeccionesDeSitio } from '@/lib/mapa/consultasColecciones';
 import { DELTA_MINIMO, encuadre } from '@/lib/mapa/encuadre';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
@@ -131,6 +133,9 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   const [duplicado, setDuplicado] = useState<Pick<Sitio, 'id' | 'name'> | null>(null);
   // Id fijado al abrir: reintentar tras un fallo de red no duplica el sitio.
   const [id] = useState(() => Crypto.randomUUID());
+  // «Hemos ido»: la fecha de la primera visita (hoy por defecto) y su id, también fijado para los reintentos.
+  const [fechaVisita, setFechaVisita] = useState(() => hoyISO());
+  const [idVisita] = useState(() => Crypto.randomUUID());
   const cambiar = (parcial: Partial<FormularioSitio>) => setF((x) => ({ ...x, ...parcial }));
 
   const errores = validarSitio(f);
@@ -154,6 +159,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
     setError(null);
     try {
       await crearSitio(id, pareja.coupleId, f);
+      if (f.estado === 'been') await anadirVisita(idVisita, pareja.coupleId, id, fechaVisita, '');
       await guardarColeccionesDeSitio(id, pareja.coupleId, pasosGuardado(SIN_SELECCION, seleccion));
       await invalidar();
     } catch (e) {
@@ -307,6 +313,12 @@ function Formulario({ pareja }: { pareja: Pareja }) {
             onCambiar={(estado) => cambiar({ estado })}
           />
         </Grupo>
+
+        {f.estado === 'been' ? (
+          <Grupo etiqueta="¿Cuándo fuisteis?" rol="radiogroup">
+            <SelectorFecha valor={fechaVisita} onCambiar={setFechaVisita} modo="gasto" />
+          </Grupo>
+        ) : null}
 
         {p.otra ? (
           <Interruptor

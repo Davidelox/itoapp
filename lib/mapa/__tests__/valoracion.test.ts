@@ -61,14 +61,13 @@ describe('miNota', () => {
 
 describe('textoEstadisticas', () => {
   it('une las partes con datos', () => {
-    const t = textoEstadisticas({ place_id: 'x', visit_count: 3, total_spent_cents: 14200, next_event_on: '2026-11-20' });
-    expect(t).toContain('Fuisteis 3 veces');
+    const t = textoEstadisticas({ total_spent_cents: 14200, next_event_on: '2026-11-20' });
     expect(t).toContain('142');
     expect(t).toContain('Próximo plan: vie 20');
   });
   it('singular y partes ausentes', () => {
-    expect(textoEstadisticas({ place_id: 'x', visit_count: 1, total_spent_cents: 0, next_event_on: null })).toBe('Fuisteis 1 vez');
-    expect(textoEstadisticas({ place_id: 'x', visit_count: 0, total_spent_cents: 0, next_event_on: null })).toBeNull();
+    expect(textoEstadisticas({ total_spent_cents: 0, next_event_on: '2026-11-20' })).toBe('Próximo plan: vie 20');
+    expect(textoEstadisticas({ total_spent_cents: 0, next_event_on: null })).toBeNull();
     expect(textoEstadisticas(null)).toBeNull();
   });
   it('diaCorto', () => expect(diaCorto('2026-11-22')).toBe('dom 22'));

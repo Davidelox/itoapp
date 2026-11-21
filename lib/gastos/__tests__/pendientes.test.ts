@@ -76,3 +76,11 @@ describe('tituloPendientes y contarPendientes', () => {
     expect(contarPendientes([], new Set())).toBe(0);
   });
 });
+
+describe('borrado de un plan', () => {
+  const plan = borrado({ objetivo: 'plan', objetivoId: 'p1', etiqueta: '🎂 Cumpleaños de Marta' });
+  it('la frase usa la etiqueta del servidor y lo que se queda es el plan', () => {
+    expect(textoCortoPendiente(plan, 'm1', 'Meri')).toBe('Meri quiere borrar «🎂 Cumpleaños de Marta»');
+    expect(cosaBorrada(plan as Extract<Pendiente, { tipo: 'borrado' }>)).toBe('el plan');
+  });
+});

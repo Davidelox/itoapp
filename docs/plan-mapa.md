@@ -1,6 +1,6 @@
 # Plan · Pestaña Mapa
 
-> 2026-11-20 · Parte de `docs/concepto.md` (§Mapa) y `docs/modelo-datos.md` (§3, §8, §16): **el esquema ya existe**
+> 2026-11-20 (visitas y reserva: §12–§13) · Parte de `docs/concepto.md` (§Mapa) y `docs/modelo-datos.md` (§3, §8, §16): **el esquema ya existe**
 > (`places`, `place_notes`, `collections`, `collection_places`, vista `place_stats`, borrado con aprobación de
 > `place`, `events.place_id`, `expenses.place_id`). Este plan solo añade una migración pequeña de seguridad y la app.
 
@@ -219,8 +219,8 @@ tarjeta. Tests: `filtros`.
 - Detalle de evento: sitio con «Cómo llegar» y «Ver en el mapa». Filas del calendario: «· Taberna El Olivo» en la línea
   secundaria (nombre desde la caché de `useSitios`; sin acceso, nada).
 - Ficha: `place_stats` («Fuisteis 3 veces · 142 € · Próximo plan: vie 22»), **«Planear aquí»** →
-  `/calendario/nuevo?fecha=hoy&categoria=<mapeo>&sitio=<id>`, y si `visit_count > 0` y Quiero ir: «¿Ya habéis ido?
-  Marcar Hemos ido». Pin con puntito de calendario si `next_event_on`.
+  `/calendario/nuevo?fecha=hoy&categoria=<mapeo>&sitio=<id>`, y la sugerencia de visita (§12; antes «¿Ya habéis ido?»
+  con `visit_count > 0`). Pin con puntito de calendario si `next_event_on`.
 - Tests: mapeo de categoría, texto de estadísticas, aviso de sitio privado. Sin migración (los guardas están en F1).
 
 **F8 · Mi ubicación (opcional)** — §6. `npx expo install expo-location`. Sin tests nuevos más allá del texto del aviso.
@@ -275,3 +275,28 @@ Reglas, casos y supuestos en `docs/modelo-datos.md` §8 («Borrar una colección
 - **Web**: `react-native-maps` no funciona; el `.web.tsx` evita romper el bundle.
 - **Android en build propia**: necesitará clave «Maps SDK for Android» en `app.json` (en Expo Go no).
 - **Sitio privado en algo compartido**: la pareja ve el evento o el gasto sin sitio; se avisa al enlazarlo (F7).
+
+## 12. Fechas de visita
+
+Modelo y reglas en `docs/modelo-datos.md` §8 bis. Migración `supabase/migrations/20261129000000_visitas_y_reserva.sql`
+(la aplica David; contrato completo en su cabecera).
+
+- **Marcar «Hemos ido»** en la ficha: hoja con la fecha (hoy por defecto, editable) y nota opcional → inserta una visita;
+  el servidor pone el sitio en «Hemos ido». Volver a «Quiero ir» es `update` de `places.status`; las visitas se quedan.
+- **Historial de visitas** en la ficha: «3 visitas · última el 14 nov» (`place_stats.visit_count`, `last_visit_on`) y la
+  lista de `place_visits` (más reciente primero) con «Añadir visita», corregir y quitar (hoja; sin aprobación). Sitio
+  en «Hemos ido» sin visitas: «Sin fecha».
+- **Sugerencia**: si `place_stats.suggested_visit_on` no es null, «¿Fuisteis el vie 14? Añadir visita» (inserta esa
+  fecha). Sustituye a «¿Ya habéis ido? Marcar Hemos ido» de F7.
+- **Inicio**: «Último lugar visitado» = la visita más reciente; sin visitas, se mantiene lo actual con «sin fecha».
+- Tras insertar una visita, recargar el sitio (sube `places.version`). Realtime: añadir `place_visits` a
+  `useTiempoRealMapa` (un `DELETE` llega solo con el id).
+- Errores (`mensajeErrorMapa(error, 'visita')`): `23505` ya hay una ese día, `TW065` fecha futura, `TW064`, `23514`.
+
+## 13. Reserva (Planificador y Calendario)
+
+- `events.reserved` (por defecto `false`) y `events.reservation_note` (≤ 200, p. ej. «A nombre de David, 21:30»). En el
+  formulario y el detalle del evento, también en los eventos del itinerario de un plan y en «Planear aquí».
+- Se leen con `COLUMNAS_EVENTO` (añadirlas **después** de aplicar la migración). `calendar_range` no las devuelve: si
+  la fila del calendario necesita el icono «Reservado», se amplía en una migración propia (exige `drop` + `create`).
+- Las reservas pendientes de un viaje siguen siendo `plan_tasks` con `kind = 'booking'`.

@@ -21,7 +21,7 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 export type FormaMarcador = 'insignia' | 'pago';
 
 /** Nombres de Ionicons (versión rellena) de los glifos del calendario. */
-export type IconoMarcador = 'airplane' | 'restaurant' | 'ticket' | 'calendar' | 'gift';
+export type IconoMarcador = 'airplane' | 'restaurant' | 'ticket' | 'calendar' | 'gift' | 'briefcase';
 
 /** Icono de una opción del menú de filtros: los de la insignia o las monedas del pago. */
 export type IconoFiltro = IconoMarcador | 'pago';
@@ -38,6 +38,8 @@ export type MarcadorSpec = {
   forma: FormaMarcador;
   /** Icono de la insignia (no lo lleva el pago, que dibuja monedas). */
   icono?: IconoMarcador;
+  /** Un plan: su emoji en lugar del icono. */
+  emoji?: string;
   /** Solo en el pago: recurrente (monedas + insignia de bucle) o único (solo monedas). */
   recurrente?: boolean;
   /** Relleno (en una insignia rayada, el de las franjas de m1). */
@@ -53,8 +55,10 @@ export type MarcadorSpec = {
 
 /** Lo que hace falta de un elemento del calendario para elegir su marcador. */
 export type ParaMarcador = {
-  tipo: 'event' | 'payment';
+  tipo: 'event' | 'payment' | 'plan';
   categoria: string | null;
+  /** Solo planes: su emoji. */
+  emoji?: string | null;
   asistentes: 'both' | 'm1' | 'm2';
   /** Solo pagos: cada cuánto se cobra. Sin ella (no se sabe) se pinta como recurrente, que es lo habitual. */
   frecuencia?: Frecuencia | null;
@@ -99,6 +103,10 @@ export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPers
     }
     return { forma: 'pago', recurrente, relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.white };
   }
+  if (e.tipo === 'plan') {
+    // Un plan es de los dos y no lleva color de persona: granate suave con contorno granate (decisión 10 del plan v2).
+    return { forma: 'insignia', icono: 'briefcase', ...(e.emoji ? { emoji: e.emoji } : {}), relleno: colors.accentSoft, borde: colors.accent, tinta: colors.accent };
+  }
   const [uno, dos] = paletasDe(e.asistentes, m1, m2);
   const cumple = e.categoria === 'birthday';
   return {
@@ -127,6 +135,7 @@ export type ColorBarra = { relleno: string; borde: string; relleno2: string | nu
 
 /** Colores de una barra de varios días: uno, o dos (franjas alternas, empezando por m1) si van los dos. */
 export function colorBarra(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null): ColorBarra {
+  if (e.tipo === 'plan') return { relleno: colors.accentSoft, borde: colors.accent, relleno2: null, borde2: null };
   const [uno, dos] = paletasDe(e.asistentes, m1, m2);
   return { relleno: uno.relleno, borde: uno.borde, relleno2: dos?.relleno ?? null, borde2: dos?.borde ?? null };
 }

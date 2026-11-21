@@ -18,7 +18,7 @@ import { type Elemento, type Filtros, agruparPorDia, aElementos, construirLista,
 import { coloresDeHuecos } from '@/lib/calendario/colores';
 import { gastoDeCobro } from '@/lib/calendario/consultas';
 import { DESPLAZAMIENTO_SALIDA, decidirDeslizamiento } from '@/lib/calendario/deslizar';
-import { type Objetivo, filtroParaVer, leerObjetivo } from '@/lib/calendario/destino';
+import { type Objetivo, filtroParaVer, leerObjetivo, rutaDeElemento } from '@/lib/calendario/destino';
 import { sugerenciaNuevo } from '@/lib/calendario/filtros';
 import { type Vista, mismoPeriodo, mover, rangoVisible, semanaDe, semanasDelMes } from '@/lib/calendario/rejilla';
 import { dentroDeLimites, direccionSalto } from '@/lib/calendario/selectorMes';
@@ -260,7 +260,7 @@ export default function Calendario() {
   };
   // La repetición se identifica por su INICIO, no por el día que se ha tocado: un viaje repartido por sus días
   // abre su detalle con la fecha en que empieza, o el servidor rechazaría «solo esta vez» (TW060).
-  const abrirEvento = (e: Elemento) => router.push({ pathname: '/calendario/evento/[id]', params: { id: e.origenId, fecha: e.inicio } });
+  const abrirEvento = (e: Elemento) => router.push(rutaDeElemento(e));
   const abrirLinea = (e: Elemento) => {
     if (arrastrando()) return;
     if (e.tipo === 'payment') abrirPago(e);

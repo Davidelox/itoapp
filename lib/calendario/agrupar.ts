@@ -22,6 +22,7 @@ import {
 } from '@/lib/calendario/evento';
 import { type Repeticion, textoCorto } from '@/lib/calendario/repeticion';
 import {
+  DIAS_SEMANA,
   type Vista,
   diaCorto,
   diaDeMes,
@@ -29,6 +30,7 @@ import {
   diasEntre,
   inicioSemana,
   mismoPeriodo,
+  numeroDia,
   primeroDelMes,
   rangoCorto,
   semanaDe,
@@ -37,7 +39,7 @@ import {
   ultimoDelMes,
 } from '@/lib/calendario/rejilla';
 import { formatearImporte } from '@/lib/dinero/importe';
-import { MESES } from '@/lib/gastos/fechas';
+import { MESES, deISO } from '@/lib/gastos/fechas';
 import type { Frecuencia, Recurrente } from '@/lib/gastos/recurrentes';
 import { esPersonal, textoQuien } from '@/lib/gastos/recurrentes';
 import type { Hueco } from '@/lib/gastos/reparto';
@@ -50,6 +52,8 @@ export type FilaRango = {
   /** Último día de esa repetición (= `occurs_on` si dura un día). */
   ends_on?: string | null;
   title: string;
+  /** Planes: su emoji (`plans.icon`). */
+  icon?: string | null;
   start_time: string | null;
   all_day?: boolean | null;
   amount_cents?: number | null;
@@ -65,9 +69,10 @@ export type FilaRango = {
   place_id?: string | null;
 };
 
-export type Tipo = 'event' | 'payment';
+/** `plan`: la banda de un plan del Planificador (de `plans`; sus eventos de itinerario no salen aquí). */
+export type Tipo = 'event' | 'payment' | 'plan';
 /** Una opción del menú de filtros: opciones que no se solapan y que juntas lo cubren todo («other» = el resto de eventos). */
-export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'other' | 'birthday' | 'payment';
+export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'other' | 'birthday' | 'payment' | 'plan';
 /** Filtros activos en el orden de `OPCIONES_FILTRO`; vacío = todo. Semántica O entre los elegidos. */
 export type Filtros = readonly Filtro[];
 export type EstadoPago = 'scheduled' | 'pending' | 'paid';
@@ -105,6 +110,8 @@ export type Elemento = {
   anioNacimiento: number | null;
   /** Sitio del Mapa enlazado (eventos que no son cumpleaños); la línea de la fila pone su nombre si esta persona lo ve. */
   placeId?: string | null;
+  /** Planes: su emoji (`plans.icon`); en un plan, `importeCents` es su presupuesto. */
+  emoji?: string | null;
   /**
    * Pagos: cada cuánto se cobra (único, mensual, anual) según el recurrente de origen; null si no se sabe (los
    * eventos, o los recurrentes aún sin cargar). `calendar_range` no la devuelve: la pone `aElementos` desde la lista de recurrentes.
@@ -158,13 +165,14 @@ export function ordenar(lista: Elemento[]): Elemento[] {
 }
 
 /**
- * Filas del servidor → elementos. Los planes (`kind = 'plan'`) no se muestran todavía: se descartan.
+ * Filas del servidor → elementos. Un plan (`kind = 'plan'`) es un elemento `plan` con su emoji, sus fechas y, como
+ * importe, su presupuesto.
  * `pagos`: la frecuencia y el dueño en solitario de cada pago recurrente por su id (`calendar_range` no los trae).
  */
 export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoPago>): Elemento[] {
   const lista: Elemento[] = [];
   for (const f of filas) {
-    if (f.kind !== 'event' && f.kind !== 'payment') continue;
+    if (f.kind !== 'event' && f.kind !== 'payment' && f.kind !== 'plan') continue;
     const hora = f.start_time ? f.start_time.slice(0, 5) : null;
     const rec = f.recurrence as Repeticion | null | undefined;
     const categoria =
@@ -191,6 +199,7 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
       categoria,
       anioNacimiento: categoria === 'birthday' && typeof f.birth_year === 'number' ? f.birth_year : null,
       placeId: f.kind === 'event' && categoria !== 'birthday' ? (f.place_id ?? null) : null,
+      emoji: f.kind === 'plan' ? (f.icon ?? null) : null,
       frecuencia: f.kind === 'payment' ? (pagos?.get(f.source_id)?.frecuencia ?? null) : null,
       duenoSolo: f.kind === 'payment' ? (pagos?.get(f.source_id)?.duenoSolo ?? null) : null,
     });
@@ -200,9 +209,10 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
 
 const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'birthday']);
 
-/** A qué opción pertenece un elemento: un pago, «Pagos»; un evento, su categoría (desconocida o sin ella, «Otros»). */
+/** A qué opción pertenece un elemento: un pago, «Pagos»; un plan, «Planes»; un evento, su categoría (desconocida o sin ella, «Otros»). */
 export function claveFiltro(e: Pick<Elemento, 'tipo' | 'categoria'>): Filtro {
   if (e.tipo === 'payment') return 'payment';
+  if (e.tipo === 'plan') return 'plan';
   return e.categoria && CATEGORIAS_FILTRO.has(e.categoria) ? (e.categoria as Filtro) : 'other';
 }
 
@@ -242,16 +252,19 @@ export const MAX_PUNTOS = 2;
 /** ¿Es un cumpleaños? Va en la esquina de la celda y en la info extra de la lista del día, no entre los glifos. */
 export const esCumple = (e: Pick<Elemento, 'tipo' | 'categoria'>): boolean => e.tipo === 'event' && e.categoria === 'birthday';
 
+/** Un plan de varios días enseña su emoji en su primer día (la barra, de 8 px, no lo puede llevar). */
+const llevaGlifo = (e: Elemento): boolean => (!esVariosDias(e) && !esCumple(e)) || (e.tipo === 'plan' && e.diaN === 1);
+
 /**
- * Glifos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras y los
- * cumpleaños, en la esquina: `cumples`), como mucho 2. `restantes`: los glifos que no caben más las barras ocultas
+ * Glifos de un día de la rejilla: uno por elemento de UN día (los de varios días se dibujan como barras, salvo el
+ * emoji de un plan en su primer día, y los cumpleaños, en la esquina: `cumples`), como mucho 2. `restantes`: los glifos que no caben más las barras ocultas
  * (`ocultos`, las que no cabían en los carriles); es el N del «+N». Con 2 o menos se ven todos y no hay «+N». Candado si hay un secreto (también de varios días).
  */
 export function puntosDelDia(
   lista: Elemento[],
   ocultos = 0,
 ): { puntos: Elemento[]; restantes: number; secreto: boolean; cumples: number } {
-  const sueltos = lista.filter((e) => !esVariosDias(e) && !esCumple(e));
+  const sueltos = lista.filter(llevaGlifo);
   return {
     puntos: sueltos.slice(0, MAX_PUNTOS),
     restantes: Math.max(0, sueltos.length - MAX_PUNTOS) + Math.max(0, ocultos),
@@ -267,8 +280,11 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
  * varios días van por su nombre; el resto, contados (un pago, como único o recurrente si se sabe). Vacío si no hay nada.
  */
 export function resumenDia(lista: Elemento[]): string {
-  const varios = lista.filter(esVariosDias).map((e) => `${e.titulo}, día ${e.diaN ?? 1} de ${totalDias(e)}`);
-  const sueltos = lista.filter((e) => !esVariosDias(e));
+  // Los planes, como los de varios días, van por su nombre: «Plan: Lisboa, día 2 de 4».
+  const varios = lista
+    .filter((e) => esVariosDias(e) || e.tipo === 'plan')
+    .map((e) => `${e.tipo === 'plan' ? 'Plan: ' : ''}${e.titulo}${esVariosDias(e) ? `, día ${e.diaN ?? 1} de ${totalDias(e)}` : ''}`);
+  const sueltos = lista.filter((e) => !esVariosDias(e) && e.tipo !== 'plan');
   const cumples = sueltos.filter((e) => e.categoria === 'birthday').length;
   const pagos = sueltos.filter((e) => e.tipo === 'payment');
   const unicos = pagos.filter((e) => e.frecuencia === 'once').length;
@@ -337,6 +353,14 @@ function textoVarios(e: Elemento): string {
   return e.inicio < e.fecha ? `Hasta el ${diaMesCorto(e.fin)}` : rangoCorto(e.inicio, e.fin);
 }
 
+/** «el sábado 5 de diciembre» (un día) o «del sábado 5 al martes 8 de diciembre»: las fechas de un plan, para leerlas. */
+export function textoFechasPlan(inicio: string, fin: string): string {
+  const dia = (iso: string) => `${DIAS_SEMANA[deISO(iso).getDay()].toLowerCase()} ${numeroDia(iso)}`;
+  const mes = (iso: string) => MESES[deISO(iso).getMonth()].toLowerCase();
+  if (fin <= inicio) return `el ${dia(inicio)} de ${mes(inicio)}`;
+  return mes(inicio) === mes(fin) ? `del ${dia(inicio)} al ${dia(fin)} de ${mes(fin)}` : `del ${dia(inicio)} de ${mes(inicio)} al ${dia(fin)} de ${mes(fin)}`;
+}
+
 /** «de tu parte», «de parte de Meri», «de parte de los dos»; null si no hay pareja. */
 export function textoParteDe(e: Elemento, ctx: ContextoLinea): string | null {
   if (ctx.conPareja === false) return null;
@@ -351,6 +375,9 @@ export function textoParteDe(e: Elemento, ctx: ContextoLinea): string | null {
  */
 export function lineaElemento(e: Elemento, ctx: ContextoLinea): string {
   const pendiente = pendienteDeBorrar(e, ctx) ? 'Pendiente de borrar' : null;
+  if (e.tipo === 'plan') {
+    return [esVariosDias(e) ? textoVarios(e) : 'Todo el día', e.importeCents ? `~${formatearImporte(e.importeCents)}` : null, pendiente].filter(Boolean).join(' · ');
+  }
   if (e.tipo === 'event') {
     if (e.categoria === 'birthday') {
       const partes = [textoEdad(e.anioNacimiento, e.inicio), textoParteDe(e, ctx), pendiente].filter(Boolean) as string[];
@@ -377,6 +404,9 @@ export const textoTipoPago = (e: Pick<Elemento, 'frecuencia'>): string =>
 
 /** Etiqueta de accesibilidad de una fila: título, línea, categoría y «Vais los dos» (el color no es lo único que lo dice). */
 export function etiquetaAccesible(e: Elemento, linea: string, ctx: ContextoLinea): string {
+  if (e.tipo === 'plan') {
+    return [`Plan: ${e.titulo}`, textoFechasPlan(e.inicio, e.fin), pendienteDeBorrar(e, ctx) ? 'pendiente de borrar' : null].filter(Boolean).join(', ');
+  }
   const tipo = e.tipo === 'payment' ? textoTipoPago(e) : e.secreto ? 'Secreto, solo tú' : INFO_CATEGORIA_EVENTO[e.categoria ?? 'other'].etiqueta;
   const quien =
     e.tipo === 'event' && e.categoria !== 'birthday' && ctx.conPareja !== false && e.asistentes === 'both'

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -7,58 +8,57 @@ import type { Saldo } from '@/lib/gastos/consultas';
 import { proximaAportacion } from '@/lib/gastos/bote';
 import { fechaCorta } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
+import { textoSaldo } from '@/lib/gastos/textoSaldo';
 import { useAjustesBote } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /**
- * Saldo global (get_balance), con los tres estados de la revisión M3: te debe, debes y estáis en paz.
- * «Saldar» llega en la fase 2.
+ * Saldo global (get_balance), con los tres estados de la revisión M3: te debe, debes y estáis en paz. Misma tarjeta en
+ * Inicio y Gastos; `bote` (Inicio) añade abajo «Bote común · importe», que abre el bote.
  */
-export function TarjetaSaldo({ saldo, pareja, onSaldar }: { saldo: Saldo | null; pareja: Pareja; onSaldar?: () => void }) {
+export function TarjetaSaldo({
+  saldo,
+  pareja,
+  onSaldar,
+  bote,
+}: {
+  saldo: Saldo | null;
+  pareja: Pareja;
+  onSaldar?: () => void;
+  bote?: { cents: number; onAbrir: () => void };
+}) {
   const p = personas(pareja);
   const neto = saldo?.partner_owes_me_cents ?? 0;
   const pendiente = saldo?.awaiting_confirmation_cents ?? 0;
+  const texto = textoSaldo(neto, !!p.otra);
+  const nombre = <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text>;
 
   let cabecera: React.ReactNode;
-  let importe: string | null = null;
-  if (!p.otra && neto === 0) {
+  if (texto.tipo === 'sinPareja') {
     cabecera = (
       <Text style={styles.cabecera}>
         Cuando <Text style={styles.nombre}>tu pareja</Text> se una, aquí veréis quién debe a quién.
       </Text>
     );
-  } else if (neto > 0) {
-    cabecera = (
-      <Text style={styles.cabecera}>
-        <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text> te debe
-      </Text>
-    );
-    importe = formatearImporte(neto);
-  } else if (neto < 0) {
-    cabecera = (
-      <Text style={styles.cabecera}>
-        Debes a <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text>
-      </Text>
-    );
-    importe = formatearImporte(-neto);
+  } else if (texto.tipo === 'teDebe') {
+    cabecera = <Text style={styles.cabecera}>{nombre} te debe</Text>;
+  } else if (texto.tipo === 'debes') {
+    cabecera = <Text style={styles.cabecera}>Debes a {nombre}</Text>;
   } else {
-    cabecera = (
-      <Text style={styles.cabecera}>
-        Saldo con <Text style={[styles.nombre, { color: p.tintaPareja }]}>{p.nombrePareja}</Text>
-      </Text>
-    );
+    cabecera = <Text style={styles.cabecera}>Saldo con {nombre}</Text>;
   }
+  const importe = texto.tipo === 'teDebe' || texto.tipo === 'debes' ? formatearImporte(texto.cents) : texto.tipo === 'enPaz' ? 'Estáis en paz' : null;
 
   // Saldar solo si queda algo sin confirmar (lo pendiente de confirmar ya está en un pago).
   const sinPago = neto - pendiente;
   return (
     <View style={styles.tarjeta}>
       <View style={styles.fila}>
-        {p.otra ? <AvatarPersona nombre={p.nombrePareja} color={p.otra.color} avatarPath={p.otra.avatarPath} tamano={28} /> : null}
-        <View style={styles.textos}>{cabecera}</View>
-      </View>
-      <View style={styles.filaImporte}>
-        {p.otra || neto !== 0 ? <Text style={styles.importe}>{importe ?? 'Estáis en paz'}</Text> : <View />}
+        {p.otra ? <AvatarPersona nombre={p.nombrePareja} color={p.otra.color} avatarPath={p.otra.avatarPath} tamano={44} /> : null}
+        <View style={styles.textos}>
+          {cabecera}
+          {importe ? <Text style={styles.importe}>{importe}</Text> : null}
+        </View>
         {onSaldar && (sinPago !== 0 || (saldo?.open_items ?? 0) > 0) ? (
           <Pressable
             accessibilityRole="button"
@@ -71,6 +71,19 @@ export function TarjetaSaldo({ saldo, pareja, onSaldar }: { saldo: Saldo | null;
       </View>
       {pendiente !== 0 ? (
         <Text style={styles.pendiente}>{formatearImporte(Math.abs(pendiente))} pendientes de confirmar</Text>
+      ) : null}
+      {bote ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Bote común, ${formatearImporte(bote.cents)}`}
+          onPress={bote.onAbrir}
+          style={styles.boteFila}
+        >
+          <Text style={styles.boteFilaTexto}>
+            Bote común · <Text style={styles.boteFilaImporte}>{formatearImporte(bote.cents)}</Text>
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+        </Pressable>
       ) : null}
     </View>
   );
@@ -108,17 +121,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl,
-    paddingVertical: 16,
+    paddingTop: 16,
     paddingHorizontal: 18,
-    gap: 4,
+    paddingBottom: 16,
+    gap: 8,
   },
-  fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  textos: { flex: 1 },
+  fila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  textos: { flex: 1, minWidth: 0 },
   cabecera: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   nombre: { fontFamily: fonts.bodyBold, color: colors.text },
-  importe: { flexShrink: 1, fontFamily: fonts.title, fontSize: 36, lineHeight: 42, color: colors.text },
-  filaImporte: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  importe: { fontFamily: fonts.title, fontSize: 30, lineHeight: 36, color: colors.text },
   saldar: { minHeight: 44, paddingHorizontal: 22, borderRadius: radius.full, backgroundColor: colors.accent, justifyContent: 'center' },
+  boteFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, marginBottom: -6, borderTopWidth: 1, borderTopColor: colors.divider },
+  boteFilaTexto: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
+  boteFilaImporte: { fontFamily: fonts.bodyBold, color: colors.text },
   saldarTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
   pendiente: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   bote: {

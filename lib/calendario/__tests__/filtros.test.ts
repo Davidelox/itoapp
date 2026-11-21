@@ -10,14 +10,14 @@ import {
   sugerenciaNuevo,
 } from '@/lib/calendario/filtros';
 
-const SEIS: Filtro[] = ['trip', 'eating_out', 'leisure', 'other', 'birthday', 'payment'];
+const SEIS: Filtro[] = ['trip', 'eating_out', 'leisure', 'other', 'birthday', 'payment', 'plan'];
 const MENU = { ancho: 224, alto: 320 };
 const VENTANA = { width: 375, height: 812 };
 
 describe('OPCIONES_FILTRO', () => {
-  it('son las 6 opciones, en el orden del menú y sin repetir (sin «Todos» ni «Eventos»)', () => {
+  it('son las 7 opciones, en el orden del menú y sin repetir (sin «Todos» ni «Eventos»)', () => {
     expect(OPCIONES_FILTRO.map((o) => o.valor)).toEqual(SEIS);
-    expect(new Set(OPCIONES_FILTRO.map((o) => o.valor)).size).toBe(6);
+    expect(new Set(OPCIONES_FILTRO.map((o) => o.valor)).size).toBe(7);
   });
   it('cada opción tiene etiqueta e icono', () => {
     for (const o of OPCIONES_FILTRO) {
@@ -36,6 +36,7 @@ describe('etiquetaFiltro', () => {
     expect(etiquetaFiltro('other')).toBe('Otros');
     expect(etiquetaFiltro('birthday')).toBe('Cumpleaños');
     expect(etiquetaFiltro('payment')).toBe('Pagos');
+    expect(etiquetaFiltro('plan')).toBe('Planes');
   });
 });
 
@@ -120,5 +121,15 @@ describe('posicionMenu', () => {
     const m = { ancho: 296, alto: 312 };
     expect(posicionMenu({ x: 0, y: 120, width: 60, height: 40 }, VENTANA, m, 8, 'centro').left).toBe(8);
     expect(posicionMenu({ x: 320, y: 120, width: 60, height: 40 }, VENTANA, m, 8, 'centro').left).toBe(375 - 296 - 8);
+  });
+});
+
+describe('filtro «Planes»', () => {
+  it('tiene el maletín, se marca con otros y no sugiere tipo para «Añadir evento»', () => {
+    expect(OPCIONES_FILTRO.find((o) => o.valor === 'plan')?.icono).toBe('briefcase');
+    expect(alternarFiltro(['payment'], 'plan')).toEqual(['payment', 'plan']);
+    expect(quitarFiltro(['trip', 'plan'], 'plan')).toEqual(['trip']);
+    expect(resumenFiltros(['trip', 'plan'])).toBe('Viajes y Planes');
+    expect(sugerenciaNuevo(['plan'])).toEqual({});
   });
 });

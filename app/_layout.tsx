@@ -112,6 +112,9 @@ function Navegacion() {
           <Stack.Screen name="mapa/coleccion/nueva" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="mapa/coleccion/[id]/index" />
           <Stack.Screen name="mapa/coleccion/[id]/editar" />
+          <Stack.Screen name="planificador/nuevo" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="planificador/[id]/index" />
+          <Stack.Screen name="planificador/[id]/editar" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="laboratorio/index" />
           {/* Sin animación de pila: la transición la hace el hilo (components/hilo/TirarDelHilo.tsx). */}
           <Stack.Screen name="laboratorio/detalle" options={{ animation: 'none' }} />

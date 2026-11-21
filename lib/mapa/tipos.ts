@@ -23,12 +23,16 @@ export type Sitio = {
   place_notes: NotaSitio[];
 };
 
-/** Fila de la vista `place_stats` (la ficha: visitas, gastado y próximo plan). */
+/** Fila de la vista `place_stats` (la ficha: visitas apuntadas, gastado y próximo plan). */
 export type EstadisticasSitio = {
   place_id: string;
   visit_count: number;
   total_spent_cents: number;
   next_event_on: string | null;
+  /** Fecha de la última visita apuntada (`place_visits`), o null. */
+  last_visit_on: string | null;
+  /** Fecha de un evento ya terminado o un gasto del sitio posterior a la última visita: «¿Fuisteis el vie 14?». */
+  suggested_visit_on: string | null;
 };
 
 /** Fila de `collections` (el icono es un emoji, 1 a 16 caracteres). `plan_id`: colección automática de un plan. */

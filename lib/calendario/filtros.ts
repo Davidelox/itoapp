@@ -10,8 +10,8 @@ export type { IconoFiltro };
 export type OpcionFiltro = { valor: Filtro; etiqueta: string; icono: IconoFiltro };
 
 /**
- * Viajes · Comer fuera · Ocio · Otros · Cumpleaños · Pagos: opciones que no se solapan y que juntas lo cubren todo;
- * se pueden marcar varias (O entre ellas). «Otros» son los eventos sin categoría propia. «Planes» llegará con el Planificador.
+ * Viajes · Comer fuera · Ocio · Otros · Cumpleaños · Pagos · Planes: opciones que no se solapan y que juntas lo cubren
+ * todo; se pueden marcar varias (O entre ellas). «Otros» son los eventos sin categoría propia; «Planes», los del Planificador.
  */
 export const OPCIONES_FILTRO: readonly OpcionFiltro[] = [
   { valor: 'trip', etiqueta: 'Viajes', icono: 'airplane' },
@@ -20,6 +20,7 @@ export const OPCIONES_FILTRO: readonly OpcionFiltro[] = [
   { valor: 'other', etiqueta: 'Otros', icono: 'calendar' },
   { valor: 'birthday', etiqueta: 'Cumpleaños', icono: 'gift' },
   { valor: 'payment', etiqueta: 'Pagos', icono: 'pago' },
+  { valor: 'plan', etiqueta: 'Planes', icono: 'briefcase' },
 ];
 
 /** Nombre de un filtro («Viajes»). */

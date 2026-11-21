@@ -19,6 +19,7 @@ import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, type Pendiente, responderBorrado, responderPago } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { contarPendientes, cosaBorrada, descripcionBorrado } from '@/lib/gastos/pendientes';
+import { QuienPagoEnLinea } from '@/components/inicio/QuienPagoEnLinea';
 import { RecuadroPendientes } from '@/components/inicio/RecuadroPendientes';
 import { COMO_METODO } from '@/lib/gastos/saldar';
 import { useInvalidarGastos, usePendientes } from '@/lib/gastos/useGastos';
@@ -198,6 +199,8 @@ function Tarjeta({
           pathname: '/calendario/evento/[id]',
           params: { id: pendiente.objetivoId, ...(pendiente.fecha ? { fecha: pendiente.fecha } : {}) },
         });
+      } else if (pendiente.objetivo === 'plan') {
+        router.push({ pathname: '/planificador/[id]', params: { id: pendiente.objetivoId } });
       } else if (pendiente.objetivo === 'recurring_payment') {
         router.push({ pathname: '/gastos/recurrente/[id]', params: { id: pendiente.objetivoId } });
       } else if (g) {
@@ -232,6 +235,26 @@ function Tarjeta({
         <Text style={styles.resultado} accessibilityLiveRegion="polite">
           {resultado}
         </Text>
+      ) : pendiente.tipo === 'quienPago' && !pendiente.evento.is_secret ? (
+        <>
+          <QuienPagoEnLinea
+            evento={{
+              id: pendiente.evento.id,
+              title: pendiente.evento.title,
+              budget_cents: pendiente.evento.budget_cents,
+              is_secret: pendiente.evento.is_secret,
+              fecha: pendiente.evento.start_date,
+              category: pendiente.evento.category,
+            }}
+            pareja={pareja}
+            deshabilitado={ocupado}
+            onMas={() => setApuntando(true)}
+            onHecho={(texto) => onResuelta(pendiente, texto)}
+          />
+          <Pressable accessibilityRole="button" disabled={ocupado} onPress={no.accion} style={styles.sinGasto}>
+            <Text style={styles.sinGastoTexto}>No hubo gasto</Text>
+          </Pressable>
+        </>
       ) : (
         <View style={styles.botones}>
           <Pressable
@@ -316,5 +339,7 @@ const styles = StyleSheet.create({
   botonSiTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
   botonNoTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   apagado: { opacity: 0.5 },
+  sinGasto: { minHeight: 36, alignItems: 'center', justifyContent: 'center', marginTop: -6 },
+  sinGastoTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   resultado: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingVertical: 10 },
 });

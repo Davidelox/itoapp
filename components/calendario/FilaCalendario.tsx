@@ -8,7 +8,7 @@ import type { MarcadorSpec } from '@/lib/calendario/colores';
 import { INFO_CATEGORIA_EVENTO, type IconoCalendario } from '@/lib/calendario/evento';
 import { abreviaturaDia, numeroDia } from '@/lib/calendario/rejilla';
 
-type EtiquetaFila = { texto: string; fondo: string; tinta: string; icono: IconoCalendario | 'lock-closed' | null };
+type EtiquetaFila = { texto: string; fondo: string; tinta: string; icono: IconoCalendario | 'lock-closed' | 'briefcase-outline' | null };
 
 /**
  * Chip de la derecha: la categoría en gris neutro («Viaje», «Comer fuera», «Ocio», «Evento»), el pago en naranja,
@@ -16,6 +16,7 @@ type EtiquetaFila = { texto: string; fondo: string; tinta: string; icono: IconoC
  */
 function etiquetaDe(e: Elemento): EtiquetaFila {
   if (e.secreto) return { texto: 'Secreto · solo tú', fondo: colors.eventChip, tinta: colors.eventChipText, icono: 'lock-closed' };
+  if (e.tipo === 'plan') return { texto: 'Plan', fondo: colors.accentSoft, tinta: colors.accent, icono: 'briefcase-outline' };
   if (e.tipo === 'payment') return { texto: 'Pago', fondo: colors.pagoChip, tinta: colors.pagoChipTexto, icono: 'card-outline' };
   if (e.categoria === 'birthday') return { texto: 'Cumpleaños', fondo: colors.cumpleChip, tinta: colors.cumpleChipTexto, icono: 'gift-outline' };
   const info = INFO_CATEGORIA_EVENTO[e.categoria ?? 'other'];

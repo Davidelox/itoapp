@@ -6,6 +6,7 @@ import { formatearImporte } from '@/lib/dinero/importe';
 import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import type { Gasto } from '@/lib/gastos/consultas';
 import { fechaCorta } from '@/lib/gastos/fechas';
+import { lineaPlan, planDe } from '@/lib/gastos/planes';
 import { personas } from '@/lib/gastos/personas';
 import { etiquetaReparto } from '@/lib/gastos/reparto';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
@@ -27,21 +28,22 @@ export function textoPagador(gasto: Gasto, pareja: Pareja) {
   return { texto: `Pagó ${p.nombrePareja}`, color: p.tintaPareja };
 }
 
-type Props = { gasto: Gasto; pareja: Pareja; conFecha?: boolean; onPress: () => void; separador?: boolean };
+type Props = { gasto: Gasto; pareja: Pareja; conFecha?: boolean; onPress: () => void; separador?: boolean; /** Dentro del propio plan, la línea del plan sobra. */ ocultarPlan?: boolean };
 
 /** Fila de la lista de gastos (mockups Gastos e Historial). */
-export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador = false }: Props) {
+export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador = false, ocultarPlan = false }: Props) {
   const p = personas(pareja);
   const pagador = textoPagador(gasto, pareja);
   const reparto = etiquetaReparto(gasto.split_mode, p.yo.slot, gasto.split_pct_m1, p.nombrePareja);
   const categoria = INFO_CATEGORIA[gasto.category].nombre;
+  const plan = ocultarPlan ? null : planDe(gasto);
   const inicio = conFecha ? `${fechaCorta(gasto.spent_on)} · ${categoria}` : categoria;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${gasto.concept}, ${formatearImporte(gasto.amount_cents)}. ${inicio}. ${pagador.texto}, ${reparto}.${
         gasto.visible_to_partner ? '' : ' Solo lo ves tú.'
-      }`}
+      }${plan ? ` Plan: ${plan.nombre}.` : ''}`}
       onPress={onPress}
       style={({ pressed }) => [styles.fila, separador && styles.separador, pressed && styles.pulsada]}
     >
@@ -53,6 +55,11 @@ export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador 
         <Text style={styles.detalle} numberOfLines={1}>
           {inicio} · <Text style={[styles.pagador, { color: pagador.color }]}>{pagador.texto}</Text> · {reparto}
         </Text>
+        {plan ? (
+          <Text style={styles.privadoTexto} numberOfLines={1} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            {lineaPlan(plan)}
+          </Text>
+        ) : null}
         {gasto.liquidacion ? (
           <View style={styles.privado}>
             <Ionicons name={gasto.liquidacion.status === 'confirmed' ? 'checkmark-circle-outline' : 'time-outline'} size={12} color={colors.textSecondary} />

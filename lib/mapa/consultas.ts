@@ -8,6 +8,7 @@ import { type PlanEnSitio, juntarPlanes } from '@/lib/mapa/conexiones';
 import { filaNueva } from '@/lib/mapa/sitio';
 import type { FormularioSitio } from '@/lib/mapa/sitio';
 import type { EstadisticasSitio, Sitio } from '@/lib/mapa/tipos';
+import { type Visita, notaDeVisita } from '@/lib/mapa/visitas';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 
@@ -26,7 +27,7 @@ export async function leerSitios(): Promise<Sitio[]> {
 export async function leerEstadisticas(id: string): Promise<EstadisticasSitio | null> {
   const { data, error } = await supabase
     .from('place_stats')
-    .select('place_id, visit_count, total_spent_cents, next_event_on')
+    .select('place_id, visit_count, total_spent_cents, next_event_on, last_visit_on, suggested_visit_on')
     .eq('place_id', id)
     .maybeSingle();
   if (error) {
@@ -61,9 +62,9 @@ export async function leerPlanesDeSitio(id: string): Promise<PlanEnSitio[]> {
 }
 
 /** Error del servidor → `ErrorGasto` (mensaje listo y código) para que lo muestren los formularios y `BorrarGasto`. */
-function traducir(contexto: string, error: unknown): ErrorGasto {
+function traducir(contexto: string, error: unknown, tipo: 'sitio' | 'visita' = 'sitio'): ErrorGasto {
   registrarError(contexto, error);
-  return new ErrorGasto(mensajeErrorMapa(error), (error as { code?: string } | null)?.code);
+  return new ErrorGasto(mensajeErrorMapa(error, tipo), (error as { code?: string } | null)?.code);
 }
 
 /** Alta idempotente: el id lo genera la app, así un reintento tras un fallo de red no duplica el sitio. */
@@ -86,6 +87,69 @@ export async function editarSitio(
   if (!data || data.length === 0) {
     throw new ErrorGasto(`${nombrePareja} acaba de cambiar este sitio. Revísalo y vuelve a intentarlo.`, 'version');
   }
+}
+
+// -----------------------------------------------------------------------------
+// Visitas (docs/plan-mapa.md §12): escritura directa, sin aprobación. Añadir una visita pone el sitio en «Hemos ido»
+// en el servidor (sube `places.version`): después hay que recargar el sitio antes de editarlo.
+// -----------------------------------------------------------------------------
+
+/** Historial de visitas de un sitio, la más reciente primero. */
+export async function leerVisitas(placeId: string): Promise<Visita[]> {
+  const { data, error } = await supabase
+    .from('place_visits')
+    .select('id, visited_on, note, created_by, version')
+    .eq('place_id', placeId)
+    .order('visited_on', { ascending: false });
+  if (error) {
+    registrarError('mapa.visitas', error);
+    throw error;
+  }
+  return (data ?? []) as Visita[];
+}
+
+/** La visita más reciente de todos los sitios que ve esta persona (la RLS oculta los privados de la pareja), o null. */
+export async function leerUltimaVisita(): Promise<{ place_id: string; visited_on: string } | null> {
+  const { data, error } = await supabase
+    .from('place_visits')
+    .select('place_id, visited_on')
+    .order('visited_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) {
+    registrarError('mapa.ultimaVisita', error);
+    throw error;
+  }
+  return ((data ?? [])[0] as { place_id: string; visited_on: string } | undefined) ?? null;
+}
+
+/**
+ * Apunta una visita. El id lo genera la app (un reintento no la duplica). `23505` (ya había una ese día, quizá de
+ * vuestra pareja) cuenta como hecho: el resultado es el que se quería.
+ */
+export async function anadirVisita(id: string, coupleId: string, placeId: string, fecha: string, nota: string): Promise<void> {
+  const { error } = await supabase
+    .from('place_visits')
+    .upsert({ id, couple_id: coupleId, place_id: placeId, visited_on: fecha, note: notaDeVisita(nota) }, { onConflict: 'id', ignoreDuplicates: true });
+  if (error && (error as { code?: string }).code !== '23505') throw traducir('mapa.anadirVisita', error, 'visita');
+}
+
+/** Corrige la fecha o la nota de una visita, con control de versión (0 filas: la pareja la cambió o la quitó). */
+export async function corregirVisita(id: string, version: number, fecha: string, nota: string, nombrePareja: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('place_visits')
+    .update({ visited_on: fecha, note: notaDeVisita(nota) })
+    .eq('id', id)
+    .eq('version', version)
+    .select('id');
+  if (error) throw traducir('mapa.corregirVisita', error, 'visita');
+  if (!data || data.length === 0) throw new ErrorGasto(`${nombrePareja} acaba de cambiar esta visita. Revísala y vuelve a intentarlo.`, 'version');
+}
+
+/** Quita una visita (directo, sin solicitud de borrado). Quitar una que ya no existe no es un error. */
+export async function quitarVisita(id: string): Promise<void> {
+  const { error } = await supabase.from('place_visits').delete().eq('id', id);
+  if (error) throw traducir('mapa.quitarVisita', error, 'visita');
 }
 
 /**

@@ -191,3 +191,14 @@ describe('lineaSemana', () => {
     expect(p).toMatchObject({ titulo: 'Roma · hasta el vie 18', hora: null, derecha: null });
   });
 });
+
+describe('planes en la Semana', () => {
+  const [p] = del([fila({ kind: 'plan', source_id: 'p1', title: 'Escapada a Lisboa', icon: '✈️', occurs_on: '2026-12-15', ends_on: '2026-12-17' })]);
+  it('lleva barra y una línea con «hasta», que se lee como plan', () => {
+    const { filas, segmentos } = filasSemana(DIAS, [p], opciones);
+    expect(segmentos).toHaveLength(1);
+    const l = filas[1].lineas[0];
+    expect(l.sufijo).toBe('hasta el jue 17');
+    expect(lineaSemana(l, ctx)).toMatchObject({ titulo: 'Escapada a Lisboa · hasta el jue 17', etiqueta: 'Plan: Escapada a Lisboa, del martes 15 al jueves 17 de diciembre' });
+  });
+});

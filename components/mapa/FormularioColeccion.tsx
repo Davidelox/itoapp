@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SelectorIcono } from '@/components/SelectorIcono';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { Grupo, Interruptor } from '@/components/gastos/Controles';
-import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { SitiosMarcables } from '@/components/mapa/SitiosMarcables';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
@@ -16,11 +16,9 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import {
-  EMOJIS_SUGERIDOS,
   MAX_NOMBRE_COLECCION,
   esDePlan,
   hayErroresColeccion,
-  primerEmoji,
   puedeCambiarVisibilidad,
   validarColeccion,
 } from '@/lib/mapa/colecciones';
@@ -46,7 +44,6 @@ export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { parej
   const editando = !!coleccion;
   const [nombre, setNombre] = useState(coleccion?.name ?? '');
   const [icono, setIcono] = useState(coleccion?.icon ?? ICONO_INICIAL);
-  const [otroAbierto, setOtroAbierto] = useState(false);
   const [elegidos, setElegidos] = useState<string[]>(() => (sitioInicial ? [sitioInicial] : []));
   const [visible, setVisible] = useState(coleccion?.visible_to_partner ?? true);
   const [intentado, setIntentado] = useState(false);
@@ -56,8 +53,6 @@ export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { parej
   const [id] = useState(() => coleccion?.id ?? Crypto.randomUUID());
 
   const errores = validarColeccion({ nombre, icono });
-  const esSugerido = EMOJIS_SUGERIDOS.some((e) => e.emoji === icono);
-  const otroMarcado = otroAbierto || !esSugerido;
   const puedeVisibilidad = !editando || puedeCambiarVisibilidad(coleccion, pareja.yo.userId);
 
   const cerrar = () => (router.canGoBack() ? router.back() : router.replace('/mapa'));
@@ -126,55 +121,7 @@ export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { parej
               <MensajeError texto={intentado ? errores.nombre : null} />
             </Grupo>
 
-            <Grupo etiqueta="Icono de la colección" rol="radiogroup">
-              <View style={styles.rejilla}>
-                {EMOJIS_SUGERIDOS.map((e) => {
-                  const on = e.emoji === icono && !otroAbierto;
-                  return (
-                    <Pressable
-                      key={e.emoji}
-                      accessibilityRole="radio"
-                      accessibilityState={{ checked: on }}
-                      accessibilityLabel={e.nombre}
-                      onPress={() => {
-                        setIcono(e.emoji);
-                        setOtroAbierto(false);
-                      }}
-                      style={[styles.emoji, on && styles.emojiOn]}
-                    >
-                      <EmojiIcono emoji={e.emoji} size={26} />
-                    </Pressable>
-                  );
-                })}
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: otroMarcado }}
-                  accessibilityLabel={!esSugerido ? `Otro icono: ${icono}` : 'Otro icono'}
-                  onPress={() => setOtroAbierto(true)}
-                  style={[styles.emoji, otroMarcado && styles.emojiOn]}
-                >
-                  {otroMarcado && !esSugerido ? <EmojiIcono emoji={icono} size={26} /> : <Text style={styles.otro}>{!esSugerido ? icono : 'Otro…'}</Text>}
-                </Pressable>
-              </View>
-              {otroAbierto || !esSugerido ? (
-                <View style={styles.otroCaja}>
-                  <Text style={styles.nota}>Abre el teclado de emojis de tu móvil y elige el que quieras.</Text>
-                  <TextInput
-                    accessibilityLabel="Icono personalizado"
-                    value={esSugerido ? '' : icono}
-                    onChangeText={(t) => {
-                      const e = primerEmoji(t);
-                      if (e) setIcono(e);
-                    }}
-                    autoFocus={otroAbierto && esSugerido}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                    style={[styles.campo, styles.campoEmoji]}
-                  />
-                </View>
-              ) : null}
-              <MensajeError texto={intentado ? errores.icono : null} />
-            </Grupo>
+            <SelectorIcono etiqueta="Icono de la colección" valor={icono} onCambiar={setIcono} error={intentado ? errores.icono : null} />
 
             <Grupo etiqueta="Así se verá en el mapa">
               <View style={styles.vista}>
@@ -230,13 +177,7 @@ const styles = StyleSheet.create({
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
   campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-  campoEmoji: { fontSize: 24, textAlign: 'center' },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  emoji: { width: '23%', flexGrow: 1, height: 52, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.inputBorder, alignItems: 'center', justifyContent: 'center' },
-  emojiOn: { borderWidth: 2, borderColor: colors.text },
-  otro: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
-  otroCaja: { gap: 6 },
   vista: { flexDirection: 'row', justifyContent: 'space-around', padding: 16, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
   vistaPin: { alignItems: 'center', gap: 6 },
   pie: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },

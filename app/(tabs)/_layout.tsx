@@ -6,6 +6,7 @@ import { TabBarHilo } from '@/components/hilo/TabBarHilo';
 import { colors } from '@/constants/theme';
 import { useTiempoRealGastos } from '@/lib/gastos/useGastos';
 import { useTiempoRealMapa } from '@/lib/mapa/useSitios';
+import { useTiempoRealPlanificador } from '@/lib/planificador/usePlanificador';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -21,6 +22,7 @@ export default function TabsLayout() {
   // Las pestañas siguen montadas debajo del detalle y del formulario: el canal vive aquí.
   useTiempoRealGastos();
   useTiempoRealMapa();
+  useTiempoRealPlanificador();
   return (
     <Tabs
       tabBar={(props) => <TabBarHilo {...props} />}

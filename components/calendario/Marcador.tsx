@@ -1,5 +1,5 @@
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 
 import type { MarcadorSpec } from '@/lib/calendario/colores';
@@ -64,7 +64,13 @@ function Insignia({ marcador, tamano }: { marcador: MarcadorSpec; tamano: number
         )}
       </Svg>
       <View style={styles.centro}>
-        <Ionicons name={marcador.icono ?? 'calendar'} size={Math.round(tamano * 0.62)} color={marcador.tinta} />
+        {marcador.emoji ? (
+          <Text allowFontScaling={false} style={{ fontSize: Math.round(tamano * 0.58), lineHeight: Math.round(tamano * 0.72) }}>
+            {marcador.emoji}
+          </Text>
+        ) : (
+          <Ionicons name={marcador.icono ?? 'calendar'} size={Math.round(tamano * 0.62)} color={marcador.tinta} />
+        )}
       </View>
     </>
   );

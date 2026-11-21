@@ -1,6 +1,6 @@
 /** Conexiones del Mapa con el Calendario y los Gastos (docs/plan-mapa.md F7). Sin red ni React. */
 import { CATEGORIA_CALENDARIO } from '@/lib/mapa/categorias';
-import type { EstadisticasSitio, Sitio } from '@/lib/mapa/tipos';
+import type { Sitio } from '@/lib/mapa/tipos';
 
 /** Texto sin mayúsculas ni tildes, para buscar «cafe» y encontrar «Café». */
 const plano = (t: string): string =>
@@ -21,10 +21,6 @@ export function buscarEnSitios(sitios: Sitio[], texto: string): Sitio[] {
 /** Nombre del sitio enlazado, o null si no se ve (sin sitio, borrado o privado de la pareja). */
 export const nombreDeSitio = (sitios: Sitio[] | undefined, id: string | null): string | null =>
   (id && sitios?.find((s) => s.id === id)?.name) || null;
-
-/** «¿Ya habéis ido?»: sigue en «Quiero ir» pero hay un plan o gasto pasado enlazado (`visit_count`). */
-export const preguntarYaHabeisIdo = (estado: Sitio['status'], stats: Pick<EstadisticasSitio, 'visit_count'> | null | undefined): boolean =>
-  estado === 'want_to_go' && !!stats && stats.visit_count > 0;
 
 /** Parámetros de `/calendario/nuevo` para «Planear aquí»: hoy, categoría equivalente y el sitio ya elegido. */
 export function paramsPlanearAqui(sitio: Pick<Sitio, 'id' | 'category'>, hoy: string): { fecha: string; categoria: string; sitio: string } {

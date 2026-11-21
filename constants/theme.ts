@@ -86,7 +86,7 @@ export const fonts = {
   body: 'DMSans_400Regular',
   bodyMedium: 'DMSans_500Medium',
   bodyBold: 'DMSans_700Bold',
-  /** Damion: solo para el logotipo de ito; no usar en textos de la app. */
+  /** Damion: logotipo de ito y títulos de cabecera de las pestañas. */
   brand: 'Damion_400Regular',
 } as const;
 

@@ -16,6 +16,7 @@ import {
   TAM_PAGINA,
   leerAjustes,
   leerGasto,
+  leerGastosPlan,
   leerPagina,
   leerSaldo,
   leerTotales,
@@ -63,6 +64,13 @@ export function useGasto(id: string | undefined) {
   const { pareja } = useEstado();
   const k = useClave();
   return useQuery({ queryKey: k('uno', id), queryFn: () => leerGasto(id as string), enabled: !!pareja && !!id });
+}
+
+/** Gastos de un plan (todos, también los saldados): sale en el detalle del plan. */
+export function useGastosPlan(planId: string | undefined) {
+  const { pareja } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('plan', planId), queryFn: () => leerGastosPlan(planId as string), enabled: !!pareja && !!planId });
 }
 
 export function useHistorial(filtros: Filtros) {
@@ -189,6 +197,8 @@ export function useInvalidarGastos() {
       cliente.invalidateQueries({ queryKey: clave(pareja?.coupleId) }),
       // El calendario también enseña pagos recurrentes y gastos: se recarga con lo demás.
       cliente.invalidateQueries({ queryKey: ['calendario', pareja?.coupleId ?? 'ninguna'] }),
+      // Lo gastado de un plan (`plan_summaries`) sale del Planificador.
+      cliente.invalidateQueries({ queryKey: ['planificador', pareja?.coupleId ?? 'ninguna'] }),
     ]);
   };
 }

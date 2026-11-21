@@ -12,6 +12,8 @@ import { diaMesCorto, rangoCorto } from '@/lib/calendario/rejilla';
 import { ErrorGasto, type TipoBorrable, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { useInvalidarGastos, useSolicitudBorrado } from '@/lib/gastos/useGastos';
+import { ayudaBorradoPlanPendiente, textoBorrarPlan } from '@/lib/planificador/borrado';
+import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
 import { avisoBorradoColeccion, textoHojaBorrarColeccion, type PrevisionBorrado } from '@/lib/mapa/borradoColeccion';
 import { previsionBorrarColeccion } from '@/lib/mapa/consultasColecciones';
 import { useInvalidarMapa, useQuitarColeccionDeCache } from '@/lib/mapa/useSitios';
@@ -65,9 +67,12 @@ export function BorrarGasto({
   const invalidarGastos = useInvalidarGastos();
   const invalidarMapa = useInvalidarMapa();
   const quitarColeccionDeCache = useQuitarColeccionDeCache();
+  const invalidarPlanificador = useInvalidarPlanificador();
   // Las colecciones son del Mapa: mismo refresco, misma pantalla de vuelta y mismo texto de «Sigue en el mapa».
   const esSitio = tipo === 'place' || tipo === 'collection';
-  const invalidar = () => (esSitio ? invalidarMapa() : invalidarGastos());
+  const esPlan = tipo === 'plan';
+  // Un plan toca el Planificador, el calendario (su banda), el mapa (su colección) y los gastos (lo gastado).
+  const invalidar = () => (esPlan ? Promise.all([invalidarPlanificador(), invalidarGastos()]) : esSitio ? invalidarMapa() : invalidarGastos());
   const esEvento = tipo === 'event';
   const esColeccion = tipo === 'collection';
   const [prevision, setPrevision] = useState<PrevisionBorrado | null>(null);
@@ -75,7 +80,7 @@ export function BorrarGasto({
   const serie = useSolicitudBorrado(gasto.id, tipo, null);
   const delDia = useSolicitudBorrado(gasto.id, tipo, ofreceDia ? fecha : null);
   const solicitud = { data: serie.data ?? (ofreceDia ? delDia.data : null) };
-  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : tipo === 'collection' ? 'colección' : esSitio ? 'sitio' : 'gasto');
+  const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : tipo === 'collection' ? 'colección' : esSitio ? 'sitio' : esPlan ? 'plan' : 'gasto');
   const p = personas(pareja);
   // Hoja de borrado: «alcance» (solo eventos repetidos) y «confirmar».
   const [paso, setPaso] = useState<'alcance' | 'confirmar' | null>(null);
@@ -103,7 +108,13 @@ export function BorrarGasto({
     setPaso('confirmar');
   };
 
-  const volver = () => (router.canGoBack() ? router.back() : router.replace(esEvento ? '/calendario' : esColeccion ? '/mapa/colecciones' : esSitio ? '/mapa' : '/gastos'));
+  // Un plan borrado vuelve a la lista del Planificador (su detalle ya no existe), no a Gastos.
+  const volver = () =>
+    esPlan
+      ? router.dismissTo('/planificador')
+      : router.canGoBack()
+        ? router.back()
+        : router.replace(esEvento ? '/calendario' : esColeccion ? '/mapa/colecciones' : esSitio ? '/mapa' : '/gastos');
   const accion = async (f: () => Promise<boolean | void>) => {
     setOcupado(true);
     setError(null);
@@ -144,7 +155,9 @@ export function BorrarGasto({
             Pendiente de borrar · esperando a <Text style={{ color: p.tintaPareja }}>{p.nombrePareja}</Text>
           </Text>
           <Text style={styles.bandaAyuda}>
-            {tipo === 'recurring_payment'
+            {esPlan
+              ? ayudaBorradoPlanPendiente(p.nombrePareja)
+              : tipo === 'recurring_payment'
               ? `Se sigue apuntando hasta que ${p.nombrePareja} lo apruebe.`
               : esEvento
                 ? `${soloDia}Sigue en el calendario hasta que ${p.nombrePareja} lo apruebe.`
@@ -155,7 +168,7 @@ export function BorrarGasto({
           <MensajeError texto={error} />
         </View>
         <Pressable accessibilityRole="button" disabled={ocupado} onPress={() => accion(() => retirarBorrado(s.id))} style={styles.bandaBoton}>
-          <Text style={styles.bandaEnlace}>Retirar</Text>
+          <Text style={styles.bandaEnlace}>{esPlan ? 'Retirar solicitud' : 'Retirar'}</Text>
         </Pressable>
       </View>
     );
@@ -184,17 +197,18 @@ export function BorrarGasto({
   // La fecha concreta que se borra (solo un evento repetido, si se ha elegido «Solo el …»); null = todo.
   const diaElegido = esEvento && alcance === 'dia' ? fecha : null;
   const hojaColeccion = esColeccion ? textoHojaBorrarColeccion(prevision, nombre ?? gasto.name ?? 'colección', p.nombrePareja) : null;
+  const textosPlan = esPlan ? textoBorrarPlan(alMomento, p.nombrePareja) : null;
   const queBorra = diaElegido ? `solo ${descripcionDia(diaElegido, fin)}` : `este ${cosa}`;
 
   return (
     <View style={styles.pie}>
-      <EnlaceTexto etiqueta={alMomento || esColeccion ? `Borrar ${cosa}` : `Pedir borrar este ${cosa}`} onPress={abrirConfirmacion} />
+      <EnlaceTexto etiqueta={textosPlan ? textosPlan.enlace : alMomento || esColeccion ? `Borrar ${cosa}` : `Pedir borrar este ${cosa}`} onPress={abrirConfirmacion} />
       {!alMomento && !esColeccion ? <Text style={styles.nota}>{p.nombrePareja} tendrá que aprobarlo</Text> : null}
       {/* Mockup DetalleGasto: la confirmación es una hoja inferior. */}
       <Hoja
         visible={paso !== null}
         titulo={
-          hojaColeccion ? hojaColeccion.titulo : paso === 'alcance' ? '¿Qué quieres borrar?' : alMomento ? `¿Borrar ${queBorra}?` : `¿Pedir borrar ${queBorra}?`
+          textosPlan ? textosPlan.titulo : hojaColeccion ? hojaColeccion.titulo : paso === 'alcance' ? '¿Qué quieres borrar?' : alMomento ? `¿Borrar ${queBorra}?` : `¿Pedir borrar ${queBorra}?`
         }
         onCerrar={() => setPaso(null)}
         bloqueada={ocupado}
@@ -212,7 +226,7 @@ export function BorrarGasto({
         ) : (
           <>
             <Text style={styles.cajaTexto}>
-              {hojaColeccion ? hojaColeccion.texto : alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el ${cosa} se queda.`}
+              {textosPlan ? textosPlan.texto : hojaColeccion ? hojaColeccion.texto : alMomento ? 'No se puede deshacer.' : `${p.nombrePareja} tendrá que aprobarlo. Si no responde en 7 días, el ${cosa} se queda.`}
               {tipo === 'recurring_payment' ? ' Los gastos que ya se apuntaron se quedan.' : ''}
               {esEvento && !alMomento ? ' Los gastos se conservan.' : ''}
             </Text>
@@ -224,7 +238,7 @@ export function BorrarGasto({
               {hojaColeccion && !hojaColeccion.boton ? null : (
                 <View style={{ flex: 1 }}>
                   <BotonPrincipal
-                    etiqueta={hojaColeccion?.boton ?? (alMomento ? 'Borrar' : 'Enviar solicitud')}
+                    etiqueta={textosPlan?.boton ?? hojaColeccion?.boton ?? (alMomento ? 'Borrar' : 'Enviar solicitud')}
                     cargando={ocupado}
                     onPress={() =>
                       accion(async () => {

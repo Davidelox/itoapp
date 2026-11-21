@@ -12,6 +12,7 @@ import {
   resumenDia,
   textoImporte,
   textoParteDe,
+  textoFechasPlan,
   textoQuienPago,
   textoTipoPago,
   totalDias,
@@ -151,6 +152,19 @@ export function lineaSemana(l: LineaDia, ctx: ContextoLinea): PartesLinea {
       tachado,
       secreto: false,
       etiqueta: [e.titulo, años === null ? null : `cumple ${años}`, textoParteDe(e, ctx), pendiente].filter(Boolean).join(', '),
+    };
+  }
+
+  if (e.tipo === 'plan') {
+    const titulo = l.sufijo ? `${e.titulo} · ${l.sufijo}` : e.titulo;
+    return {
+      hora: null,
+      icono: null,
+      titulo,
+      derecha: null,
+      tachado,
+      secreto: false,
+      etiqueta: [`Plan: ${e.titulo}`, textoFechasPlan(e.inicio, e.fin), pendiente].filter(Boolean).join(', '),
     };
   }
 

@@ -69,6 +69,7 @@ erDiagram
     collection_places |o--o| places : "principal (icono del pin)"
     couples ||--o{ places : ""
     places ||--o{ place_notes : "valoración por persona"
+    places ||--o{ place_visits : "fechas de visita"
     places |o--o{ events : "sitio"
     places |o--o{ expenses : "sitio"
     places |o--o{ ideas : "sitio"
@@ -144,7 +145,7 @@ Convenciones comunes:
 
 | Tabla | Columnas principales | Por qué |
 |---|---|---|
-| `events` | `start_date`/`start_time`, `end_date`/`end_time`, `all_day`, `time_slot`, `time_zone`, `starts_at`/`ends_at` (calculados), `recurrence` + `recurrence_until`, `attendees`, `place_id`, `plan_id`, `position`, `budget_cents`, `ask_who_paid`, `who_paid_resolved_at`, **`is_secret`** | Mover un evento de día u hora es un `UPDATE` directo, sin aprobación. "¿Quién pagó?" se pregunta 90 minutos después de empezar si no tiene hora de fin. |
+| `events` | `start_date`/`start_time`, `end_date`/`end_time`, `all_day`, `time_slot`, `time_zone`, `starts_at`/`ends_at` (calculados), `recurrence` + `recurrence_until`, `attendees`, `place_id`, `plan_id`, `position`, `budget_cents`, `ask_who_paid`, `who_paid_resolved_at`, **`is_secret`**, **`reserved`** + `reservation_note` (≤ 200) | Mover un evento de día u hora es un `UPDATE` directo, sin aprobación. "¿Quién pagó?" se pregunta 90 minutos después de empezar si no tiene hora de fin. La reserva («a nombre de David, 21:30») vale también para el itinerario de un plan; las reservas por hacer son `plan_tasks` `booking`. |
 | `event_exceptions` | (`event_id`, `occurrence_date`) | Fechas anuladas de un evento que se repite. Las crea un borrado aprobado ("solo este día") o "editar solo este". |
 | `plans` | `type`, `name`, `icon`, `cover`, `start_date`/`end_date`, `attendees`, `budget_cents` (opcional), `default_split_mode` + `default_split_pct_m1` | Un trigger crea y sincroniza su colección automática. |
 | `plan_tasks` | `kind` (`booking`, `task`), `assignee`, `status`, `estimated_cents`, `place_id`, `event_id`, `expense_id`, `position` | Se borran directamente: son una checklist. |
@@ -152,12 +153,13 @@ Convenciones comunes:
 | `places` | `name`, `lat`/`lng`, `provider` + `provider_place_id`, `source_url`, `category`, `status`, **`primary_collection_id`**, `visible_to_partner` | Ver §8. |
 | `collection_places` | PK (`collection_id`, `place_id`), `added_by`, `added_at` | Relación muchos a muchos. Quitar un sitio de una colección es directo. |
 | `place_notes` | PK (`place_id`, `user_id`), `rating` (de 0,5 a 5), `note` | Valoración y notas de cada persona. |
+| `place_visits` | `place_id`, `visited_on` (`date`), `note` (≤ 200), `created_by`, `version`; único (`place_id`, `visited_on`) | Fechas en las que habéis ido (§8 bis). Una por sitio y día. Añadir una pone el sitio en «Hemos ido». |
 | `collections` | `name`, `icon`, `plan_id` (único), `visible_to_partner` | La de un plan es visible siempre y se va con el plan (o se queda como normal si se borra el plan). |
 | `deletion_requests` | `target_type`, `target_id`, `occurrence_date`, `target_label`, `requested_by`, `status` (`pending`, `approved`, `rejected`, `cancelled`, `expired`), `expires_at` (+7 días), `decided_by` | Ver §6. |
 | `push_tokens` | `token`, `user_id`, `platform` | Para Expo Push. |
 
 **Vistas** (con la RLS de quien consulta):
-- `expense_effects`, `plan_summaries` y `place_stats`.
+- `expense_effects`, `plan_summaries` y `place_stats` (`visit_count` y `last_visit_on` salen de `place_visits`; `suggested_visit_on`, §8 bis).
 - `pending_actions`: las tarjetas de Inicio. Incluye `confirm_settlement`, `who_paid`, `variable_amount`, `settings_proposal` y **`approve_deletion`**.
 
 ## 4. Saldos
@@ -201,6 +203,7 @@ Las funciones auxiliares `private.my_couple_id()`, `my_slot()`, `slot_of()` y `a
 | `collection_places` | si veo el sitio y la colección | ídem, `added_by = yo` | — | ídem (directo) |
 | `event_exceptions` | si veo el evento | si veo el evento | si veo el evento | si veo el evento |
 | `place_notes` | si veo el sitio | mi fila, si veo el sitio | mi fila | mi fila |
+| `place_visits` | si veo el sitio | si veo el sitio, `created_by = yo` | si veo el sitio | si veo el sitio (directo) |
 | `recurring_occurrences` | si veo el recurrente | si veo el recurrente | si veo el recurrente | — |
 | `plan_tasks`, `ideas` | mi pareja | mi pareja | mi pareja | mi pareja |
 | `settlements`, `deletion_requests` | mi pareja | **RPC** | **RPC** | — |
@@ -223,7 +226,7 @@ Otras protecciones:
 - Quitar un sitio de una colección.
 - Editar el importe de un gasto no saldado.
 - Mover un plan o un elemento del itinerario de día u hora.
-- Borrar tareas, ideas, notas o excepciones de eventos.
+- Borrar tareas, ideas, notas, excepciones de eventos o **visitas de un sitio** (las de cualquiera de los dos: es corregir una fecha del sitio, no borrar algo compartido).
 - Borrar cualquier cosa mientras la pareja aún no se ha unido (o ya se fue).
 
 **Mecanismo**:
@@ -324,6 +327,24 @@ hace privada, al dejarla (R2).
 (b) tus sitios privados salen de la colección al dejarla; (c) la principal pasa a otra colección compartida del sitio si
 la tiene. Si la pareja **rechaza** el borrado, la colección sigue para los dos (como el resto de §6).
 
+## 8 bis. Fechas de visita (`20261129000000_visitas_y_reserva.sql`)
+
+- **Modelo**: `place_visits`, una fila por día que habéis ido. Sin «con quién»: sois los dos. Visibilidad heredada del
+  sitio (como `place_notes`): las de un sitio privado solo las ve su dueño, y al revelarlo las ve la pareja. Se borran
+  con el sitio.
+- **Estado**: añadir una visita pone el sitio en «Hemos ido» (trigger). Quitar visitas o volver a «Quiero ir» no toca
+  el otro lado. Un sitio puede estar en «Hemos ido» sin visitas: se muestra «sin fecha» (los que ya lo estaban antes de
+  la migración se quedan así; no se inventan fechas).
+- **Quién edita**: los dos, directo, cualquier visita de un sitio que ven (§6).
+- **Reglas del servidor**: el sitio tiene que verse (`TW064`); fecha como mucho un día por delante del «hoy» de la
+  pareja (`TW065`; el margen es para quien viaja a otra zona horaria) y desde 1950; una por sitio y día (`23505`);
+  `place_id` no cambia en un `UPDATE`.
+- **`place_stats`**: `visit_count` = visitas apuntadas (antes, fechas distintas de gastos y eventos pasados; ya no, para
+  no contar dos veces ni mostrar visitas que no se pueden quitar). `last_visit_on` = la más reciente.
+  `suggested_visit_on` = la fecha más reciente de un evento único ya terminado o de un gasto del sitio posterior a la
+  última visita: la ficha ofrece «¿Fuisteis el vie 14? Añadir visita».
+- **Inicio** («Último lugar visitado»): la visita más reciente de `place_visits`.
+
 ## 9. Sin conexión
 
 - **Qué funciona**: crear gastos (la cola de "pendiente de subir"). Editar, borrar (o pedir borrar) y saldar requieren conexión.
@@ -336,7 +357,7 @@ la tiene. Si la pareja **rechaza** el borrado, la colección sigue para los dos 
 
 Publicación `supabase_realtime`:
 - **Dinero**: `expenses`, `settlements`, `pot_movements`, `recurring_payments`, `recurring_occurrences`.
-- **Planificación**: `events`, `event_exceptions`, `plans`, `plan_tasks`, `places`, `place_notes`, `collections`, `collection_places`, `ideas`.
+- **Planificación**: `events`, `event_exceptions`, `plans`, `plan_tasks`, `places`, `place_notes`, `place_visits`, `collections`, `collection_places`, `ideas`.
 - **Pareja**: `couple_members`, `couple_settings`, `settings_proposals`, `deletion_requests`.
 
 Hay que suscribirse con el filtro `couple_id=eq.<id>`. La RLS se aplica por suscriptor, así que no llegan los gastos privados ni los eventos secretos de la pareja. Los `DELETE` llegan solo con la clave primaria.
@@ -354,6 +375,7 @@ Hay que suscribirse con el filtro `couple_id=eq.<id>`. La RLS se aplica por susc
 | Itinerario | `events (plan_id, start_date, position)` |
 | "¿Quién pagó?" pendiente | parcial `events (couple_id, ends_at) where ask_who_paid and who_paid_resolved_at is null` |
 | Mapa | `places (couple_id, status)`, `collection_places (place_id, added_at)`, PK `collection_places (collection_id, place_id)` |
+| Visitas de un sitio, último lugar visitado | único `place_visits (place_id, visited_on)`, `place_visits (couple_id, visited_on desc)` |
 | "Pendiente de borrar" | parcial `deletion_requests (target_id) where status = 'pending'`, único parcial por elemento |
 | Cobros pendientes | `recurring_occurrences (couple_id, status, due_date)` |
 | Bote | `pot_movements (couple_id, occurred_on desc)` |
@@ -398,7 +420,12 @@ La app los traduce por `error.code`:
 | `TW061` | La colección de un plan se borra con el plan |
 | `TW062` | Solicitud ya resuelta o caducada |
 | `TW063` | La solicitud la tiene que aprobar la otra persona |
-| `TW064` | Sitio no encontrado o no visible (al enlazarlo a un gasto o evento) |
+| `TW064` | Sitio no encontrado o no visible (al enlazarlo a un gasto, evento, tarea o idea, o al apuntarle una visita) |
+| `TW065` | Fecha de visita futura |
+| `TW066` | Un gasto de un plan lo veis los dos: no puede ser privado |
+| `TW067` | Elemento del itinerario fuera de las fechas de su plan (al crearlo o cambiarle el día) |
+| `TW068` | `move_plan`: la pareja ha cambiado el plan mientras tanto (versión distinta) |
+| `TW069` | Un evento no cambia de plan: `plan_id` solo se fija al crearlo (ni entra en un plan, ni sale, ni pasa a otro) |
 
 `join_couple` devuelve `{ok:false, error}` con uno de estos valores: `invalid_code`, `code_used`, `code_expired`, `couple_full`, `too_many_attempts`, `already_in_couple`.
 

@@ -1,3 +1,50 @@
+# Limpieza total antes de las pruebas conjuntas
+
+`limpiar_todo.sql` deja vuestro espacio vacío de contenido, con las cuentas, la pareja y los ajustes intactos. **No es una migración**: no la muevas a `supabase/migrations/`.
+
+**Se borra** (solo en vuestro espacio, sin papelera):
+
+- eventos, cumpleaños y excepciones de eventos;
+- pagos recurrentes y únicos, con sus cobros;
+- **todos los gastos** y todas las liquidaciones;
+- **todo el bote**: aportaciones, reembolsos y ajustes. El bote queda a 0 €;
+- sitios, con sus notas y visitas, colecciones y sus sitios;
+- planes, con sus tareas, e ideas;
+- las solicitudes de borrado, pendientes e historial;
+- los avisos push en cola o ya enviados (`push_outbox`) y sus tickets.
+
+**Se conserva**:
+
+- usuarios, perfiles y colores;
+- la pareja y los miembros, con sus ajustes de avisos y de «Visible para…»;
+- `couple_settings`, con la configuración del bote (activado, aportación, %, categorías);
+- las propuestas de ajustes, las invitaciones y los tokens de push.
+
+**Por qué se vacía el bote**: sin gastos, las aportaciones de prueba serían dinero inventado (hoy hay 100 € de una aportación manual) y los reembolsos dejarían el saldo en negativo. Así empezáis a 0 € con la misma configuración. `pot_generated_through` no se toca, así que el job diario no vuelve a crear aportaciones automáticas ya pasadas.
+
+Si un gasto tenía foto del ticket, el archivo se queda en Storage sin gasto. El resumen lo avisa; hoy no hay ninguno.
+
+## Cómo ejecutarlo
+
+1. Cerrad la app en los dos móviles: un gasto creado mientras se ejecuta hace que la comprobación final falle y no se guarde nada.
+2. **Ensayo** (`c_modo := 'ensayo'`, como viene):
+   ```
+   supabase db query --remote -f supabase/seed/limpiar_todo.sql
+   ```
+   También vale pegarlo entero en el **SQL Editor**. Termina con un **error a propósito** que lo deshace todo. El mensaje del error es el resumen:
+   - filas antes → después de cada tabla que se vacía;
+   - lo que se conserva;
+   - el saldo del bote.
+3. Si el resumen está bien, cambia arriba `c_modo` a `'aplicar'` y ejecuta otra vez. Al final sale el mismo resumen. Vuelve a dejar `'ensayo'` después.
+
+El script comprueba al final que:
+
+- lo vaciado tiene 0 filas;
+- lo conservado no ha cambiado (filas y contenido);
+- no se ha creado ningún aviso en `push_outbox`.
+
+Si algo no cuadra, se para y no guarda nada. Se puede ejecutar dos veces seguidas sin problema. Si hay más de un espacio, se para: pon el id del vuestro en `v_couple`.
+
 # Limpiar y crear ejemplos (Calendario y Gastos)
 
 `limpiar_y_ejemplos.sql` vacía el Calendario y los Gastos de vuestro espacio y crea ejemplos para ver todas las posibilidades visuales. **No es una migración**: no la muevas a `supabase/migrations/`.

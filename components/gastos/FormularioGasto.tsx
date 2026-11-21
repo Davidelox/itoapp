@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { ControlesReparto } from '@/components/gastos/ControlesReparto';
 import { CampoSitio } from '@/components/mapa/CampoSitio';
+import { CampoPlan } from '@/components/planificador/CampoPlan';
 import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { MensajeError } from '@/components/onboarding/MensajeError';
@@ -17,6 +18,7 @@ import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categor
 import { type AjustesGastos, ErrorGasto, type Gasto, crearGasto, editarGasto, soloCambios } from '@/lib/gastos/consultas';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
+import { planesElegibles, repartoInicialDePlan } from '@/lib/gastos/planes';
 import {
   type Pagador,
   type Reparto,
@@ -29,6 +31,8 @@ import {
 } from '@/lib/gastos/reparto';
 import { useInvalidarGastos } from '@/lib/gastos/useGastos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
+import type { PlanLista } from '@/lib/planificador/tipos';
+import { usePlanes } from '@/lib/planificador/usePlanificador';
 
 const PAUSA_NUDO_MS = 900;
 const MAX_CONCEPTO = 120;
@@ -41,6 +45,8 @@ type Props = {
   ajustes: AjustesGastos;
   /** Con un gasto, el formulario edita; sin él, crea uno nuevo. */
   inicial?: Gasto;
+  /** Gasto nuevo desde un plan («Añadir gasto al plan»): ya elegido y con su reparto por defecto. */
+  plan?: PlanLista;
   /**
    * `true` justo antes de enviar una edición (la versión que suba a continuación es tuya, no de tu pareja)
    * y `false` si falla, para que vuelva el aviso de cambios de la pareja.
@@ -49,7 +55,7 @@ type Props = {
 };
 
 /** Añadir o editar un gasto (mockup AnadirGasto, docs/plan-gastos.md §3.2 y §3.4). */
-export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: Props) {
+export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdicion }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
@@ -67,15 +73,19 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
     return { ...d, reparto: sinProporcionalOculto(d.reparto, sinProporcional) };
   };
   const porDefecto = porDefectoDe(inicial?.category ?? null);
+  const planes = usePlanes();
+  // Con un plan de partida, su reparto por defecto sustituye al de los ajustes (sigue siendo editable).
+  const desdePlan = !inicial && plan ? repartoInicialDePlan(plan, yo, ajustes.boteActivo) : null;
 
   const [importe, setImporte] = useState(inicial ? importeATexto(inicial.amount_cents) : '');
   const [concepto, setConcepto] = useState(inicial?.concept ?? '');
   const [categoria, setCategoria] = useState<Categoria | null>(inicial?.category ?? null);
-  const [pagador, setPagador] = useState<Pagador>(desdeDatos?.pagador ?? porDefecto.pagador);
-  const [reparto, setReparto] = useState<Reparto>(desdeDatos?.reparto ?? porDefecto.reparto);
+  const [pagador, setPagador] = useState<Pagador>(desdeDatos?.pagador ?? desdePlan?.pagador ?? porDefecto.pagador);
+  const [reparto, setReparto] = useState<Reparto>(desdeDatos?.reparto ?? (desdePlan ? sinProporcionalOculto(desdePlan.reparto, sinProporcional) : porDefecto.reparto));
   // Al editar, el reparto ya lo eligió alguien: la categoría no lo cambia.
   const [repartoTocado, setRepartoTocado] = useState(editando);
-  const [pctYo, setPctYo] = useState(desdeDatos?.reparto === 'personalizado' ? desdeDatos.pctYo : 50);
+  const [pctYo, setPctYo] = useState(desdeDatos?.reparto === 'personalizado' ? desdeDatos.pctYo : (desdePlan?.pctYo ?? 50));
+  const [planId, setPlanId] = useState<string | null>(inicial?.plan_id ?? plan?.id ?? null);
   const [visible, setVisible] = useState(inicial ? inicial.visible_to_partner : ajustes.compartirPersonales);
   const [fecha, setFecha] = useState(inicial?.spent_on ?? hoyISO());
   const [sitioId, setSitioId] = useState<string | null>(inicial?.place_id ?? null);
@@ -93,7 +103,8 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
   const conceptoLimpio = concepto.trim();
   const datos = aDatos(yo, pagador, reparto, pctYo, pctProporcionalM1);
   const privadoPosible = puedeSerPrivado(pagador, reparto);
-  const visibleFinal = privadoPosible ? visible : true;
+  // Un gasto de un plan lo ven los dos (el servidor da TW066 si no): no hay interruptor.
+  const visibleFinal = planId === null && privadoPosible ? visible : true;
 
   const errores = {
     importe: intentado && cents === null ? 'Escribe un importe, por ejemplo 12,50.' : null,
@@ -104,12 +115,29 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
 
   const elegirCategoria = (c: Categoria) => {
     setCategoria(c);
-    if (!repartoTocado) {
+    // Con plan manda el reparto del plan, no el de la categoría.
+    if (!repartoTocado && planId === null) {
       const d = porDefectoDe(c);
       setPagador(d.pagador);
       setReparto(d.reparto);
     }
   };
+  const elegirPlan = (nuevo: PlanLista | null) => {
+    setPlanId(nuevo?.id ?? null);
+    // Solo si aún no se ha tocado el reparto: lo que la persona ya eligió no se pisa.
+    if (repartoTocado) return;
+    if (nuevo) {
+      const d = repartoInicialDePlan(nuevo, yo, ajustes.boteActivo);
+      setPagador(d.pagador);
+      setReparto(sinProporcionalOculto(d.reparto, sinProporcional));
+      setPctYo(d.pctYo);
+    } else {
+      const d = porDefectoDe(categoria);
+      setPagador(d.pagador);
+      setReparto(d.reparto);
+    }
+  };
+  const mostrarCampoPlan = planId !== null || planes.isLoading || planesElegibles(planes.data ?? [], hoyISO(), null).length > 0;
   const elegirPagador = (v: Pagador) => {
     setPagador(v);
     setRepartoTocado(true);
@@ -129,6 +157,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
       category: categoria,
       spent_on: fecha,
       place_id: sitioId,
+      plan_id: planId,
       ...datos,
       // Solo quien lo creó puede cambiar la visibilidad (TW013): si no, no se envía.
       ...(soyQuienLoCreo ? { visible_to_partner: visibleFinal } : {}),
@@ -227,6 +256,8 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
           <MensajeError texto={errores.categoria} />
         </Grupo>
 
+        {mostrarCampoPlan ? <CampoPlan valor={planId} planes={planes.data ?? []} cargando={planes.isLoading} onCambiar={elegirPlan} /> : null}
+
         <ControlesReparto
           pareja={pareja}
           cents={cents}
@@ -242,8 +273,14 @@ export function FormularioGasto({ pareja, ajustes, inicial, alGuardarEdicion }: 
           saldado={saldado}
           visible={visible}
           onVisible={setVisible}
-          mostrarVisible={privadoPosible && soyQuienLoCreo}
+          mostrarVisible={planId === null && privadoPosible && soyQuienLoCreo}
         />
+        {planId !== null ? (
+          <View style={styles.notaPlan}>
+            <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.notaPlanTexto}>Los gastos de un plan los veis los dos</Text>
+          </View>
+        ) : null}
 
         <Grupo etiqueta="Fecha" rol="radiogroup">
           <SelectorFecha valor={fecha} onCambiar={setFecha} />
@@ -306,5 +343,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
+  notaPlan: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  notaPlanTexto: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 12 },
 });

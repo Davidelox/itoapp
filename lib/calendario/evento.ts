@@ -65,6 +65,9 @@ export type Evento = {
   birth_year: number | null;
   /** Sitio del Mapa enlazado; null si no hay o se borró. */
   place_id: string | null;
+  /** Reserva hecha (mesa, hotel…) y su nota («a nombre de David, 21:30»). */
+  reserved: boolean;
+  reservation_note: string | null;
   created_by: string | null;
   version: number;
   starts_at: string;
@@ -73,7 +76,7 @@ export type Evento = {
 
 /** Columnas de `events` que lee la app (la fila completa de `Evento`, sin `time_zone`, `plan_id`, etc.). */
 export const COLUMNAS_EVENTO =
-  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, place_id, created_by, version, starts_at, ends_at';
+  'id, title, start_date, start_time, end_date, all_day, recurrence, attendees, budget_cents, ask_who_paid, who_paid_resolved_at, reminder_minutes, notes, is_secret, category, birth_year, place_id, reserved, reservation_note, created_by, version, starts_at, ends_at';
 
 /** `start_time` llega como `HH:MM:SS`. */
 export type FilaEvento = Omit<Evento, 'start_time'> & { start_time: string | null };
@@ -94,6 +97,8 @@ export type DatosEvento = {
   category: CategoriaEvento;
   birth_year: number | null;
   place_id: string | null;
+  reserved: boolean;
+  reservation_note: string | null;
 };
 export type DatosEventoNuevo = DatosEvento & { is_secret: boolean };
 
@@ -126,7 +131,24 @@ export type Formulario = {
   anioNacimiento: string;
   /** Sitio del Mapa (opcional). */
   sitioId: string | null;
+  /** «Reservado» y su nota (solo cuenta si está reservado). */
+  reservado: boolean;
+  notaReserva: string;
 };
+
+export const MAX_NOTA_RESERVA = 200;
+
+/** Reserva lista para guardar: sin reserva o sin texto, la nota es null. */
+export const reservaAGuardar = (reservado: boolean, nota: string): { reserved: boolean; reservation_note: string | null } => ({
+  reserved: reservado,
+  reservation_note: reservado ? nota.trim().slice(0, MAX_NOTA_RESERVA) || null : null,
+});
+
+const CATEGORIAS_RESERVABLES: CategoriaEvento[] = ['eating_out', 'trip', 'leisure'];
+
+/** «Marcar como reservado» en el detalle: comer fuera, viaje u ocio que aún no ha acabado y sin reserva. */
+export const puedeMarcarReservado = (e: Pick<Evento, 'reserved' | 'category'>, fin: string, hoy: string): boolean =>
+  !e.reserved && CATEGORIAS_RESERVABLES.includes(e.category) && fin >= hoy;
 
 export const REPETICIONES: { valor: Repeticion; etiqueta: string }[] = [
   { valor: 'none', etiqueta: 'Nunca' },
@@ -222,6 +244,8 @@ export function formularioNuevo(fecha: string, categoria: CategoriaEvento = 'oth
     mes: Number(fecha.slice(5, 7)),
     anioNacimiento: '',
     sitioId,
+    reservado: false,
+    notaReserva: '',
   };
   if (categoria === 'birthday') return conTipo(base, 'cumple', yo);
   return categoria === 'trip' ? conCategoria({ ...base, categoria }, 'trip', false) : { ...base, categoria };
@@ -250,6 +274,8 @@ export function deEvento(e: Evento): Formulario {
     mes: Number(e.start_date.slice(5, 7)),
     anioNacimiento: e.birth_year === null ? '' : String(e.birth_year),
     sitioId: e.place_id,
+    reservado: e.reserved,
+    notaReserva: e.reservation_note ?? '',
   };
 }
 
@@ -385,6 +411,8 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
       category: 'birthday',
       birth_year: leerAnioNacimiento(f.anioNacimiento),
       place_id: null,
+      reserved: false,
+      reservation_note: null,
     };
   }
   const presupuesto = leerEuros(f.presupuesto);
@@ -405,6 +433,7 @@ export function aDatos(f: Formulario, yo: Hueco): DatosEvento {
     category: f.categoria,
     birth_year: null,
     place_id: f.sitioId,
+    ...reservaAGuardar(f.reservado, f.notaReserva),
   };
 }
 

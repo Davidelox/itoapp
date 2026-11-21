@@ -46,11 +46,10 @@ export function diaCorto(fecha: string): string {
   return `${DIAS[new Date(a, m - 1, d).getDay()]} ${d}`;
 }
 
-/** «Fuisteis 3 veces · 142 € · Próximo plan: vie 22». Solo las partes con datos; sin ninguna, null. */
-export function textoEstadisticas(e: EstadisticasSitio | null | undefined): string | null {
+/** «142 € · Próximo plan: vie 22» (las visitas tienen su propia sección). Solo las partes con datos; sin ninguna, null. */
+export function textoEstadisticas(e: Pick<EstadisticasSitio, 'total_spent_cents' | 'next_event_on'> | null | undefined): string | null {
   if (!e) return null;
   const partes: string[] = [];
-  if (e.visit_count > 0) partes.push(e.visit_count === 1 ? 'Fuisteis 1 vez' : `Fuisteis ${e.visit_count} veces`);
   if (e.total_spent_cents > 0) partes.push(formatearEuros(Number(e.total_spent_cents)));
   if (e.next_event_on) partes.push(`Próximo plan: ${diaCorto(e.next_event_on)}`);
   return partes.length ? partes.join(' · ') : null;

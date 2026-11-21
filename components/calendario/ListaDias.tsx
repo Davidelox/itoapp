@@ -23,7 +23,7 @@ export function ListaDias({
   colores: ColoresHuecos;
   /** Un pago se abre en su gasto o su recurrente. */
   onPago: (e: Elemento) => void;
-  /** Un evento se abre en su detalle (con la fecha de esa repetición). */
+  /** Un evento se abre en su detalle (con la fecha de esa repetición) y un plan, en el suyo (`rutaDeElemento`). */
   onEvento: (e: Elemento) => void;
   /** «Añadir evento» bajo el texto de lista vacía; sin él no sale (p. ej. con el filtro «Pagos»). */
   onNuevo?: () => void;

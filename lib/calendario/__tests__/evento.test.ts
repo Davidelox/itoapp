@@ -19,7 +19,10 @@ import {
   formularioNuevo,
   hayErrores,
   horaCorta,
+  MAX_NOTA_RESERVA,
   motivoRepeticion,
+  puedeMarcarReservado,
+  reservaAGuardar,
   preguntarTrasPresupuesto,
   repeticionesPermitidas,
   textoAsistentes,
@@ -56,6 +59,8 @@ const fila: Evento = {
   category: 'other',
   birth_year: null,
   place_id: null,
+  reserved: false,
+  reservation_note: null,
   created_by: 'u1',
   version: 3,
   starts_at: '2026-03-14T23:00:00Z',
@@ -347,6 +352,8 @@ describe('cumpleaños', () => {
   it('se guarda con el año ancla 2000, cada año, todo el día, sin presupuesto ni «¿Quién pagó?»', () => {
     expect(aDatosNuevo(cumple({ anioNacimiento: '1966', asistentes: 'm2' }), yo)).toEqual({
       place_id: null,
+      reserved: false,
+      reservation_note: null,
       title: 'Carmen',
       start_date: '2000-03-15',
       start_time: null,
@@ -443,5 +450,42 @@ describe('sitio del Mapa (place_id)', () => {
     const e = { ...fila, place_id: 's1' };
     expect(deEvento(e).sitioId).toBe('s1');
     expect(soloCambios(e, { place_id: null })).toEqual({ place_id: null });
+  });
+});
+
+describe('reserva', () => {
+  it('reservaAGuardar: nota recortada y limitada; sin reserva o sin texto, null', () => {
+    expect(reservaAGuardar(true, '  a nombre de David, 21:30 ')).toEqual({ reserved: true, reservation_note: 'a nombre de David, 21:30' });
+    expect(reservaAGuardar(true, '   ')).toEqual({ reserved: true, reservation_note: null });
+    expect(reservaAGuardar(false, 'texto olvidado')).toEqual({ reserved: false, reservation_note: null });
+    expect(reservaAGuardar(true, 'x'.repeat(300)).reservation_note).toHaveLength(MAX_NOTA_RESERVA);
+  });
+  it('formulario y datos', () => {
+    expect(aDatos(base, 'm1')).toMatchObject({ reserved: false, reservation_note: null });
+    const f = { ...base, reservado: true, notaReserva: ' 21:30 ' };
+    expect(aDatos(f, 'm1')).toMatchObject({ reserved: true, reservation_note: '21:30' });
+    expect(deEvento({ ...fila, reserved: true, reservation_note: 'mesa 4' })).toMatchObject({ reservado: true, notaReserva: 'mesa 4' });
+    expect(deEvento(fila)).toMatchObject({ reservado: false, notaReserva: '' });
+  });
+  it('un cumpleaños nunca guarda reserva', () => {
+    const f = { ...formularioNuevo('2026-03-15', 'birthday'), titulo: 'Marta', reservado: true, notaReserva: 'x' };
+    expect(aDatos(f, 'm1')).toMatchObject({ reserved: false, reservation_note: null });
+  });
+  it('soloCambios: solo manda la reserva si cambia', () => {
+    expect(soloCambios(fila, aDatos(deEvento(fila), 'm1'))).toEqual({});
+    const marcado = { ...deEvento(fila), reservado: true, notaReserva: 'mesa 4' };
+    expect(soloCambios(fila, aDatos(marcado, 'm1'))).toEqual({ reserved: true, reservation_note: 'mesa 4' });
+    const reservada = { ...fila, reserved: true, reservation_note: 'mesa 4' };
+    expect(soloCambios(reservada, aDatos({ ...deEvento(reservada), reservado: false }, 'm1'))).toEqual({ reserved: false, reservation_note: null });
+    expect(soloCambios(reservada, aDatos({ ...deEvento(reservada), notaReserva: '' }, 'm1'))).toEqual({ reservation_note: null });
+  });
+  it('puedeMarcarReservado: comer fuera, viaje u ocio sin reserva y sin acabar', () => {
+    const e = { reserved: false, category: 'eating_out' as const };
+    expect(puedeMarcarReservado(e, '2026-11-25', '2026-11-20')).toBe(true);
+    expect(puedeMarcarReservado(e, '2026-11-20', '2026-11-20')).toBe(true);
+    expect(puedeMarcarReservado(e, '2026-11-19', '2026-11-20')).toBe(false);
+    expect(puedeMarcarReservado({ ...e, reserved: true }, '2026-11-25', '2026-11-20')).toBe(false);
+    expect(puedeMarcarReservado({ ...e, category: 'other' }, '2026-11-25', '2026-11-20')).toBe(false);
+    expect(puedeMarcarReservado({ ...e, category: 'trip' }, '2026-11-25', '2026-11-20')).toBe(true);
   });
 });

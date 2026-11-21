@@ -6,6 +6,7 @@ import {
   leerObjetivo,
   origenDe,
   paramsAlCalendario,
+  rutaDeElemento,
 } from '@/lib/calendario/destino';
 
 const base: Elemento = {
@@ -113,5 +114,20 @@ describe('destinoTrasGuardarPago', () => {
   });
   it('desde gastos va a la lista de pagos recurrentes', () => {
     expect(destinoTrasGuardarPago('gastos', 'p1', '2026-12-10')).toEqual({ destino: 'recurrentes' });
+  });
+});
+
+describe('rutaDeElemento: un plan nunca abre el detalle de un evento', () => {
+  it('un plan va a su detalle del Planificador', () => {
+    expect(rutaDeElemento({ tipo: 'plan', origenId: 'p1', inicio: '2026-12-05' })).toEqual({ pathname: '/planificador/[id]', params: { id: 'p1' } });
+  });
+  it('un evento va al suyo, con el inicio de la repetición', () => {
+    expect(rutaDeElemento({ tipo: 'event', origenId: 'e1', inicio: '2026-12-05' })).toEqual({
+      pathname: '/calendario/evento/[id]',
+      params: { id: 'e1', fecha: '2026-12-05' },
+    });
+  });
+  it('si un filtro oculta el plan, se añade «Planes» al verlo', () => {
+    expect(filtroParaVer(['payment'], { ...base, tipo: 'plan' })).toEqual(['payment', 'plan']);
   });
 });

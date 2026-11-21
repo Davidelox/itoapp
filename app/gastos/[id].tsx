@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
 import { IconoCategoria, textoPagador } from '@/components/gastos/FilaGasto';
+import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { colors, fonts, radius } from '@/constants/theme';
@@ -13,6 +14,7 @@ import { useEvento } from '@/lib/calendario/useCalendario';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { aISO, fechaLarga } from '@/lib/gastos/fechas';
+import { planDe } from '@/lib/gastos/planes';
 import { personas } from '@/lib/gastos/personas';
 import { COMO_METODO } from '@/lib/gastos/saldar';
 import { etiquetaReparto, fraseResultado, partesDeYo, pctDeYo } from '@/lib/gastos/reparto';
@@ -84,6 +86,7 @@ export default function DetalleGasto() {
           ? 100
           : 0
         : pctDeYo(yo, gasto.split_pct_m1 ?? 50);
+  const plan = planDe(gasto);
   const apuntadoPorPareja = gasto.created_by !== null && gasto.created_by !== p.yo.userId;
   const miembroPagador = gasto.paid_by === yo ? p.yo : gasto.paid_by === 'pot' ? null : p.otra;
 
@@ -175,6 +178,24 @@ export default function DetalleGasto() {
               <SitioEnlazado placeId={gasto.place_id} />
             </View>
           </View>
+        ) : null}
+
+        {plan ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={plan.id ? `Plan: ${plan.nombre}` : `Plan: ${plan.nombre} (ya no existe)`}
+            accessibilityHint={plan.id ? 'Abre el plan' : undefined}
+            disabled={!plan.id}
+            onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: plan.id ?? '' } })}
+            style={styles.saldado}
+          >
+            <EmojiIcono emoji={plan.icono} size={22} />
+            <Text style={[styles.saldadoTexto, !plan.id && { color: colors.textSecondary }]}>
+              Plan: {plan.nombre}
+              {plan.id ? '' : ' (ya no existe)'}
+            </Text>
+            {plan.id ? <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} /> : null}
+          </Pressable>
         ) : null}
 
         <OrigenRecurrente cobroId={gasto.recurring_occurrence_id} />

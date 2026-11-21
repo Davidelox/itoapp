@@ -15,6 +15,7 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, type Gasto, deshacerPago, leerPago, leerSaldo, saldar } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
+import { type EstadoGrupo, agruparSaldables, alternarGrupo, cuentaGastos, estadoGrupo, lineaPlan, planDe } from '@/lib/gastos/planes';
 import { etiquetaReparto } from '@/lib/gastos/reparto';
 import {
   METODOS,
@@ -35,8 +36,9 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 /**
  * Saldar cuentas en una hoja inferior (mockup Saldar, docs/plan-gastos-fase2.md §2): lista, método, botón y
  * el «¡Cuentas a cero!» en la misma hoja. La dirección y el importe los fija el servidor.
+ * Los gastos de un plan salen como UNA fila con su casilla de grupo (docs/plan-planificador.md §4); con `plan`, solo los de ese plan.
  */
-export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
+export function HojaSaldar({ onCerrar, plan }: { onCerrar: () => void; /** «Saldar solo esto»: solo los gastos de este plan, marcados al abrir. */ plan?: { id: string; nombre: string } }) {
   const router = useRouter();
   const { pareja, userId } = useEstado();
   const abiertos = useAbiertos();
@@ -59,7 +61,7 @@ export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
 
   // Mientras se registra el pago (lista congelada y aún sin final) la hoja no se puede cerrar.
   const envolver = (contenido: React.ReactNode, pie?: React.ReactNode) => (
-    <Hoja visible titulo="Saldar cuentas" onCerrar={onCerrar} bloqueada={!!congelada && !hecho} desplazable pie={pie}>
+    <Hoja visible titulo={plan ? 'Saldar solo esto' : 'Saldar cuentas'} onCerrar={onCerrar} bloqueada={!!congelada && !hecho} desplazable pie={pie}>
       {contenido}
     </Hoja>
   );
@@ -132,7 +134,8 @@ export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
     );
   }
 
-  const lista = congelada ?? saldables(yo, abiertos.data.gastos, abiertos.data.pendientesDeBorrar);
+  const aSaldar = saldables(yo, abiertos.data.gastos, abiertos.data.pendientesDeBorrar);
+  const lista = congelada ?? (plan ? aSaldar.filter((g) => g.plan_id === plan.id) : aSaldar);
   // Lo que sigue en el saldo pero no se puede saldar porque está pendiente de borrar (decisión 1).
   const porBorrar = totalDe(
     yo,
@@ -158,7 +161,9 @@ export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
         <Ionicons name="checkmark-circle-outline" size={44} color={colors.textSecondary} />
         <Text style={styles.vacioTitulo}>Nada que saldar</Text>
         <Text style={styles.vacioTexto}>
-          {espera !== 0
+          {plan
+            ? 'No queda nada de este plan por saldar.'
+            : espera !== 0
             ? `Lo pendiente (${formatearImporte(Math.abs(espera))}) está esperando a que se confirme el pago.`
             : porBorrar !== 0
               ? `Lo que queda (${formatearImporte(Math.abs(porBorrar))}) está pendiente de borrar: no se puede saldar hasta que se resuelva.`
@@ -257,7 +262,24 @@ export function HojaSaldar({ onCerrar }: { onCerrar: () => void }) {
           derecha={`${elegidos.length} de ${lista.length}`}
           negrita
         />
-        {lista.map((g) => {
+        {(plan ? lista.map((gasto) => ({ tipo: 'gasto' as const, gasto })) : agruparSaldables(lista)).map((fila) => {
+          if (fila.tipo === 'plan') {
+            const ids = fila.gastos.map((x) => x.id);
+            const info = planDe(fila.gastos[0]);
+            return (
+              <Casilla
+                key={`plan:${fila.planId}`}
+                estado={estadoGrupo(ids, marcados)}
+                marcada={estadoGrupo(ids, marcados) === 'todos'}
+                onPress={() => setMarcados((prev) => alternarGrupo(prev, ids))}
+                titulo={info ? lineaPlan(info) : 'Plan'}
+                etiqueta={`Plan ${info?.nombre ?? ''}, ${cuentaGastos(ids.length)}`}
+                subtitulo={<Text style={styles.sub}>{cuentaGastos(ids.length)} del plan</Text>}
+                derecha={conSigno(totalDe(yo, fila.gastos))}
+              />
+            );
+          }
+          const g = fila.gasto;
           const pag = textoPagador(g, pareja);
           return (
             <Casilla
@@ -331,7 +353,13 @@ function Casilla({
   subtitulo,
   derecha,
   negrita = false,
+  estado,
+  etiqueta,
 }: {
+  /** Casilla de grupo: «algunos» se pinta como mixta. */
+  estado?: EstadoGrupo;
+  /** Lo que lee el lector de pantalla si no es «título, importe» (por ejemplo, para no leer un emoji). */
+  etiqueta?: string;
   marcada: boolean;
   onPress: () => void;
   titulo: string;
@@ -342,13 +370,13 @@ function Casilla({
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: marcada }}
-      accessibilityLabel={`${titulo}, ${derecha}`}
+      accessibilityState={{ checked: estado === 'algunos' ? 'mixed' : marcada }}
+      accessibilityLabel={`${etiqueta ?? titulo}, ${derecha}`}
       onPress={onPress}
       style={styles.casilla}
     >
-      <View style={[styles.caja, marcada ? styles.cajaMarcada : styles.cajaVacia]}>
-        {marcada ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}
+      <View style={[styles.caja, marcada || estado === 'algunos' ? styles.cajaMarcada : styles.cajaVacia]}>
+        {marcada ? <Ionicons name="checkmark" size={16} color={colors.white} /> : estado === 'algunos' ? <Ionicons name="remove" size={16} color={colors.white} /> : null}
       </View>
       <View style={styles.casillaTextos}>
         <Text style={[styles.casillaTitulo, negrita && { fontFamily: fonts.bodyBold }]} numberOfLines={1}>

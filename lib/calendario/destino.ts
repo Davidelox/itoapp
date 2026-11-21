@@ -19,6 +19,17 @@ export function origenDe(valor: string | string[] | undefined): Origen {
 
 const esFechaISO = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && aISO(deISO(v)) === v;
 
+/**
+ * A dónde lleva tocar un elemento del calendario que no es un pago: un plan abre su detalle del Planificador y un
+ * evento, el suyo (con el inicio de la repetición, que es lo que identifica «solo esta vez»). Un plan NUNCA va a
+ * `/calendario/evento/<id>`: su id no es de un evento y saldría «ya no existe».
+ */
+export function rutaDeElemento(e: Pick<Elemento, 'tipo' | 'origenId' | 'inicio'>) {
+  return e.tipo === 'plan'
+    ? ({ pathname: '/planificador/[id]', params: { id: e.origenId } } as const)
+    : ({ pathname: '/calendario/evento/[id]', params: { id: e.origenId, fecha: e.inicio } } as const);
+}
+
 /** Parámetros de `/calendario` para llevarlo a un día y resaltar un elemento; sin día válido, ninguno. */
 export function paramsAlCalendario(dia: string | null | undefined, id?: string | null): { dia?: string; evento?: string } {
   if (!esFechaISO(dia ?? undefined)) return {};

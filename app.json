@@ -13,7 +13,9 @@
         "foregroundImage": "./assets/brand/ito-android-foreground-1024.png",
         "monochromeImage": "./assets/brand/ito-android-monochrome-1024.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.davidelox.ito",
+      "versionCode": 1
     },
     "web": {
       "output": "single",
@@ -31,7 +33,12 @@
       ],
       "expo-font",
       "expo-secure-store",
-      ["expo-notifications", { "color": "#7B2433" }],
+      [
+        "expo-notifications",
+        {
+          "color": "#7B2433"
+        }
+      ],
       [
         "expo-location",
         {
@@ -52,6 +59,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.davidelox.ito",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }

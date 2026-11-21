@@ -11,7 +11,7 @@ import { OPCIONES_FILTRO, type Rect, alternarFiltro, posicionMenu } from '@/lib/
 const ANCHO_MENU = 224;
 const ALTO_FILA = 44;
 const PADDING_MENU = 6;
-/** 6 filas, el separador (1) y el pie con «Limpiar» y «Listo». */
+/** Las opciones del menú, el separador (1) y el pie con «Limpiar» y «Listo». */
 const ALTO_MENU = OPCIONES_FILTRO.length * ALTO_FILA + 1 + ALTO_FILA + 2 * PADDING_MENU;
 
 /**

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { leerColecciones, leerPertenencias } from '@/lib/mapa/consultasColecciones';
-import { leerEstadisticas, leerPlanesDeSitio, leerSitios, leerSitiosConPlan } from '@/lib/mapa/consultas';
+import { leerEstadisticas, leerPlanesDeSitio, leerSitios, leerSitiosConPlan, leerUltimaVisita, leerVisitas } from '@/lib/mapa/consultas';
 import type { Coleccion, Pertenencia, Sitio } from '@/lib/mapa/tipos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
@@ -49,6 +49,20 @@ export function useEstadisticasSitio(id: string | undefined) {
   return useQuery({ queryKey: k('estadisticas', id), queryFn: () => leerEstadisticas(id as string), enabled: !!pareja && !!userId && !!id });
 }
 
+/** Historial de visitas de un sitio. */
+export function useVisitasSitio(id: string | undefined) {
+  const { pareja, userId } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('visitas', id), queryFn: () => leerVisitas(id as string), enabled: !!pareja && !!userId && !!id });
+}
+
+/** La visita más reciente de la pareja («Último lugar visitado» de Inicio). */
+export function useUltimaVisita() {
+  const { pareja, userId } = useEstado();
+  const k = useClave();
+  return useQuery({ queryKey: k('ultimaVisita'), queryFn: leerUltimaVisita, enabled: !!pareja && !!userId });
+}
+
 /** Sitios con un evento futuro enlazado (puntito del pin). */
 export function useSitiosConPlan() {
   const { pareja, userId } = useEstado();
@@ -63,7 +77,7 @@ export function usePlanesDeSitio(id: string | undefined) {
   return useQuery({ queryKey: k('planes', id), queryFn: () => leerPlanesDeSitio(id as string), enabled: !!pareja && !!userId && !!id });
 }
 
-/** Tiempo real del Mapa: cualquier cambio en sitios, notas, colecciones o solicitudes de borrado recarga lo del mapa. */
+/** Tiempo real del Mapa: cualquier cambio en sitios, notas, visitas, colecciones o solicitudes de borrado recarga lo del mapa. */
 export function useTiempoRealMapa() {
   const { pareja } = useEstado();
   const cliente = useQueryClient();
@@ -79,6 +93,7 @@ export function useTiempoRealMapa() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deletion_requests', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'collections', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'collection_places', filter: `couple_id=eq.${coupleId}` }, invalidar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'place_visits', filter: `couple_id=eq.${coupleId}` }, invalidar)
       // Un evento o un gasto enlazado cambia las estadísticas, el puntito del pin y la lista de la ficha.
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `couple_id=eq.${coupleId}` }, invalidar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `couple_id=eq.${coupleId}` }, invalidar)

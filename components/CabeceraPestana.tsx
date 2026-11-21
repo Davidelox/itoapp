@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, type SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TituloContorno } from '@/components/TituloContorno';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { colors, fonts } from '@/constants/theme';
 
@@ -32,12 +33,15 @@ export function useScrollCabecera() {
  */
 export function CabeceraPestana({
   titulo,
+  sobretitulo,
   accion,
   sombra,
   cargando,
   children,
 }: {
   titulo: string;
+  /** Línea pequeña sobre el título (Inicio: la fecha). */
+  sobretitulo?: string;
   accion?: ReactNode;
   sombra?: SharedValue<number>;
   /** Con `true` dibuja el hilo de carga, centrado en la cabecera (en absoluto: no empuja el título ni la acción). */
@@ -56,9 +60,16 @@ export function CabeceraPestana({
   return (
     <Animated.View style={[styles.contenedor, { paddingTop: insets.top }, contenedor]}>
       <View style={styles.fila}>
-        <Text accessibilityRole="header" style={styles.titulo} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-          {titulo}
-        </Text>
+        {sobretitulo ? (
+          <View style={styles.textos}>
+            <Text style={styles.sobretitulo} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+              {sobretitulo}
+            </Text>
+            <TituloContorno texto={titulo} />
+          </View>
+        ) : (
+          <TituloContorno texto={titulo} />
+        )}
         {accion ? <View style={styles.accion}>{accion}</View> : null}
         <View pointerEvents="none" style={styles.hilo}>
           {cargando ? <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)}><CargandoHilo size="small" /></Animated.View> : null}
@@ -87,7 +98,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  titulo: { flexShrink: 1, fontFamily: fonts.title, fontSize: 28, lineHeight: 34, letterSpacing: -0.3, color: colors.text },
+  textos: { flexShrink: 1 },
+  sobretitulo: { fontFamily: fonts.bodyMedium, fontSize: 13, lineHeight: 17, color: colors.textSecondary },
   hilo: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   hijos: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
   accion: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
