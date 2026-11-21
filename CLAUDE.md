@@ -12,8 +12,8 @@ Repos sincronizados: **ito** (GitHub: `Davidelox/itoapp`), **god-breaker** (God 
   la sección `## Estado actual
 _Actualizado: 2026-11-21 (Mac)_. Detalle (pendientes, decisiones, Supabase) en `docs/estado.md`: leerlo solo si la tarea lo necesita.
 
-- **En curso**: Planificador F6 (migración del itinerario aplicada, pantallas sin hacer); todo lo reciente sin probar en iPhone.
-- **Hecho**: Inicio como panel, cabeceras Damion, visitas y reserva, Planificador F1–F5, limpieza de datos de prueba, config EAS y dev client.
-- **Próximo**: F6 pantallas del itinerario, F7 sitios del plan, F8 ideas, F9 reservas, F10 Pasados; avisos de planes.
-- **Pendiente de David**: pasos de `docs/builds-eas.md` (build de desarrollo, ya no Expo Go), `EXPO_ACCESS_TOKEN`, probar en iPhone con dos cuentas, identificar al tercer usuario.
+- **En curso**: nada abierto; Planificador F1–F10, avisos push y EAS terminados, sin ver aún en pantalla.
+- **Hecho**: onboarding, Gastos, Ajustes, Calendario, Mapa, Planificador, avisos push (probados en iPhone de David), dev build.
+- **Próximo**: avisos del Planificador (`notify_plans`) y franja horaria del plan.
+- **Pendiente de David**: probar todo en iPhone y con dos cuentas; build y avisos en el móvil de María; variables EAS `preview`/`production`.
 - **Clave**: `.env` nunca a git; `service_role` solo en servidor; migraciones con CLI Supabase (`db query`, nunca `db push`) tras el sí de David.
