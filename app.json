@@ -66,6 +66,12 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8765b6f6-7ec4-4bd1-a2a7-a4c8a39845bb"
+      }
+    },
+    "owner": "davidelodax"
   }
 }
