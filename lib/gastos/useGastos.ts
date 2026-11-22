@@ -27,6 +27,7 @@ import { leerDatosAjustes } from '@/lib/ajustes/consultas';
 import { leerOrigen, leerRecurrente, leerRecurrentes } from '@/lib/gastos/consultasRecurrentes';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
+import { opcionesInvalidarCalendario } from '@/lib/calendario/claves';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -212,7 +213,7 @@ export function useInvalidarGastos() {
     await Promise.all([
       cliente.invalidateQueries({ queryKey: clave(pareja?.coupleId) }),
       // El calendario también enseña pagos recurrentes y gastos: se recarga con lo demás.
-      cliente.invalidateQueries({ queryKey: ['calendario', pareja?.coupleId ?? 'ninguna'] }),
+      cliente.invalidateQueries(opcionesInvalidarCalendario(pareja?.coupleId)),
       // Lo gastado de un plan (`plan_summaries`) sale del Planificador.
       cliente.invalidateQueries({ queryKey: ['planificador', pareja?.coupleId ?? 'ninguna'] }),
     ]);

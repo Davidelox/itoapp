@@ -58,7 +58,7 @@ export function HojaVisita({
     setOcupado(true);
     setError(null);
     try {
-      if (visita) await corregirVisita(visita.id, visita.version, fecha, nota, nombrePareja);
+      if (visita) await corregirVisita(visita.id, visita.version, fecha, nota, nombrePareja, { coupleId, sitio, yo, fechaAntigua: visita.visited_on });
       else await anadirVisita(id, coupleId, sitio, yo, fecha, nota);
       await invalidar();
       onCerrar();

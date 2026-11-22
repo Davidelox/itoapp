@@ -58,3 +58,40 @@ export function datosEventoVisita(
     is_secret: privado,
   };
 }
+
+/** Lo que hace falta del evento automático de una visita para saber si sigue tal como se creó. */
+export type EventoAuto = {
+  version: number;
+  place_id: string | null;
+  start_date: string;
+  end_date: string | null;
+  all_day: boolean;
+  notes: string | null;
+};
+
+export type AccionEventoVisita =
+  | { accion: 'nada' }
+  | { accion: 'mover'; version: number }
+  | { accion: 'crear' };
+
+/**
+ * Qué hacer con el evento de una visita cuando se le corrige la fecha. `auto` es el evento con el id derivado de la
+ * visita (null si no existe o no se ve); `otros` son los demás eventos enlazados al sitio.
+ * - Mismo día: nada. Evento ya cambiado a mano (otra fecha, varios días, otra nota) o de otro sitio: no se pisa.
+ * - Sin evento automático: se crea en la fecha nueva salvo que ese día ya haya otro del sitio.
+ * - Con él intacto: se mueve, salvo que ya haya otro del sitio en el día nuevo (no se duplica).
+ */
+export function decidirEventoAlCorregir(
+  auto: EventoAuto | null,
+  otros: { start_date: string; end_date: string | null }[],
+  sitioId: string,
+  fechaAntigua: string,
+  fechaNueva: string,
+): AccionEventoVisita {
+  if (fechaAntigua === fechaNueva) return { accion: 'nada' };
+  if (hayEventoEseDia(otros, fechaNueva)) return { accion: 'nada' };
+  if (!auto) return { accion: 'crear' };
+  const intacto =
+    auto.place_id === sitioId && auto.all_day && auto.end_date === null && auto.start_date === fechaAntigua && auto.notes === NOTA_EVENTO_VISITA;
+  return intacto ? { accion: 'mover', version: auto.version } : { accion: 'nada' };
+}

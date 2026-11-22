@@ -5,6 +5,7 @@ import { leerItinerario, leerPlanes, leerTareas } from '@/lib/planificador/consu
 import { leerIdeas } from '@/lib/planificador/consultasIdeas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
+import { opcionesInvalidarCalendario } from '@/lib/calendario/claves';
 import { supabase } from '@/lib/supabase';
 
 /** Todas las claves del Planificador empiezan por `['planificador', coupleId, userId]`. */
@@ -54,7 +55,7 @@ export function useInvalidarPlanificador() {
   return () =>
     Promise.all([
       cliente.invalidateQueries({ queryKey: ['planificador', coupleId] }),
-      cliente.invalidateQueries({ queryKey: ['calendario', coupleId] }),
+      cliente.invalidateQueries(opcionesInvalidarCalendario(coupleId)),
       cliente.invalidateQueries({ queryKey: ['mapa', coupleId] }),
     ]);
 }

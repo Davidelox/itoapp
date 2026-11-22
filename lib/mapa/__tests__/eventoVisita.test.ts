@@ -1,4 +1,4 @@
-import { datosEventoVisita, hayEventoEseDia, idEventoDeVisita, NOTA_EVENTO_VISITA } from '@/lib/mapa/eventoVisita';
+import { type EventoAuto, datosEventoVisita, decidirEventoAlCorregir, hayEventoEseDia, idEventoDeVisita, NOTA_EVENTO_VISITA } from '@/lib/mapa/eventoVisita';
 
 const sitio = { id: 's1', name: ' Casa Lola ', category: 'restaurant' as const, visible_to_partner: true };
 
@@ -35,4 +35,23 @@ describe('datosEventoVisita', () => {
     expect(datosEventoVisita({ ...sitio, category: 'getaway' }, '2026-11-10', 'm1').category).toBe('trip');
     expect(datosEventoVisita({ ...sitio, category: 'other', name: 'x'.repeat(200) }, '2026-11-10', 'm1')).toMatchObject({ category: 'other', title: 'x'.repeat(120) });
   });
+});
+
+describe('decidirEventoAlCorregir', () => {
+  const auto: EventoAuto = { version: 3, place_id: 's1', start_date: '2026-11-01', end_date: null, all_day: true, notes: 'Visita registrada' };
+  const decidir = (a: EventoAuto | null, otros: { start_date: string; end_date: string | null }[] = [], nueva = '2026-11-05') =>
+    decidirEventoAlCorregir(a, otros, 's1', '2026-11-01', nueva);
+
+  it('mismo día: nada', () => expect(decidir(auto, [], '2026-11-01')).toEqual({ accion: 'nada' }));
+  it('evento intacto: se mueve con su versión', () => expect(decidir(auto)).toEqual({ accion: 'mover', version: 3 }));
+  it('editado a mano (nota, fecha o varios días): no se pisa', () => {
+    expect(decidir({ ...auto, notes: 'Cena con amigos' })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, start_date: '2026-11-02' })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, end_date: '2026-11-03' })).toEqual({ accion: 'nada' });
+  });
+  it('ya hay otro evento del sitio el día nuevo: no duplica', () => {
+    expect(decidir(auto, [{ start_date: '2026-11-04', end_date: '2026-11-06' }])).toEqual({ accion: 'nada' });
+    expect(decidir(null, [{ start_date: '2026-11-05', end_date: null }])).toEqual({ accion: 'nada' });
+  });
+  it('sin evento automático y día libre: crea', () => expect(decidir(null)).toEqual({ accion: 'crear' }));
 });

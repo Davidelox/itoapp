@@ -6,6 +6,7 @@ import { leerEstadisticas, leerPlanesDeSitio, leerSitios, leerSitiosConPlan, lee
 import type { Coleccion, Pertenencia, Sitio } from '@/lib/mapa/tipos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { registrarError } from '@/lib/registro';
+import { opcionesInvalidarCalendario } from '@/lib/calendario/claves';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -112,7 +113,7 @@ export function useInvalidarVisitas() {
   const cliente = useQueryClient();
   const { pareja } = useEstado();
   const id = pareja?.coupleId ?? 'ninguna';
-  return () => Promise.all([cliente.invalidateQueries({ queryKey: ['mapa', id] }), cliente.invalidateQueries({ queryKey: ['calendario', id] })]);
+  return () => Promise.all([cliente.invalidateQueries({ queryKey: ['mapa', id] }), cliente.invalidateQueries(opcionesInvalidarCalendario(id))]);
 }
 
 /** Recarga todo lo del mapa tras guardar, cambiar el estado o borrar. */

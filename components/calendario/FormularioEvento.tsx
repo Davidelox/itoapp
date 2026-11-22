@@ -178,9 +178,11 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
   };
 
   const alTerminar = () => {
-    invalidar();
+    // La recarga empieza ya y se espera antes de volver: la pantalla de debajo (detalle, calendario) ya trae la fecha nueva.
+    const recargado = Promise.resolve(invalidar()).catch(() => undefined);
     const id = inicial?.id ?? idNuevo;
-    setTimeout(() => {
+    setTimeout(async () => {
+      await recargado;
       if (editando) router.back();
       // Un elemento nuevo del plan vuelve a su itinerario.
       else if (plan) router.dismissTo({ pathname: '/planificador/[id]', params: { id: plan.id } });
