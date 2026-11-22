@@ -160,7 +160,7 @@ export type ContextoEventoVisita = { coupleId: string; sitio: SitioDeVisita; yo:
 
 /**
  * Corrige la fecha o la nota de una visita, con control de versión (0 filas: la pareja la cambió o la quitó).
- * Con `evento`, si cambió la fecha, su evento automático («Visita registrada», sin editar) se mueve al día nuevo.
+ * Con `evento`, su evento automático («Visita registrada», sin personalizar) se alinea siempre con la fecha de la visita.
  */
 export async function corregirVisita(id: string, version: number, fecha: string, nota: string, nombrePareja: string, evento?: ContextoEventoVisita): Promise<void> {
   const { data, error } = await supabase
@@ -171,7 +171,7 @@ export async function corregirVisita(id: string, version: number, fecha: string,
     .select('id');
   if (error) throw traducir('mapa.corregirVisita', error, 'visita');
   if (!data || data.length === 0) throw new ErrorGasto(`${nombrePareja} acaba de cambiar esta visita. Revísala y vuelve a intentarlo.`, 'version');
-  if (evento && evento.fechaAntigua !== fecha) await moverEventoDeVisita(id, evento, fecha);
+  if (evento) await moverEventoDeVisita(id, evento, fecha);
 }
 
 /** Mueve (o crea) el evento de la visita al día nuevo. Nunca bloquea: la visita ya está corregida y un fallo solo se registra. */
@@ -179,12 +179,12 @@ async function moverEventoDeVisita(idVisita: string, { coupleId, sitio, yo, fech
   try {
     const idEvento = idEventoDeVisita(idVisita);
     const [{ data: auto, error: e1 }, { data: otros, error: e2 }] = await Promise.all([
-      supabase.from('events').select('version, place_id, start_date, end_date, all_day, notes').eq('id', idEvento).maybeSingle(),
+      supabase.from('events').select('version, title, place_id, start_time, start_date, end_date, all_day, notes').eq('id', idEvento).maybeSingle(),
       supabase.from('events').select('start_date, end_date').eq('place_id', sitio.id).neq('id', idEvento).lte('start_date', fecha).order('start_date', { ascending: false }).limit(50),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
-    const decision = decidirEventoAlCorregir((auto as EventoAuto | null) ?? null, (otros ?? []) as { start_date: string; end_date: string | null }[], sitio.id, fechaAntigua, fecha);
+    const decision = decidirEventoAlCorregir((auto as EventoAuto | null) ?? null, (otros ?? []) as { start_date: string; end_date: string | null }[], sitio, fechaAntigua, fecha);
     if (decision.accion === 'mover') {
       const { error } = await supabase.from('events').update({ start_date: fecha }).eq('id', idEvento).eq('version', decision.version).select('id');
       if (error) throw error;

@@ -62,8 +62,10 @@ export function datosEventoVisita(
 /** Lo que hace falta del evento automático de una visita para saber si sigue tal como se creó. */
 export type EventoAuto = {
   version: number;
+  title: string;
   place_id: string | null;
   start_date: string;
+  start_time?: string | null;
   end_date: string | null;
   all_day: boolean;
   notes: string | null;
@@ -75,23 +77,32 @@ export type AccionEventoVisita =
   | { accion: 'crear' };
 
 /**
- * Qué hacer con el evento de una visita cuando se le corrige la fecha. `auto` es el evento con el id derivado de la
- * visita (null si no existe o no se ve); `otros` son los demás eventos enlazados al sitio.
- * - Mismo día: nada. Evento ya cambiado a mano (otra fecha, varios días, otra nota) o de otro sitio: no se pisa.
- * - Sin evento automático: se crea en la fecha nueva salvo que ese día ya haya otro del sitio.
- * - Con él intacto: se mueve, salvo que ya haya otro del sitio en el día nuevo (no se duplica).
+ * Qué hacer con el evento de una visita al guardarla. `auto` es el evento con el id derivado de la visita (null si no
+ * existe o no se ve); `otros` son los demás eventos enlazados al sitio.
+ * - Con evento automático: siempre sigue a su visita (aunque su fecha estuviera desfasada). Solo se respeta si el usuario
+ *   lo personalizó (otro título, hora, varios días, otra nota o de otro sitio).
+ * - Sin él: se crea solo si la fecha cambió y ese día no hay ya otro del sitio.
+ * - Si ya hay otro evento del sitio el día de la visita, no se mueve encima ni se duplica.
  */
 export function decidirEventoAlCorregir(
   auto: EventoAuto | null,
   otros: { start_date: string; end_date: string | null }[],
-  sitioId: string,
+  sitio: { id: string; name: string },
   fechaAntigua: string,
   fechaNueva: string,
 ): AccionEventoVisita {
-  if (fechaAntigua === fechaNueva) return { accion: 'nada' };
+  if (!auto) {
+    if (fechaAntigua === fechaNueva || hayEventoEseDia(otros, fechaNueva)) return { accion: 'nada' };
+    return { accion: 'crear' };
+  }
+  if (auto.start_date === fechaNueva) return { accion: 'nada' };
   if (hayEventoEseDia(otros, fechaNueva)) return { accion: 'nada' };
-  if (!auto) return { accion: 'crear' };
-  const intacto =
-    auto.place_id === sitioId && auto.all_day && auto.end_date === null && auto.start_date === fechaAntigua && auto.notes === NOTA_EVENTO_VISITA;
-  return intacto ? { accion: 'mover', version: auto.version } : { accion: 'nada' };
+  const sinPersonalizar =
+    auto.place_id === sitio.id &&
+    auto.all_day &&
+    !auto.start_time &&
+    auto.end_date === null &&
+    auto.notes === NOTA_EVENTO_VISITA &&
+    auto.title === sitio.name.trim().slice(0, MAX_TITULO);
+  return sinPersonalizar ? { accion: 'mover', version: auto.version } : { accion: 'nada' };
 }

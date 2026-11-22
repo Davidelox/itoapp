@@ -38,20 +38,26 @@ describe('datosEventoVisita', () => {
 });
 
 describe('decidirEventoAlCorregir', () => {
-  const auto: EventoAuto = { version: 3, place_id: 's1', start_date: '2026-11-01', end_date: null, all_day: true, notes: 'Visita registrada' };
-  const decidir = (a: EventoAuto | null, otros: { start_date: string; end_date: string | null }[] = [], nueva = '2026-11-05') =>
-    decidirEventoAlCorregir(a, otros, 's1', '2026-11-01', nueva);
+  const auto: EventoAuto = { version: 1, title: 'Casa Lola', place_id: 's1', start_date: '2026-11-22', start_time: null, end_date: null, all_day: true, notes: 'Visita registrada' };
+  const decidir = (a: EventoAuto | null, otros: { start_date: string; end_date: string | null }[] = [], antigua = '2026-11-21', nueva = '2026-11-21') =>
+    decidirEventoAlCorregir(a, otros, sitio, antigua, nueva);
 
-  it('mismo día: nada', () => expect(decidir(auto, [], '2026-11-01')).toEqual({ accion: 'nada' }));
-  it('evento intacto: se mueve con su versión', () => expect(decidir(auto)).toEqual({ accion: 'mover', version: 3 }));
-  it('editado a mano (nota, fecha o varios días): no se pisa', () => {
+  it('caso real: evento en 22 y visita en 21 (sin cambiar la fecha) se mueve al 21', () => expect(decidir(auto)).toEqual({ accion: 'mover', version: 1 }));
+  it('visita 21 -> 20 con evento desfasado en 22: se mueve al 20', () => expect(decidir(auto, [], '2026-11-21', '2026-11-20')).toEqual({ accion: 'mover', version: 1 }));
+  it('ya alineado: nada', () => expect(decidir({ ...auto, start_date: '2026-11-21' })).toEqual({ accion: 'nada' }));
+  it('personalizado (nota, título, hora, varios días, otro sitio): no se pisa', () => {
     expect(decidir({ ...auto, notes: 'Cena con amigos' })).toEqual({ accion: 'nada' });
-    expect(decidir({ ...auto, start_date: '2026-11-02' })).toEqual({ accion: 'nada' });
-    expect(decidir({ ...auto, end_date: '2026-11-03' })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, title: 'Cumple' })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, start_time: '21:00:00', all_day: false })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, end_date: '2026-11-23' })).toEqual({ accion: 'nada' });
+    expect(decidir({ ...auto, place_id: 's2' })).toEqual({ accion: 'nada' });
   });
-  it('ya hay otro evento del sitio el día nuevo: no duplica', () => {
-    expect(decidir(auto, [{ start_date: '2026-11-04', end_date: '2026-11-06' }])).toEqual({ accion: 'nada' });
-    expect(decidir(null, [{ start_date: '2026-11-05', end_date: null }])).toEqual({ accion: 'nada' });
+  it('ya hay otro evento del sitio el día nuevo: no duplica ni mueve encima', () => {
+    expect(decidir(auto, [{ start_date: '2026-11-20', end_date: '2026-11-22' }])).toEqual({ accion: 'nada' });
+    expect(decidir(null, [{ start_date: '2026-11-21', end_date: null }], '2026-11-20')).toEqual({ accion: 'nada' });
   });
-  it('sin evento automático y día libre: crea', () => expect(decidir(null)).toEqual({ accion: 'crear' }));
+  it('sin evento automático: crea solo si cambió la fecha y el día está libre', () => {
+    expect(decidir(null, [], '2026-11-20')).toEqual({ accion: 'crear' });
+    expect(decidir(null)).toEqual({ accion: 'nada' });
+  });
 });
