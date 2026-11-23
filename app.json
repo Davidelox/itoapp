@@ -72,6 +72,12 @@
         "projectId": "8765b6f6-7ec4-4bd1-a2a7-a4c8a39845bb"
       }
     },
-    "owner": "davidelodax"
+    "owner": "davidelodax",
+    "updates": {
+      "url": "https://u.expo.dev/8765b6f6-7ec4-4bd1-a2a7-a4c8a39845bb"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
