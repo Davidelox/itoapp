@@ -12,7 +12,7 @@ import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { colors, fonts, radius } from '@/constants/theme';
 import { useEvento } from '@/lib/calendario/useCalendario';
 import { formatearImporte } from '@/lib/dinero/importe';
-import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
+import { infoCategoria } from '@/lib/gastos/categorias';
 import { aISO, fechaLarga } from '@/lib/gastos/fechas';
 import { planDe } from '@/lib/gastos/planes';
 import { personas } from '@/lib/gastos/personas';
@@ -99,7 +99,7 @@ export default function DetalleGasto() {
           <Text style={styles.concepto}>{gasto.concept}</Text>
           <Text style={styles.importe}>{formatearImporte(gasto.amount_cents)}</Text>
           <Text style={styles.fecha}>
-            {fechaLarga(gasto.spent_on)} · {INFO_CATEGORIA[gasto.category].nombre}
+            {fechaLarga(gasto.spent_on)} · {infoCategoria(gasto.category).nombre}
           </Text>
           {!gasto.visible_to_partner ? (
             <View style={styles.etiqueta}>

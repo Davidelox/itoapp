@@ -22,11 +22,12 @@ import {
 export const CATEGORIA_EVENTO: Categoria = 'eating_out';
 
 /**
- * Categoría de gasto según la del evento: comer fuera → Comer fuera; ocio y viaje → Ocio; el resto, la de
+ * Categoría de gasto según la del evento: comer fuera → Comer fuera; ocio, viaje, deporte y cultura → Ocio; salud → Salud; el resto, la de
  * siempre (Comer fuera). Un cumpleaños no pregunta «¿Quién pagó?», pero por si acaso cae en el resto.
  */
 export function categoriaGastoDe(categoria: CategoriaEvento | null | undefined): Categoria {
-  return categoria === 'leisure' || categoria === 'trip' ? 'leisure' : CATEGORIA_EVENTO;
+  if (categoria === 'health') return 'health';
+  return categoria === 'leisure' || categoria === 'trip' || categoria === 'sports' || categoria === 'culture' ? 'leisure' : CATEGORIA_EVENTO;
 }
 
 /** Solo se pregunta (y solo se apunta) a quien va: `both` o el hueco de quien mira. */

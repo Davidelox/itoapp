@@ -13,11 +13,11 @@ import { fechaInicialEnPlan, planDeParametro } from '@/lib/planificador/itinerar
 import { usePlan } from '@/lib/planificador/usePlanificador';
 
 const TIPOS: TipoFormulario[] = ['evento', 'cumple', 'pago'];
-const CATEGORIAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure'];
+const CATEGORIAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure', 'sports', 'home_night', 'culture', 'social', 'health'];
 
 /**
  * Nuevo evento. `?fecha=YYYY-MM-DD` precarga el día (el seleccionado en el calendario, también si ya pasó);
- * `?tipo=evento|cumple|pago` y `?categoria=trip|eating_out|leisure` los sugiere el filtro activo del calendario;
+ * `?tipo=evento|cumple|pago` y `?categoria=<categoría de evento>` los sugiere el filtro activo del calendario;
  * `?sitio=<id>` precarga el sitio del Mapa («Planear aquí»); `?plan=<uuid>` con `?fecha=` crea un elemento del itinerario
  * de ese plan (la fecha se limita a las del plan).
  */

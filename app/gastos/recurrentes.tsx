@@ -9,7 +9,7 @@ import { BotonSecundario } from '@/components/onboarding/Botones';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { colors, fonts, radius } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
-import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
+import { infoCategoria } from '@/lib/gastos/categorias';
 import { personas } from '@/lib/gastos/personas';
 import { esPersonal, fechaCobro, importeRecurrente, lineaRecurrente, proximoCobro, totales } from '@/lib/gastos/recurrentes';
 import { useRecurrentes } from '@/lib/gastos/useGastos';
@@ -124,7 +124,7 @@ export default function Recurrentes() {
                 style={({ pressed }) => [styles.fila, i < lista.length - 1 && styles.separador, pressed && { opacity: 0.7 }]}
               >
                 <View style={styles.icono}>
-                  <Ionicons name={INFO_CATEGORIA[r.category].icono} size={18} color={colors.icon} />
+                  <Ionicons name={infoCategoria(r.category).icono} size={18} color={colors.icon} />
                 </View>
                 <View style={styles.textos}>
                   <Text style={styles.nombre} numberOfLines={1}>

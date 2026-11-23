@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius } from '@/constants/theme';
 import { formatearImporte } from '@/lib/dinero/importe';
-import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
+import { infoCategoria } from '@/lib/gastos/categorias';
 import type { Gasto } from '@/lib/gastos/consultas';
 import { fechaCorta } from '@/lib/gastos/fechas';
 import { lineaPlan, planDe } from '@/lib/gastos/planes';
@@ -15,7 +15,7 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 export function IconoCategoria({ categoria, tamano = 40 }: { categoria: Gasto['category']; tamano?: number }) {
   return (
     <View style={[styles.icono, { width: tamano, height: tamano, borderRadius: tamano / 3 }]}>
-      <Ionicons name={INFO_CATEGORIA[categoria].icono} size={tamano / 2} color={colors.icon} />
+      <Ionicons name={infoCategoria(categoria).icono} size={tamano / 2} color={colors.icon} />
     </View>
   );
 }
@@ -35,7 +35,7 @@ export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador 
   const p = personas(pareja);
   const pagador = textoPagador(gasto, pareja);
   const reparto = etiquetaReparto(gasto.split_mode, p.yo.slot, gasto.split_pct_m1, p.nombrePareja);
-  const categoria = INFO_CATEGORIA[gasto.category].nombre;
+  const categoria = infoCategoria(gasto.category).nombre;
   const plan = ocultarPlan ? null : planDe(gasto);
   const inicio = conFecha ? `${fechaCorta(gasto.spent_on)} · ${categoria}` : categoria;
   return (

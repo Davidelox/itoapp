@@ -20,7 +20,7 @@ import { colors, fonts, radius } from '@/constants/theme';
 import { coloresDeHuecos, marcador } from '@/lib/calendario/colores';
 import { revelarEvento } from '@/lib/calendario/consultas';
 import {
-  INFO_CATEGORIA_EVENTO,
+  infoCategoriaEvento,
   puedeMarcarReservado,
   textoAsistentes,
   textoAviso,
@@ -134,7 +134,7 @@ export default function DetalleEvento() {
   const quien = cumple ? textoDeParte(evento.attendees, yo, p.nombrePareja) : textoAsistentes(evento.attendees, yo, p.nombrePareja);
   const colores = coloresDeHuecos(pareja);
   const marca = marcador({ tipo: 'event', categoria: evento.category, asistentes: evento.attendees }, colores.m1, colores.m2);
-  const categoria = INFO_CATEGORIA_EVENTO[evento.category];
+  const categoria = infoCategoriaEvento(evento.category);
   const enCurso = duracion > 0 ? textoEnCurso(fecha, fin, hoy) : null;
   // Sin pareja unida, «Vais los dos» no dice nada.
   const mostrarQuien = !!p.otra || evento.attendees !== 'both';

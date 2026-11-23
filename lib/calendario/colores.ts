@@ -21,7 +21,7 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 export type FormaMarcador = 'insignia' | 'pago';
 
 /** Nombres de Ionicons (versión rellena) de los glifos del calendario. */
-export type IconoMarcador = 'airplane' | 'restaurant' | 'ticket' | 'calendar' | 'gift' | 'briefcase';
+export type IconoMarcador = 'airplane' | 'restaurant' | 'ticket' | 'football' | 'home' | 'film' | 'people' | 'heart' | 'calendar' | 'gift' | 'briefcase';
 
 /** Icono de una opción del menú de filtros: los de la insignia o las monedas del pago. */
 export type IconoFiltro = IconoMarcador | 'pago';
@@ -31,6 +31,11 @@ const ICONO_CATEGORIA: Record<string, IconoMarcador> = {
   trip: 'airplane',
   eating_out: 'restaurant',
   leisure: 'ticket',
+  sports: 'football',
+  home_night: 'home',
+  culture: 'film',
+  social: 'people',
+  health: 'heart',
   birthday: 'gift',
 };
 

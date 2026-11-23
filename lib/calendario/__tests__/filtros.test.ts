@@ -10,14 +10,14 @@ import {
   sugerenciaNuevo,
 } from '@/lib/calendario/filtros';
 
-const SEIS: Filtro[] = ['trip', 'eating_out', 'leisure', 'other', 'birthday', 'payment', 'plan'];
+const SEIS: Filtro[] = ['trip', 'eating_out', 'leisure', 'sports', 'home_night', 'culture', 'social', 'health', 'other', 'birthday', 'payment', 'plan'];
 const MENU = { ancho: 224, alto: 320 };
 const VENTANA = { width: 375, height: 812 };
 
 describe('OPCIONES_FILTRO', () => {
-  it('son las 7 opciones, en el orden del menú y sin repetir (sin «Todos» ni «Eventos»)', () => {
+  it('son las 12 opciones, en el orden del menú y sin repetir (sin «Todos» ni «Eventos»)', () => {
     expect(OPCIONES_FILTRO.map((o) => o.valor)).toEqual(SEIS);
-    expect(new Set(OPCIONES_FILTRO.map((o) => o.valor)).size).toBe(7);
+    expect(new Set(OPCIONES_FILTRO.map((o) => o.valor)).size).toBe(12);
   });
   it('cada opción tiene etiqueta e icono', () => {
     for (const o of OPCIONES_FILTRO) {

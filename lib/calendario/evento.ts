@@ -16,25 +16,58 @@ export type Asistentes = 'both' | 'm1' | 'm2';
 export type Hueco = 'm1' | 'm2';
 
 /** Mismo CHECK que `events.category`. El cumpleaños es una categoría más (docs/plan-calendario-v2.md §3). */
-export type CategoriaEvento = 'trip' | 'eating_out' | 'leisure' | 'birthday' | 'other';
-export const CATEGORIAS_VALIDAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure', 'birthday', 'other'];
+export type CategoriaEvento =
+  | 'trip'
+  | 'eating_out'
+  | 'leisure'
+  | 'sports'
+  | 'home_night'
+  | 'culture'
+  | 'social'
+  | 'health'
+  | 'birthday'
+  | 'other';
+export const CATEGORIAS_VALIDAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure', 'sports', 'home_night', 'culture', 'social', 'health', 'birthday', 'other'];
 
 /** Iconos de Ionicons que usa el calendario (los de las categorías de gasto y el de pagos). */
-export type IconoCalendario = 'airplane-outline' | 'restaurant-outline' | 'ticket-outline' | 'gift-outline' | 'card-outline';
+export type IconoCalendario =
+  | 'airplane-outline'
+  | 'restaurant-outline'
+  | 'ticket-outline'
+  | 'football-outline'
+  | 'home-outline'
+  | 'film-outline'
+  | 'people-outline'
+  | 'heart-outline'
+  | 'gift-outline'
+  | 'card-outline';
 
 export const INFO_CATEGORIA_EVENTO: Record<CategoriaEvento, { etiqueta: string; icono: IconoCalendario | null }> = {
   trip: { etiqueta: 'Viaje', icono: 'airplane-outline' },
   eating_out: { etiqueta: 'Comer fuera', icono: 'restaurant-outline' },
   leisure: { etiqueta: 'Ocio', icono: 'ticket-outline' },
+  sports: { etiqueta: 'Deportivo', icono: 'football-outline' },
+  home_night: { etiqueta: 'Velada en casa', icono: 'home-outline' },
+  culture: { etiqueta: 'Cultura', icono: 'film-outline' },
+  social: { etiqueta: 'Quedada', icono: 'people-outline' },
+  health: { etiqueta: 'Salud', icono: 'heart-outline' },
   birthday: { etiqueta: 'Cumpleaños', icono: 'gift-outline' },
   other: { etiqueta: 'Evento', icono: null },
 };
+
+/** Datos de una categoría de evento; una desconocida (llegada del servidor) se trata como «Otros». */
+export const infoCategoriaEvento = (c: string | null | undefined) => INFO_CATEGORIA_EVENTO[c as CategoriaEvento] ?? INFO_CATEGORIA_EVENTO.other;
 
 /** Categorías que se eligen en un evento normal (el cumpleaños tiene su propio formulario). «Otros» es la de por defecto. */
 export const CATEGORIAS_FORMULARIO: { valor: CategoriaEvento; etiqueta: string; icono: IconoCalendario | null }[] = [
   { valor: 'trip', etiqueta: 'Viaje', icono: 'airplane-outline' },
   { valor: 'eating_out', etiqueta: 'Comer fuera', icono: 'restaurant-outline' },
   { valor: 'leisure', etiqueta: 'Ocio', icono: 'ticket-outline' },
+  { valor: 'sports', etiqueta: 'Deportivo', icono: 'football-outline' },
+  { valor: 'home_night', etiqueta: 'Velada en casa', icono: 'home-outline' },
+  { valor: 'culture', etiqueta: 'Cultura', icono: 'film-outline' },
+  { valor: 'social', etiqueta: 'Quedada', icono: 'people-outline' },
+  { valor: 'health', etiqueta: 'Salud', icono: 'heart-outline' },
   { valor: 'other', etiqueta: 'Otros', icono: null },
 ];
 

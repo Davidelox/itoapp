@@ -7,7 +7,7 @@ import { type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
  * Categorías rutinarias: no son una salida, así que no crean visita ni evento (llenarían el calendario).
  * Sí cuentan: comer fuera, ocio y otros.
  */
-export const CATEGORIAS_RUTINARIAS: readonly Categoria[] = ['home', 'groceries', 'transport', 'subscriptions', 'health', 'gifts'];
+export const CATEGORIAS_RUTINARIAS: readonly Categoria[] = ['home', 'groceries', 'delivery', 'transport', 'subscriptions', 'health', 'gifts'];
 
 export type Accion = 'nada' | 'registrar' | 'preguntar';
 

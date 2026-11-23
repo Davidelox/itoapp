@@ -3,6 +3,7 @@
  * se pone el menú. Funciones puras.
  */
 import type { Filtro, Filtros } from '@/lib/calendario/agrupar';
+import type { CategoriaEvento } from '@/lib/calendario/evento';
 import type { IconoFiltro } from '@/lib/calendario/colores';
 
 export type { IconoFiltro };
@@ -17,6 +18,11 @@ export const OPCIONES_FILTRO: readonly OpcionFiltro[] = [
   { valor: 'trip', etiqueta: 'Viajes', icono: 'airplane' },
   { valor: 'eating_out', etiqueta: 'Comer fuera', icono: 'restaurant' },
   { valor: 'leisure', etiqueta: 'Ocio', icono: 'ticket' },
+  { valor: 'sports', etiqueta: 'Deportivo', icono: 'football' },
+  { valor: 'home_night', etiqueta: 'Velada en casa', icono: 'home' },
+  { valor: 'culture', etiqueta: 'Cultura', icono: 'film' },
+  { valor: 'social', etiqueta: 'Quedada', icono: 'people' },
+  { valor: 'health', etiqueta: 'Salud', icono: 'heart' },
   { valor: 'other', etiqueta: 'Otros', icono: 'calendar' },
   { valor: 'birthday', etiqueta: 'Cumpleaños', icono: 'gift' },
   { valor: 'payment', etiqueta: 'Pagos', icono: 'pago' },
@@ -49,12 +55,12 @@ export function resumenFiltros(filtros: Filtros): string {
 }
 
 /** Tipo sugerido para «Añadir evento»: solo con UN filtro activo (y «Otros» no sugiere nada). */
-export function sugerenciaNuevo(filtros: Filtros): { tipo?: 'cumple' | 'pago'; categoria?: 'trip' | 'eating_out' | 'leisure' } {
+export function sugerenciaNuevo(filtros: Filtros): { tipo?: 'cumple' | 'pago'; categoria?: CategoriaEvento } {
   if (filtros.length !== 1) return {};
   const f = filtros[0];
   if (f === 'birthday') return { tipo: 'cumple' };
   if (f === 'payment') return { tipo: 'pago' };
-  if (f === 'trip' || f === 'eating_out' || f === 'leisure') return { categoria: f };
+  if (f !== 'other' && f !== 'plan') return { categoria: f };
   return {};
 }
 

@@ -7,7 +7,7 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, radius } from '@/constants/theme';
 import { editarEvento } from '@/lib/calendario/consultas';
-import { INFO_CATEGORIA_EVENTO } from '@/lib/calendario/evento';
+import { infoCategoriaEvento } from '@/lib/calendario/evento';
 import { tituloDia } from '@/lib/calendario/rejilla';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { nombreDeSitio } from '@/lib/mapa/conexiones';
@@ -60,7 +60,7 @@ export function Itinerario({ plan, pareja }: { plan: Plan; pareja: Pareja }) {
 
   const fila = (e: ElementoItinerario, conMover: boolean) => {
     const sitio = nombreDeSitio(sitios, e.place_id);
-    const icono = INFO_CATEGORIA_EVENTO[e.category].icono ?? 'calendar-outline';
+    const icono = infoCategoriaEvento(e.category).icono ?? 'calendar-outline';
     const reserva = chipReserva(e, tareasDelPlan);
     return (
       <View key={e.id} style={styles.fila}>

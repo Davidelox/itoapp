@@ -6,6 +6,7 @@ export const CATEGORIAS = [
   'home',
   'groceries',
   'eating_out',
+  'delivery',
   'leisure',
   'transport',
   'subscriptions',
@@ -22,6 +23,7 @@ export const INFO_CATEGORIA: Record<Categoria, { nombre: string; icono: Icono }>
   home: { nombre: 'Hogar', icono: 'home-outline' },
   groceries: { nombre: 'Súper', icono: 'cart-outline' },
   eating_out: { nombre: 'Comer fuera', icono: 'restaurant-outline' },
+  delivery: { nombre: 'Comida a domicilio', icono: 'bag-handle-outline' },
   leisure: { nombre: 'Ocio', icono: 'ticket-outline' },
   transport: { nombre: 'Transporte', icono: 'car-outline' },
   subscriptions: { nombre: 'Suscripciones', icono: 'repeat-outline' },
@@ -29,6 +31,9 @@ export const INFO_CATEGORIA: Record<Categoria, { nombre: string; icono: Icono }>
   gifts: { nombre: 'Regalos', icono: 'gift-outline' },
   other: { nombre: 'Otros', icono: 'ellipsis-horizontal' },
 };
+
+/** Datos de una categoría de gasto; una desconocida (llegada del servidor) se trata como «Otros». */
+export const infoCategoria = (c: string) => INFO_CATEGORIA[c as Categoria] ?? INFO_CATEGORIA.other;
 
 const sinTildes = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 

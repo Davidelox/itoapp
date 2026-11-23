@@ -74,7 +74,7 @@ export type FilaRango = {
 /** `plan`: la banda de un plan del Planificador (de `plans`). Sus elementos de itinerario salen además como eventos con `planId`. */
 export type Tipo = 'event' | 'payment' | 'plan';
 /** Una opción del menú de filtros: opciones que no se solapan y que juntas lo cubren todo («other» = el resto de eventos). */
-export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'other' | 'birthday' | 'payment' | 'plan';
+export type Filtro = 'trip' | 'eating_out' | 'leisure' | 'sports' | 'home_night' | 'culture' | 'social' | 'health' | 'other' | 'birthday' | 'payment' | 'plan';
 /** Filtros activos en el orden de `OPCIONES_FILTRO`; vacío = todo. Semántica O entre los elegidos. */
 export type Filtros = readonly Filtro[];
 export type EstadoPago = 'scheduled' | 'pending' | 'paid';
@@ -212,7 +212,7 @@ export function aElementos(filas: FilaRango[], pagos?: ReadonlyMap<string, InfoP
   return ordenar(lista);
 }
 
-const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'birthday']);
+const CATEGORIAS_FILTRO: ReadonlySet<string> = new Set(['trip', 'eating_out', 'leisure', 'sports', 'home_night', 'culture', 'social', 'health', 'birthday']);
 
 /** Tipo de cada plan por id (`plans.type`): decide en qué filtros entran un plan y los elementos de su itinerario. */
 export type TiposPlan = ReadonlyMap<string, 'trip' | 'celebration' | 'other'>;

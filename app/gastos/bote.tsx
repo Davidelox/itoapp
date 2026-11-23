@@ -13,7 +13,7 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { colors, fonts, personColors, radius } from '@/constants/theme';
 import { formatearImporte, leerEuros } from '@/lib/dinero/importe';
 import { aportacionRetrasada, boteConPendiente, efectoEnBote, limitesMes, moverMes, nombreMovimiento, proximaAportacion, repartoAportacion, resumenMes } from '@/lib/gastos/bote';
-import { INFO_CATEGORIA } from '@/lib/gastos/categorias';
+import { infoCategoria } from '@/lib/gastos/categorias';
 import { ErrorGasto, aportar, reembolsar } from '@/lib/gastos/consultas';
 import { MESES, deISO, fechaCorta, hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
@@ -244,7 +244,7 @@ export default function Bote() {
                 ) : null}
                 {resumen.categorias.map((c) => (
                   <View key={c.categoria} style={styles.cat}>
-                    <Text style={styles.catNombre}>{INFO_CATEGORIA[c.categoria].nombre}</Text>
+                    <Text style={styles.catNombre}>{infoCategoria(c.categoria).nombre}</Text>
                     <View style={styles.catBarra}>
                       <View style={[styles.catRelleno, { width: `${Math.round((c.cents / maxCategoria) * 100)}%` }]} />
                     </View>
