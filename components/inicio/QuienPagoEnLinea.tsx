@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { crearGastoDeEvento } from '@/lib/calendario/consultas';
 import { type EventoParaGasto, datosGasto, importeATexto, valoresIniciales } from '@/lib/calendario/quienPago';
 import { leerEuros } from '@/lib/dinero/importe';
@@ -34,10 +35,12 @@ export function QuienPagoEnLinea({
   onMas: () => void;
   deshabilitado: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const ajustes = useAjustesGastos();
   const { userId } = useEstado();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const [importe, setImporte] = useState(evento.budget_cents === null ? '' : importeATexto(evento.budget_cents));
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +128,7 @@ export function QuienPagoEnLinea({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { gap: 10 },
   importeFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   importeEtiqueta: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
@@ -136,7 +139,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.bodyBold,
     fontSize: 16,
     color: colors.text,
@@ -147,4 +150,4 @@ const styles = StyleSheet.create({
   botonTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   mas: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
   masTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
-});
+}));

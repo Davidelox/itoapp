@@ -2,14 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { efectoEnBote, nombreMovimiento } from '@/lib/gastos/bote';
 import { ErrorGasto, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
@@ -20,6 +21,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Detalle de un movimiento del bote, con pedir borrar (docs/plan-gastos-fase3.md §2). No se edita. */
 export default function DetalleMovimiento() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -63,7 +66,7 @@ export default function DetalleMovimiento() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const v = efectoEnBote(m);
   const s = solicitud.data;
   const alMomento = !p.otra;
@@ -185,14 +188,14 @@ export default function DetalleMovimiento() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -208,8 +211,8 @@ const styles = StyleSheet.create({
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
   banda: { gap: 4, padding: 14, borderRadius: radius.lg, backgroundColor: colors.surface },
   bandaTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 20, color: colors.text },
-  caja: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  caja: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   cajaTitulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   cajaTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
   dosBotones: { flexDirection: 'row', gap: 8 },
-});
+}));

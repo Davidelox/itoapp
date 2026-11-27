@@ -2,11 +2,11 @@
   "expo": {
     "name": "ito",
     "slug": "ito",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/brand/ito-icono-app-1024.png",
     "scheme": "ito",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#7B2433",
@@ -28,7 +28,11 @@
         {
           "backgroundColor": "#FBF7E9",
           "image": "./assets/brand/ito-splash-1024.png",
-          "imageWidth": 200
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#1C1012",
+            "image": "./assets/brand/ito-splash-crema-1024.png"
+          }
         }
       ],
       "expo-font",

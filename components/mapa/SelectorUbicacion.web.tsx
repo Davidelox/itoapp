@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Region } from '@/lib/mapa/encuadre';
 import { leerCoordenada } from '@/lib/mapa/sitio';
 
@@ -9,6 +10,8 @@ export const SELECTOR_CON_MAPA = false;
 
 /** En web no hay mapa (docs/plan-mapa.md §2): las coordenadas se escriben. */
 export function SelectorUbicacion({ inicial, onCambiar }: { inicial: Region; onCambiar: (lat: number, lng: number) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [lat, setLat] = useState(String(inicial.latitude));
   const [lng, setLng] = useState(String(inicial.longitude));
   const cambiar = (nuevaLat: string, nuevaLng: string) => {
@@ -27,8 +30,8 @@ export function SelectorUbicacion({ inicial, onCambiar }: { inicial: Region; onC
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { gap: 8 },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

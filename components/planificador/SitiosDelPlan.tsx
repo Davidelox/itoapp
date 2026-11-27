@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { FilaSitio } from '@/components/mapa/FilaSitio';
 import { HojaAnadirSitios } from '@/components/mapa/HojaAnadirSitios';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { sitiosAnadibles, textoContadorSitios } from '@/lib/mapa/colecciones';
@@ -27,6 +28,8 @@ import { useInvalidarPlanificador, useItinerario } from '@/lib/planificador/useP
  * conserva) y verlos en el mapa.
  */
 export function SitiosDelPlan({ plan, pareja }: { plan: Plan; pareja: Pareja }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const invalidar = useInvalidarPlanificador();
   const colecciones = useColecciones();
@@ -42,7 +45,7 @@ export function SitiosDelPlan({ plan, pareja }: { plan: Plan; pareja: Pareja }) 
   // Sin colección visible (aún cargando o no existe) no hay nada que enseñar.
   if (!coleccion) return null;
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const lista = sitiosDelPlan(coleccion.id, plan, sitios.data ?? [], pertenencias.data ?? [], itinerario.data ?? []);
   const totalDias = diasDelPlan(plan.start_date, plan.end_date).length;
   const faltan = sitiosAnadibles(coleccion.id, sitios.data ?? [], pertenencias.data ?? []);
@@ -124,8 +127,8 @@ export function SitiosDelPlan({ plan, pareja }: { plan: Plan; pareja: Pareja }) 
   );
 }
 
-const styles = StyleSheet.create({
-  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+const useStyles = crearEstilos((colors) => ({
+  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   seccionTitulo: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   vacio: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   bloque: { gap: 2 },
@@ -137,4 +140,4 @@ const styles = StyleSheet.create({
   quien: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   quitar: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6, marginLeft: 'auto' },
   quitarTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' },
-});
+}));

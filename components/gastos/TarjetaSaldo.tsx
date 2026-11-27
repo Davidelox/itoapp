@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import type { Saldo } from '@/lib/gastos/consultas';
 import { proximaAportacion } from '@/lib/gastos/bote';
@@ -27,7 +28,9 @@ export function TarjetaSaldo({
   onSaldar?: () => void;
   bote?: { cents: number; onAbrir: () => void };
 }) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
   const neto = saldo?.partner_owes_me_cents ?? 0;
   const pendiente = saldo?.awaiting_confirmation_cents ?? 0;
   const texto = textoSaldo(neto, !!p.otra);
@@ -91,6 +94,8 @@ export function TarjetaSaldo({
 
 /** Bote común en Gastos (mockup Dinero): saldo, próxima aportación y lo que el bote te debe. Abre la pantalla del bote. */
 export function TarjetaBote({ saldo, onAbrir }: { saldo: Saldo; onAbrir: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const ajustes = useAjustesBote();
   const proxima = ajustes.data ? proximaAportacion(ajustes.data) : null;
   const desactivado = !saldo.pot_enabled;
@@ -115,9 +120,9 @@ export function TarjetaBote({ saldo, onAbrir }: { saldo: Saldo; onAbrir: () => v
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl,
@@ -135,13 +140,13 @@ const styles = StyleSheet.create({
   boteFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, marginBottom: -6, borderTopWidth: 1, borderTopColor: colors.divider },
   boteFilaTexto: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   boteFilaImporte: { fontFamily: fonts.bodyBold, color: colors.text },
-  saldarTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
+  saldarTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.onAccent },
   pendiente: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   bote: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -155,4 +160,4 @@ const styles = StyleSheet.create({
   aportarTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   boteTitulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   boteSaldo: { fontFamily: fonts.title, fontSize: 24, color: colors.text },
-});
+}));

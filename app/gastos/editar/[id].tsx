@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioGasto } from '@/components/gastos/FormularioGasto';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Gasto } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { useAjustesGastos, useGasto } from '@/lib/gastos/useGastos';
@@ -15,6 +16,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
  * mientras tanto (tiempo real), no se pierde lo que se está escribiendo; sale un aviso con «Recargar».
  */
 export default function EditarGasto() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const ajustes = useAjustesGastos();
@@ -42,7 +45,7 @@ export default function EditarGasto() {
   }
 
   const masNuevo = !guardandoYo && gasto.data && gasto.data.version > copia.version ? gasto.data : null;
-  const nombre = personas(pareja).nombrePareja;
+  const nombre = personas(pareja, colors).nombrePareja;
 
   return (
     <View style={styles.raiz}>
@@ -65,7 +68,7 @@ export default function EditarGasto() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1 },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   texto: { fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.text,
   },
-  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.white },
+  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.onAccent },
   avisoBoton: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, justifyContent: 'center' },
   avisoEnlace: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accentSoft },
-});
+}));

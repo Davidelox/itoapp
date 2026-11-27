@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
@@ -8,7 +8,8 @@ import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { DineroDelPlan } from '@/components/planificador/BarraPresupuesto';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
@@ -27,6 +28,8 @@ import { usePlan, useItinerario, useTareas } from '@/lib/planificador/usePlanifi
  * cada uno, tareas hechas, sitios visitados e itinerario. «Duplicar plan» abre un plan nuevo con lo reutilizable.
  */
 export default function ResumenPlan() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -74,7 +77,7 @@ export default function ResumenPlan() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const gastado = plan.gastado_cents ?? (gastos.data ? totalGastadoDelPlan(gastos.data) : null);
   const puesto = gastos.data ? puestoPor(gastos.data, p.yo.slot) : null;
   const hechas = contadorTareas((tareas.data ?? []).filter((t) => t.plan_id === plan.id));
@@ -185,6 +188,7 @@ export default function ResumenPlan() {
 }
 
 function FilaPuesto({ nombre, cents, tinta }: { nombre: string; cents: number; tinta: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.puestoFila} accessible accessibilityLabel={`${nombre} puso ${formatearImporte(cents)}`}>
       <Text style={[styles.puestoNombre, { color: tinta }]}>{nombre}</Text>
@@ -193,7 +197,7 @@ function FilaPuesto({ nombre, cents, tinta }: { nombre: string; cents: number; t
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   barra: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
   barraTitulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
@@ -202,11 +206,11 @@ const styles = StyleSheet.create({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
   contenido: { paddingHorizontal: 20, gap: 16 },
   hero: { alignItems: 'center', gap: 6, padding: 20, borderRadius: radius.xl, backgroundColor: colors.accentSoft },
-  emoji: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emoji: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   titulo: { fontFamily: fonts.title, fontSize: 26, color: colors.text, textAlign: 'center' },
   fechas: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text, textAlign: 'center' },
   tipo: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   seccionTitulo: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   dato: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
@@ -222,4 +226,4 @@ const styles = StyleSheet.create({
   dia: { gap: 2 },
   diaTitulo: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   diaDetalle: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
-});
+}));

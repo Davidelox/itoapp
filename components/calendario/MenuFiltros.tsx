@@ -11,7 +11,8 @@ import {
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Marcador } from "@/components/calendario/Marcador";
-import { colors, fonts, radius } from "@/constants/theme";
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Filtros } from "@/lib/calendario/agrupar";
 import { marcadorFiltro } from "@/lib/calendario/colores";
 import {
@@ -48,6 +49,8 @@ export function MenuFiltros({
   onCambiar: (f: Filtros) => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const ventana = useWindowDimensions();
   // Sin medida no hay dónde anclarlo. Con ella, el `Modal` sigue montado y `visible` lo abre y lo cierra (con fundido).
   if (!boton) return null;
@@ -103,7 +106,7 @@ export function MenuFiltros({
                     pressed && styles.filaPulsada,
                   ]}
                 >
-                  <Marcador marcador={marcadorFiltro(o, marcada)} tamano={22} />
+                  <Marcador marcador={marcadorFiltro(o, marcada, colors)} tamano={22} />
                   <Text
                     style={[styles.etiqueta, marcada && styles.etiquetaMarcada]}
                     numberOfLines={1}
@@ -117,7 +120,7 @@ export function MenuFiltros({
                       <Ionicons
                         name="checkmark"
                         size={14}
-                        color={colors.white}
+                        color={colors.onAccent}
                       />
                     ) : null}
                   </View>
@@ -158,20 +161,20 @@ export function MenuFiltros({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fondo: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(42, 38, 39, 0.08)",
+    backgroundColor: colors.veloSuave,
   },
   menu: {
     position: "absolute",
     width: ANCHO_MENU,
     paddingVertical: PADDING_MENU,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: "#7A3419",
+    shadowColor: colors.sombra,
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -226,4 +229,4 @@ const styles = StyleSheet.create({
   },
   limpiarApagado: { opacity: 0.4 },
   listo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-});
+}));

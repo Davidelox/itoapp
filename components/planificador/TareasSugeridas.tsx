@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { crearTareas } from '@/lib/planificador/consultas';
@@ -16,6 +17,8 @@ import { useInvalidarPlanificador } from '@/lib/planificador/usePlanificador';
 
 /** Casillas de las tareas sugeridas de un tipo de plan: todas marcadas salvo las de `desmarcadas` (por título). */
 export function CasillasSugeridas({ tipo, desmarcadas, onCambiar }: { tipo: TipoPlan; desmarcadas: readonly string[]; onCambiar: (d: string[]) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View>
       {PLANTILLAS[tipo].map((s) => {
@@ -29,7 +32,7 @@ export function CasillasSugeridas({ tipo, desmarcadas, onCambiar }: { tipo: Tipo
             onPress={() => onCambiar(alternarSugerida(desmarcadas, s.titulo))}
             style={styles.fila}
           >
-            <View style={[styles.casilla, marcada && styles.casillaMarcada]}>{marcada ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}</View>
+            <View style={[styles.casilla, marcada && styles.casillaMarcada]}>{marcada ? <Ionicons name="checkmark" size={16} color={colors.onAccent} /> : null}</View>
             <Text style={styles.titulo}>{s.titulo}</Text>
             {s.tipo === 'booking' ? <Text style={styles.tipo}>Reserva</Text> : null}
           </Pressable>
@@ -77,10 +80,10 @@ export function HojaTareasSugeridas({ coupleId, planId, tipo, desde, onCerrar }:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   casilla: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.inputBorder, alignItems: 'center', justifyContent: 'center' },
   casillaMarcada: { backgroundColor: colors.accent, borderColor: colors.accent },
   titulo: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.text },
   tipo: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

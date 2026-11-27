@@ -3,11 +3,12 @@ import { View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioColeccion } from '@/components/mapa/FormularioColeccion';
-import { colors } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Nueva colección (mockup NuevaColeccion). `?sitio=` llega marcado en «Añadir sitios ahora» (desde la ficha). */
 export default function NuevaColeccion() {
+  const colors = useColores();
   const { pareja } = useEstado();
   const { sitio } = useLocalSearchParams<{ sitio?: string }>();
   if (!pareja) {

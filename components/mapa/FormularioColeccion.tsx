@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SelectorIcono } from '@/components/SelectorIcono';
@@ -12,7 +12,8 @@ import { PinSitio } from '@/components/mapa/PinSitio';
 import { SitiosMarcables } from '@/components/mapa/SitiosMarcables';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import {
@@ -36,11 +37,13 @@ const ICONO_INICIAL = '⭐';
  * `coleccion`: la que se edita. `sitioInicial`: sitio que llega marcado (desde la ficha).
  */
 export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { pareja: Pareja; coleccion?: Coleccion; sitioInicial?: string }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarMapa();
   const { data: sitios = [] } = useSitios();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const editando = !!coleccion;
   const [nombre, setNombre] = useState(coleccion?.name ?? '');
   const [icono, setIcono] = useState(coleccion?.icon ?? ICONO_INICIAL);
@@ -169,16 +172,16 @@ export function FormularioColeccion({ pareja, coleccion, sitioInicial }: { parej
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   cerrarHueco: { width: 44 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  vista: { flexDirection: 'row', justifyContent: 'space-around', padding: 16, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  vista: { flexDirection: 'row', justifyContent: 'space-around', padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   vistaPin: { alignItems: 'center', gap: 6 },
-  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
-});
+  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
+}));

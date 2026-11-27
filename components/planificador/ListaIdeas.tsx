@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { HojaIdea } from '@/components/planificador/HojaIdea';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
@@ -22,10 +23,12 @@ type Hoja = { tipo: 'nueva' } | { tipo: 'editar'; idea: Idea } | { tipo: 'borrar
 
 /** Pestaña «Ideas» (mockup Planificador): ideas sin fecha, «Convertir en plan» y «+ Idea». */
 export function ListaIdeas({ pareja, onScroll }: { pareja: Pareja; onScroll: React.ComponentProps<typeof Animated.ScrollView>['onScroll'] }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const invalidar = useInvalidarPlanificador();
   const consulta = useIdeas();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const [hoja, setHoja] = useState<Hoja | null>(null);
   const [recargando, setRecargando] = useState(false);
   const [borrando, setBorrando] = useState(false);
@@ -139,14 +142,14 @@ export function ListaIdeas({ pareja, onScroll }: { pareja: Pareja; onScroll: Rea
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   lista: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40, gap: 12 },
   intro: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32, paddingBottom: 60 },
   vacio: { alignItems: 'center', gap: 12, paddingVertical: 32, paddingHorizontal: 12 },
   vacioTitulo: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   vacioTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   baldosa: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, minWidth: 0, gap: 2 },
@@ -154,4 +157,4 @@ const styles = StyleSheet.create({
   tipo: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   anadir: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg - 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.inputBorder },
   anadirTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.icon },
-});
+}));

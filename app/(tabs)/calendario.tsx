@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Extrapolation, FadeIn, interpolate, useAnimatedRef, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -13,7 +13,8 @@ import { RejillaMes } from '@/components/calendario/RejillaMes';
 import { SemanaDetallada } from '@/components/calendario/SemanaDetallada';
 import { HojaImporte } from '@/components/gastos/HojaImporte';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Elemento, type Filtros, agruparPorDia, aElementos, construirLista, filtrar, infoPagos } from '@/lib/calendario/agrupar';
 import { coloresDeHuecos } from '@/lib/calendario/colores';
 import { gastoDeCobro } from '@/lib/calendario/consultas';
@@ -39,6 +40,8 @@ const IGNORAR_TOQUE_MS = 250;
 
 /** Pestaña Calendario (mockup «Agenda», docs/plan-calendario.md §2): ver, abrir un evento o un pago y añadir eventos. */
 export default function Calendario() {
+  const colors = useColores();
+  const styles = useStyles();
   const presupuestos = usePresupuestos();
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
@@ -205,7 +208,7 @@ export default function Calendario() {
   }));
 
   if (!pareja) return null;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const recargar = () => {
     refetch();
     recargarRecurrentes();
@@ -398,7 +401,7 @@ export default function Calendario() {
         onPress={nuevoEvento}
         style={({ pressed }) => [styles.mas, pressed && { backgroundColor: colors.accentDark }]}
       >
-        <Ionicons name="add" size={28} color={colors.white} />
+        <Ionicons name="add" size={28} color={colors.onAccent} />
       </Pressable>
       {importeDe ? (
         <HojaImporte
@@ -420,7 +423,7 @@ export default function Calendario() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120, gap: 12 },
   hoy: {
@@ -445,11 +448,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOpacity: 0.28,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
   errorTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

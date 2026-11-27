@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { personas } from '@/lib/gastos/personas';
@@ -14,7 +14,8 @@ import { TarjetaSitio } from '@/components/mapa/TarjetaSitio';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { esDePlan, sitiosAnadibles, sitiosDeColeccion, textoContadorSitios, textoQuienComparte } from '@/lib/mapa/colecciones';
 import { quitarSitioDeColeccion } from '@/lib/mapa/consultasColecciones';
@@ -27,6 +28,8 @@ type Vista = 'lista' | 'mapa';
 
 /** Detalle de una colección: cabecera, contador y sus sitios en [Lista | Mapa] (en web, solo la Lista). «Editar» abre el formulario. */
 export default function DetalleColeccion() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -76,7 +79,7 @@ export default function DetalleColeccion() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const todos = sitios.data ?? [];
   const dentro = sitiosDeColeccion(coleccion.id, todos, pertenencias.data ?? []);
   const faltan = sitiosAnadibles(coleccion.id, todos, pertenencias.data ?? []);
@@ -218,14 +221,14 @@ export default function DetalleColeccion() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 4 },
   redondo: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   editar: { minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   editarTexto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.accent },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingBottom: 12 },
-  emoji: { width: 64, height: 64, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  emoji: { width: 64, height: 64, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heroTextos: { flex: 1, minWidth: 0, gap: 2 },
   titulo: { fontFamily: fonts.title, fontSize: 26, color: colors.text },
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
@@ -242,4 +245,4 @@ const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32, paddingBottom: 60 },
   vacioTitulo: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

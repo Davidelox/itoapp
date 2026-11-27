@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HojaPermisoAvisos } from '@/components/avisos/HojaPermisoAvisos';
@@ -11,7 +11,9 @@ import { HojaBorrarCuenta, HojaContrasena, HojaPerfil, HojaSalir } from '@/compo
 import { HojaBote, HojaCategorias, HojaReparto } from '@/components/ajustes/HojasDinero';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { Chip } from '@/components/gastos/Controles';
+import { crearEstilos, guardarTema, type PreferenciaTema, preferenciaActual, useColores } from '@/lib/tema';
 import { listaCategorias, resumenBote, resumenReparto, textoPorcentaje, textosCambios } from '@/lib/ajustes/ajustes';
 import { guardarPresupuestos, usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { type CampoPrivacidad, guardarPrivacidad, responderPropuesta, retirarPropuesta } from '@/lib/ajustes/consultas';
@@ -32,6 +34,8 @@ type HojaAbierta = 'perfil' | 'reparto' | 'categorias' | 'bote' | 'contrasena' |
 
 /** Ajustes (docs/plan-ajustes.md): perfil, pareja, dinero, privacidad y cuenta. Cada cambio, en una hoja. */
 export default function Ajustes() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const presupuestos = usePresupuestos();
@@ -57,6 +61,7 @@ export default function Ajustes() {
   useEffect(() => {
     estadoPermiso().then(setPermiso);
   }, [abierta]);
+  const [tema, setTema] = useState<PreferenciaTema>(preferenciaActual);
   const [intento, setIntento] = useState<Intento | null>(null);
   const [reintentando, setReintentando] = useState(false);
   useEffect(() => {
@@ -80,7 +85,7 @@ export default function Ajustes() {
   const cerrar = () => setAbierta(null);
 
   if (!pareja || !userId) return null;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const d = datos.data;
   const fila = d?.fila;
   const valorPrivacidad = (campo: CampoPrivacidad) =>
@@ -144,7 +149,7 @@ export default function Ajustes() {
           <View style={styles.perfilTextos}>
             <Text style={styles.perfilNombre}>{p.yo.nombre.trim() || 'Sin nombre'}</Text>
             {p.yo.color ? (
-              <Text style={[styles.perfilColor, { color: personColors[p.yo.color].ink }]}>{personColors[p.yo.color].nombre}</Text>
+              <Text style={[styles.perfilColor, { color: colors.personas[p.yo.color].ink }]}>{colors.personas[p.yo.color].nombre}</Text>
             ) : null}
           </View>
           <Text style={styles.editar}>Editar</Text>
@@ -300,6 +305,24 @@ export default function Ajustes() {
           />
         </Seccion>
 
+        {/* Apariencia: preferencia solo de este móvil */}
+        <Seccion titulo="APARIENCIA">
+          <View accessibilityRole="radiogroup" accessibilityLabel="Apariencia" style={styles.apariencia}>
+            {OPCIONES_TEMA.map((o) => (
+              <Chip
+                key={o.valor}
+                etiqueta={o.etiqueta}
+                activo={tema === o.valor}
+                rol="radio"
+                onPress={() => {
+                  setTema(o.valor);
+                  void guardarTema(o.valor);
+                }}
+              />
+            ))}
+          </View>
+        </Seccion>
+
         {/* Cuenta */}
         <Seccion titulo="CUENTA">
           {email ? <Fila titulo="Email" valor={email} /> : null}
@@ -336,6 +359,12 @@ function fechaDesde(iso: string) {
   return `${f.getDate()} de ${MESES[f.getMonth()].toLowerCase()} de ${f.getFullYear()}`;
 }
 
+const OPCIONES_TEMA: { valor: PreferenciaTema; etiqueta: string }[] = [
+  { valor: 'sistema', etiqueta: 'Sistema' },
+  { valor: 'claro', etiqueta: 'Claro' },
+  { valor: 'oscuro', etiqueta: 'Oscuro' },
+];
+
 function FilaInterruptor({
   titulo,
   ayuda,
@@ -349,6 +378,8 @@ function FilaInterruptor({
   onCambiar: (v: boolean) => void;
   separador?: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={[styles.interruptor, separador && styles.separador]}>
       <View style={styles.flex}>
@@ -360,14 +391,15 @@ function FilaInterruptor({
         value={valor}
         onValueChange={onCambiar}
         trackColor={{ true: colors.accent, false: colors.inputBorder }}
-        thumbColor={colors.white}
-        {...{ activeThumbColor: colors.white }}
+        thumbColor={colors.thumb}
+        {...{ activeThumbColor: colors.thumb }}
       />
     </View>
   );
 }
 
 function Seccion({ titulo, nota, children }: { titulo: string; nota?: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.seccion}>
       <Text accessibilityRole="header" style={styles.seccionTitulo}>
@@ -392,6 +424,8 @@ function Fila({
   separador?: boolean;
   peligro?: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const contenido = (
     <>
       <View style={styles.flex}>
@@ -425,6 +459,7 @@ function BandaPropuesta({
   nombrePareja: string;
   tinta: string;
 }) {
+  const styles = useStyles();
   const invalidar = useInvalidarGastos();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -484,6 +519,8 @@ function BotonBanda({
   principal?: boolean;
   deshabilitado: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -491,19 +528,19 @@ function BotonBanda({
       onPress={onPress}
       style={[styles.botonBanda, principal ? styles.botonBandaPrincipal : styles.botonBandaNormal, deshabilitado && { opacity: 0.5 }]}
     >
-      <Text style={[styles.botonBandaTexto, principal && { color: colors.white }]}>{etiqueta}</Text>
+      <Text style={[styles.botonBandaTexto, principal && { color: colors.onAccent }]}>{etiqueta}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -519,7 +556,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     padding: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl,
@@ -530,16 +567,17 @@ const styles = StyleSheet.create({
   editar: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
   seccion: { gap: 8 },
   seccionTitulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
-  caja: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
+  apariencia: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 14 },
+  caja: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
   nota: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingVertical: 10 },
   separador: { borderTopWidth: 1, borderTopColor: colors.divider },
   filaTitulo: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   filaValor: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.textSecondary },
-  peligro: { color: colors.accent },
+  peligro: { color: colors.error },
   pareja: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   avatares: { flexDirection: 'row' },
-  solapa: { marginLeft: -10, borderRadius: 20, borderWidth: 2, borderColor: colors.white },
+  solapa: { marginLeft: -10, borderRadius: 20, borderWidth: 2, borderColor: colors.card },
   interruptor: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   banda: { gap: 6, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.paymentChip },
   bandaRechazo: { backgroundColor: colors.accentSoft },
@@ -548,17 +586,17 @@ const styles = StyleSheet.create({
   bandaBotones: { flexDirection: 'row', gap: 8, marginTop: 4 },
   botonBanda: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   botonBandaPrincipal: { backgroundColor: colors.accent },
-  botonBandaNormal: { backgroundColor: colors.white },
+  botonBandaNormal: { backgroundColor: colors.card },
   botonBandaTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   cerrarSesion: {
     minHeight: 52,
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cerrarSesionTexto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.accent },
   version: { textAlign: 'center', fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

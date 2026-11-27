@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { infoCategoria } from '@/lib/gastos/categorias';
 import { personas } from '@/lib/gastos/personas';
@@ -17,6 +18,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Pagos recurrentes (mockup Recurrentes, docs/plan-gastos-fase4.md §2). */
 export default function Recurrentes() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { pareja } = useEstado();
@@ -44,7 +47,7 @@ export default function Recurrentes() {
         onPress={() => router.push({ pathname: '/gastos/recurrente/nuevo', params: pestana === 'personales' ? { tipo: 'personal', origen: 'gastos' } : { origen: 'gastos' } })}
         style={[styles.redondo, styles.mas]}
       >
-        <Ionicons name="add" size={24} color={colors.white} />
+        <Ionicons name="add" size={24} color={colors.onAccent} />
       </Pressable>
     </View>
   );
@@ -69,7 +72,7 @@ export default function Recurrentes() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const personales = pestana === 'personales';
   const lista = consulta.data.filter((r) => esPersonal(r) === personales);
   const t = totales(lista);
@@ -157,14 +160,14 @@ export default function Recurrentes() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl,
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
   total: { fontFamily: fonts.title, fontSize: 26, lineHeight: 32, color: colors.text },
   sub: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   pestanas: { alignSelf: 'flex-start', minWidth: 260 },
-  lista: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
+  lista: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, minHeight: 60 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   icono: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
@@ -195,8 +198,8 @@ const styles = StyleSheet.create({
   etiqueta: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.textSecondary },
   privado: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   importe: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  vacioCaja: { gap: 12, padding: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4 },
+  vacioCaja: { gap: 12, padding: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4 },
   vacio: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
   nota: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   notaTexto: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

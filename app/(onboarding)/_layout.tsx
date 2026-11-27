@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { colors } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { ENTRADA_FASE, useEstado } from '@/lib/pareja/EstadoProvider';
 
 /**
@@ -8,6 +8,7 @@ import { ENTRADA_FASE, useEstado } from '@/lib/pareja/EstadoProvider';
  * y Atrás no puede volver a una fase superada.
  */
 export default function OnboardingLayout() {
+  const colors = useColores();
   const { fase } = useEstado();
   const entrada = ENTRADA_FASE[fase];
   return (

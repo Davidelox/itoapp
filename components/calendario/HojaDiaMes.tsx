@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Chip, FilaChips } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { diasDelMesCumple } from '@/lib/calendario/evento';
 import { MESES } from '@/lib/gastos/fechas';
 
@@ -27,6 +28,7 @@ export function HojaDiaMes({
   onCambiar: (dia: number, mes: number) => void;
   onCerrar: () => void;
 }) {
+  const styles = useStyles();
   const dias = Array.from({ length: diasDelMesCumple(mes) }, (_, i) => i + 1);
   return (
     <Hoja visible={visible} titulo="Día y mes" onCerrar={onCerrar} desplazable pie={<BotonPrincipal etiqueta="Listo" onPress={onCerrar} />}>
@@ -61,7 +63,7 @@ export function HojaDiaMes({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   grande: { fontFamily: fonts.title, fontSize: 28, lineHeight: 34, color: colors.text, textAlign: 'center' },
   subtitulo: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -70,5 +72,5 @@ const styles = StyleSheet.create({
   burbuja: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   burbujaActiva: { backgroundColor: colors.accent },
   celdaTexto: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
-  celdaTextoActivo: { color: colors.white, fontFamily: fonts.bodyBold },
-});
+  celdaTextoActivo: { color: colors.onAccent, fontFamily: fonts.bodyBold },
+}));

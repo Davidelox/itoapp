@@ -3,7 +3,7 @@ import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -16,7 +16,8 @@ import { SelectorUbicacion } from '@/components/mapa/SelectorUbicacion';
 import { EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { personas } from '@/lib/gastos/personas';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -56,6 +57,8 @@ const numero = (v: string | undefined) => (v !== undefined && v.trim() !== '' &&
  * `?lat=&lng=` si se abre desde «mantener pulsado» en el mapa, y entonces arranca en modo «A mano»).
  */
 export default function NuevoSitio() {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja } = useEstado();
   if (!pareja) {
     return (
@@ -68,6 +71,8 @@ export default function NuevoSitio() {
 }
 
 function Formulario({ pareja }: { pareja: Pareja }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarVisitas();
@@ -88,7 +93,7 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   // Centro de las distancias: tu ubicación si ya la dio (o la obtuvo «Mi ubicación»); si no, el centro del mapa del que vienes.
   const posicion = usePosicion();
   const centro = posicion ?? leerCentro(params);
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
 
   // Punto de partida: el de «mantener pulsado»; si no, el encuadre de lo ya guardado (o España).
   const [inicial] = useState(() => {
@@ -356,22 +361,22 @@ function Formulario({ pareja }: { pareja: Pareja }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cargando: { alignItems: 'center', justifyContent: 'center' },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   cerrarHueco: { width: 44 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 120, gap: 14 },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   estado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  resultado: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  resultado: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   resultadoActivo: { borderColor: colors.accent, borderWidth: 2 },
   resultadoTexto: { flex: 1 },
   miUbicacion: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingRight: 60 },
   botonUbicacion: { right: 0, top: 0 },
   resultadoNombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
-});
+  pie: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
+}));

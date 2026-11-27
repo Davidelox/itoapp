@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
   cancelAnimation,
   useDerivedValue,
@@ -14,7 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg from 'react-native-svg';
 
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { trazoDePuntos } from './geometria';
 import { hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
@@ -52,6 +53,8 @@ const entre = (min: number, max: number) => min + Math.random() * (max - min);
  * viaje con una ondulación algo distinta) y al llegar se tensa y vuelve a hacer el rizo.
  */
 export function TabBarHilo({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
+  const colors = useColores();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const reducida = useReducedMotion();
   const [ancho, setAncho] = useState(0);
@@ -215,10 +218,10 @@ export function TabBarHilo({ state, descriptors, emitter, navigateToTab }: Botto
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   barra: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopColor: colors.border,
     borderTopWidth: 1,
   },
@@ -226,4 +229,4 @@ const styles = StyleSheet.create({
   etiqueta: { fontFamily: fonts.bodyMedium, fontSize: 11 },
   // El hilo descansa justo bajo el borde superior de la barra; el lienzo sobresale para la ondulación y el rizo.
   hilo: { position: 'absolute', top: 1 - Y_HILO, left: 0, right: 0, height: ALTO_LIENZO, zIndex: 2 },
-});
+}));

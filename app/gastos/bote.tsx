@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -10,7 +10,8 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte, leerEuros } from '@/lib/dinero/importe';
 import { aportacionRetrasada, boteConPendiente, efectoEnBote, limitesMes, moverMes, nombreMovimiento, proximaAportacion, repartoAportacion, resumenMes } from '@/lib/gastos/bote';
 import { infoCategoria } from '@/lib/gastos/categorias';
@@ -25,6 +26,8 @@ type Hojas = { tipo: 'aportar' } | { tipo: 'reembolsar'; para: 'yo' | 'pareja' }
 
 /** Bote común (mockup Bote, docs/plan-gastos-fase3.md §2). */
 export default function Bote() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { pareja } = useEstado();
@@ -71,7 +74,7 @@ export default function Bote() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const proxima = proximaAportacion(a);
   const retrasada = aportacionRetrasada(a);
@@ -291,6 +294,8 @@ function FilaReparto(props: {
   cents: number;
   pct: number;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={styles.reparto}>
       <AvatarPersona nombre={props.nombre} color={props.color} avatarPath={props.avatarPath} tamano={32} />
@@ -298,7 +303,7 @@ function FilaReparto(props: {
         <Text style={[styles.negrita, { color: props.tinta }]}>{props.nombre}</Text>
         <View style={styles.barra}>
           <View
-            style={[styles.barraRelleno, { width: `${props.pct}%`, backgroundColor: props.color ? personColors[props.color].bg : colors.surface }]}
+            style={[styles.barraRelleno, { width: `${props.pct}%`, backgroundColor: props.color ? colors.personas[props.color].bg : colors.surface }]}
           />
         </View>
       </View>
@@ -310,6 +315,7 @@ function FilaReparto(props: {
 }
 
 function Deuda({ texto, ayuda, onReembolsar }: { texto: React.ReactNode; ayuda: string; onReembolsar: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.tarjeta}>
       <Text style={styles.deudaTexto}>{texto}</Text>
@@ -337,6 +343,7 @@ function HojaAportar({
   /** % de m1 en el bote (ajustes): reparte una aportación de «Los dos». */
   pctM1: number;
 }) {
+  const styles = useStyles();
   const [quien, setQuien] = useState<'yo' | 'pareja' | 'ambos'>('yo');
   const [importe, setImporte] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -425,6 +432,7 @@ function HojaReembolsar({
   paraQuien: string;
   saldoBote: number;
 }) {
+  const styles = useStyles();
   const [importe, setImporte] = useState((Math.max(maximo, 0) / 100).toFixed(2).replace('.', ','));
   const [hechoYa, setHechoYa] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -476,6 +484,8 @@ function HojaReembolsar({
 }
 
 function Campo({ importe, onCambiar }: { importe: string; onCambiar: (t: string) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={{ gap: 6 }}>
       <Text style={styles.etiqueta}>IMPORTE</Text>
@@ -497,14 +507,14 @@ function Campo({ importe, onCambiar }: { importe: string; onCambiar: (t: string)
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -515,7 +525,7 @@ const styles = StyleSheet.create({
   vacio: { margin: 32, textAlign: 'center', fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
   contenido: { paddingHorizontal: 20, gap: 12 },
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -539,7 +549,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     borderRadius: radius.xl - 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -547,7 +557,7 @@ const styles = StyleSheet.create({
   deudaTexto: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   mesCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   flecha: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  lista: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14, paddingVertical: 4 },
+  lista: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14, paddingVertical: 4 },
   sinMovs: { paddingVertical: 14, textAlign: 'center', fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   mov: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.divider },
   movTitulo: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
@@ -559,7 +569,7 @@ const styles = StyleSheet.create({
   catRelleno: { height: '100%', borderRadius: radius.full, backgroundColor: colors.icon },
   catImporte: { width: 80, textAlign: 'right', fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   dos: { flexDirection: 'row', gap: 8 },
-  opcion: { flex: 1, minHeight: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  opcion: { flex: 1, minHeight: 48, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
   opcionNormal: { borderWidth: 1, borderColor: colors.inputBorder, margin: 1 },
   opcionActiva: { borderWidth: 2, borderColor: colors.text },
   campoFila: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -576,4 +586,4 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   euro: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.text },
-});
+}));

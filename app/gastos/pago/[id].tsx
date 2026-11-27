@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -9,7 +9,8 @@ import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, deshacerPago, responderPago } from '@/lib/gastos/consultas';
 import { aISO, fechaLarga } from '@/lib/gastos/fechas';
@@ -20,6 +21,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Detalle de un pago (no está en los mockups; mismo estilo que el detalle de gasto). */
 export default function DetallePago() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -61,7 +64,7 @@ export default function DetallePago() {
   }
 
   const { pago, gastos } = consulta.data;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const meToca = pago.status === 'pending' && pago.to_slot === yo && pago.created_by !== userId;
   const puedeDeshacer = sePuedeDeshacer(pago, userId);
@@ -147,14 +150,14 @@ export default function DetallePago() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -173,6 +176,6 @@ const styles = StyleSheet.create({
   estadoTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
   acciones: { gap: 8 },
   seccion: { marginTop: 8, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
-  lista: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
+  lista: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
   nota: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

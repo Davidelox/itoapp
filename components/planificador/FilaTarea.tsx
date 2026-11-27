@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { etiquetaMarcar, etiquetaTarea, lineaTarea } from '@/lib/planificador/tareas';
 import type { Tarea } from '@/lib/planificador/tipos';
 
@@ -34,6 +35,8 @@ export function FilaTarea({
   onMarcar: () => void;
   onAbrir: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const hecha = tarea.status === 'done';
   const l = lineaTarea(tarea, yo, nombrePareja);
   const tinta = l.de === 'yo' ? tintaYo : tintaPareja;
@@ -48,7 +51,7 @@ export function FilaTarea({
         onPress={onMarcar}
         style={styles.toque}
       >
-        <View style={[styles.casilla, hecha && styles.casillaHecha]}>{hecha ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}</View>
+        <View style={[styles.casilla, hecha && styles.casillaHecha]}>{hecha ? <Ionicons name="checkmark" size={16} color={colors.onAccent} /> : null}</View>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={etiquetaTarea(tarea, yo, nombrePareja, elemento)} accessibilityHint="Abre la tarea para editarla" onPress={onAbrir} style={styles.cuerpo}>
         <Text style={[styles.titulo, hecha && styles.tachado]}>{tarea.title}</Text>
@@ -69,7 +72,7 @@ export function FilaTarea({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 52 },
   toque: { width: 44, height: 44, marginLeft: -6, alignItems: 'center', justifyContent: 'center' },
   casilla: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.inputBorder, alignItems: 'center', justifyContent: 'center' },
@@ -80,4 +83,4 @@ const styles = StyleSheet.create({
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   pildora: { minHeight: 44, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   pildoraTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
-});
+}));

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, type Paleta, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { infoCategoria } from '@/lib/gastos/categorias';
 import type { Gasto } from '@/lib/gastos/consultas';
@@ -13,6 +14,8 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** Icono de la categoría en su cuadro gris. */
 export function IconoCategoria({ categoria, tamano = 40 }: { categoria: Gasto['category']; tamano?: number }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={[styles.icono, { width: tamano, height: tamano, borderRadius: tamano / 3 }]}>
       <Ionicons name={infoCategoria(categoria).icono} size={tamano / 2} color={colors.icon} />
@@ -21,8 +24,8 @@ export function IconoCategoria({ categoria, tamano = 40 }: { categoria: Gasto['c
 }
 
 /** Quién pagó, en la tinta de esa persona: «Pagaste tú», «Pagó Meri», «Pagó el bote». */
-export function textoPagador(gasto: Gasto, pareja: Pareja) {
-  const p = personas(pareja);
+export function textoPagador(gasto: Gasto, pareja: Pareja, colors: Paleta) {
+  const p = personas(pareja, colors);
   if (gasto.paid_by === 'pot') return { texto: 'Pagó el bote', color: colors.text };
   if (gasto.paid_by === p.yo.slot) return { texto: 'Pagaste tú', color: p.tintaYo };
   return { texto: `Pagó ${p.nombrePareja}`, color: p.tintaPareja };
@@ -32,8 +35,10 @@ type Props = { gasto: Gasto; pareja: Pareja; conFecha?: boolean; onPress: () => 
 
 /** Fila de la lista de gastos (mockups Gastos e Historial). */
 export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador = false, ocultarPlan = false }: Props) {
-  const p = personas(pareja);
-  const pagador = textoPagador(gasto, pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
+  const pagador = textoPagador(gasto, pareja, colors);
   const reparto = etiquetaReparto(gasto.split_mode, p.yo.slot, gasto.split_pct_m1, p.nombrePareja);
   const categoria = infoCategoria(gasto.category).nombre;
   const plan = ocultarPlan ? null : planDe(gasto);
@@ -84,7 +89,7 @@ export function FilaGasto({ gasto, pareja, conFecha = false, onPress, separador 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9, minHeight: 58 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   pulsada: { opacity: 0.6 },
@@ -96,4 +101,4 @@ const styles = StyleSheet.create({
   privado: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   privadoTexto: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
   importe: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text, marginLeft: radius.sm },
-});
+}));

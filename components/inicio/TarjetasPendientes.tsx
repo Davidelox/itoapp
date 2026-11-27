@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { textosCambios } from '@/lib/ajustes/ajustes';
 import { responderPropuesta } from '@/lib/ajustes/consultas';
 import { HojaQuienPago } from '@/components/calendario/HojaQuienPago';
@@ -34,6 +35,7 @@ const PAUSA_RESULTADO_MS = 1800;
  * Con 2 o más avisos se agrupan en un recuadro que se despliega al tocarlo.
  */
 export function TarjetasPendientes({ compacta = false }: { /** Sin margen superior grande (Gastos ya separa sus bloques). */ compacta?: boolean }) {
+  const styles = useStyles();
   const { pareja } = useEstado();
   const pendientes = usePendientes();
   // Al volver a Inicio se vuelve a preguntar: los avisos no dependen solo del tiempo real.
@@ -98,10 +100,12 @@ function Tarjeta({
   resultado: string | null;
   onResuelta: (p: Pendiente, texto: string) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const presupuestos = usePresupuestos();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [poniendoImporte, setPoniendoImporte] = useState(false);
@@ -314,12 +318,12 @@ function Tarjeta({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   seccion: { marginTop: 20, gap: 8 },
   seccionCompacta: { marginTop: 0 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -338,10 +342,10 @@ const styles = StyleSheet.create({
   boton: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   botonSi: { backgroundColor: colors.accent },
   botonNo: { backgroundColor: colors.surface },
-  botonSiTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
+  botonSiTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.onAccent },
   botonNoTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   apagado: { opacity: 0.5 },
   sinGasto: { minHeight: 36, alignItems: 'center', justifyContent: 'center', marginTop: -6 },
   sinGastoTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   resultado: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingVertical: 10 },
-});
+}));

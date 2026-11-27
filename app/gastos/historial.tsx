@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -9,7 +9,8 @@ import { Chip } from '@/components/gastos/Controles';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { FilaPlanGasto } from '@/components/gastos/FilaPlanGasto';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { type FilaLista, agruparPorPlan } from '@/lib/gastos/agrupar';
@@ -30,6 +31,8 @@ type Elemento =
 
 /** Historial (mockup HistorialGastos): buscador, filtro por categoría, meses y carga por páginas de 50. */
 export default function Historial() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { pareja } = useEstado();
@@ -220,9 +223,11 @@ export default function Historial() {
 }
 
 function FilaPago({ pago, onPress }: { pago: Pago; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja } = useEstado();
   if (!pareja) return null;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const fecha = fechaCorta(aISO(new Date(pago.created_at)));
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.pago, pressed && { opacity: 0.6 }]}>
@@ -240,7 +245,7 @@ function FilaPago({ pago, onPress }: { pago: Pago; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pago: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,8 +256,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#B9B2A4',
-    backgroundColor: colors.white,
+    borderColor: colors.casilla,
+    backgroundColor: colors.card,
   },
   pagoIcono: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   pagoTextos: { flex: 1, gap: 2 },
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -283,7 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 15,
     color: colors.text,
@@ -296,7 +301,7 @@ const styles = StyleSheet.create({
   lista: { paddingHorizontal: 20, paddingTop: 4 },
   mes: { marginTop: 14, marginBottom: 6, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.lg,
@@ -305,4 +310,4 @@ const styles = StyleSheet.create({
   },
   vacio: { alignItems: 'center', gap: 12, padding: 32 },
   vacioTexto: { marginTop: 40, textAlign: 'center', fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
-});
+}));

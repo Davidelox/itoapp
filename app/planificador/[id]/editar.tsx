@@ -3,12 +3,14 @@ import { Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioPlan } from '@/components/planificador/FormularioPlan';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { usePlan } from '@/lib/planificador/usePlanificador';
 
 /** Editar un plan. */
 export default function EditarPlan() {
+  const colors = useColores();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const { plan, isLoading } = usePlan(id);

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -9,7 +9,8 @@ import { IconoCategoria, textoPagador } from '@/components/gastos/FilaGasto';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { useEvento } from '@/lib/calendario/useCalendario';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { infoCategoria } from '@/lib/gastos/categorias';
@@ -23,6 +24,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Detalle de un gasto (mockup DetalleGasto). Las partes son las que guardó el servidor, nunca recalculadas. */
 export default function DetalleGasto() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -71,11 +74,11 @@ export default function DetalleGasto() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const servidor = { m1: gasto.share_m1_cents, m2: gasto.share_m2_cents, pot: gasto.share_pot_cents };
   const mias = partesDeYo(yo, servidor);
-  const pagador = textoPagador(gasto, pareja);
+  const pagador = textoPagador(gasto, pareja, colors);
   const efecto = fraseResultado(yo, gasto.paid_by, servidor, p.nombrePareja, 'presente');
   const reparto = etiquetaReparto(gasto.split_mode, yo, gasto.split_pct_m1, p.nombrePareja);
   const pctYo =
@@ -210,6 +213,8 @@ export default function DetalleGasto() {
 
 /** «De un pago recurrente: Netflix», que abre el recurrente (fase 4). */
 function OrigenRecurrente({ cobroId }: { cobroId: string | null }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const origen = useOrigenRecurrente(cobroId);
   if (!cobroId || !origen.data) return null;
@@ -233,6 +238,8 @@ function OrigenRecurrente({ cobroId }: { cobroId: string | null }) {
  * un secreto en gastos compartidos: sin título guardado no se enseña nada (el gasto no revela el evento).
  */
 function OrigenEvento({ eventoId, titulo }: { eventoId: string | null; titulo: string | null }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const evento = useEvento(eventoId ?? undefined);
   if (eventoId && evento.isLoading) return null;
@@ -260,6 +267,7 @@ function OrigenEvento({ eventoId, titulo }: { eventoId: string | null; titulo: s
 }
 
 function Parte({ etiqueta, importe, color }: { etiqueta: string; importe: number; color: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.parte}>
       <Text style={[styles.parteEtiqueta, { color }]}>{etiqueta}</Text>
@@ -268,14 +276,14 @@ function Parte({ etiqueta, importe, color }: { etiqueta: string; importe: number
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -296,7 +304,7 @@ const styles = StyleSheet.create({
   etiquetaTexto: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.textSecondary },
   apuntado: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -322,10 +330,10 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: 14,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
   saldadoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   efectoAyuda: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

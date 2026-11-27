@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 
 import { SelectorIcono } from '@/components/SelectorIcono';
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
@@ -8,7 +8,8 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { CampoSitio } from '@/components/mapa/CampoSitio';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { mensajeErrorPlan } from '@/lib/planificador/error';
 import { crearIdea, editarIdea } from '@/lib/planificador/consultasIdeas';
@@ -43,6 +44,8 @@ export function HojaIdea({
   onBorrar?: () => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarPlanificador();
   const [f, setF] = useState(() => (idea ? formularioDeIdea(idea) : formularioIdeaNuevo()));
   const [intentado, setIntentado] = useState(false);
@@ -126,7 +129,7 @@ export function HojaIdea({
   );
 }
 
-const styles = StyleSheet.create({
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+const useStyles = crearEstilos((colors) => ({
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
-});
+}));

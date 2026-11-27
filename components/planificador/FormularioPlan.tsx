@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SelectorIcono } from '@/components/SelectorIcono';
@@ -12,7 +12,8 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { sumarDias } from '@/lib/calendario/rejilla';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -61,13 +62,15 @@ import { useInvalidarPlanificador, useItinerario } from '@/lib/planificador/useP
  * «¿Cómo se paga?» y notas. El pie con el botón queda fuera del scroll y no sube con el teclado.
  */
 export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pareja; plan?: Plan; /** Datos de una idea o de un plan duplicado (solo al crear). */ precarga?: Precarga | null }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarPlanificador();
   const itinerario = useItinerario();
   const presupuestos = usePresupuestos();
   const ajustes = useAjustesGastos().data;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const editando = !!plan;
   const hoy = hoyISO();
@@ -271,8 +274,8 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
             importePareja={null}
             tintaYo={p.tintaYo}
             tintaPareja={p.tintaPareja}
-            fondoYo={p.yo.color ? personColors[p.yo.color].bg : colors.surface}
-            fondoPareja={p.otra?.color ? personColors[p.otra.color].bg : colors.divider}
+            fondoYo={p.yo.color ? colors.personas[p.yo.color].bg : colors.surface}
+            fondoPareja={p.otra?.color ? colors.personas[p.otra.color].bg : colors.divider}
           />
         ) : null}
 
@@ -321,18 +324,18 @@ export function FormularioPlan({ pareja, plan, precarga = null }: { pareja: Pare
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
-  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  cerrar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   cerrarHueco: { width: 44 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.text },
   contenido: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   notas: { height: undefined, minHeight: 96, maxHeight: 240, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   importeFila: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   importe: { flex: 1 },
   euro: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.textSecondary },
-  pie: { gap: 12, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
-});
+  pie: { gap: 12, paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
+}));

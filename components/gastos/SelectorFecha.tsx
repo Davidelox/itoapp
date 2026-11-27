@@ -4,7 +4,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Chip, FilaChips } from "@/components/gastos/Controles";
-import { colors, fonts, radius } from "@/constants/theme";
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import {
   INICIALES_SEMANA,
   esDomingo,
@@ -110,6 +111,8 @@ export function BotonFecha({
   rangoDesde?: string;
   onCambiar: (iso: string) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [abierto, setAbierto] = useState(false);
   return (
     <>
@@ -164,6 +167,8 @@ function Calendario({
   onElegir: (iso: string) => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   // Primer día del mes que se ve. Las semanas (de lunes a domingo) salen de lib/calendario/rejilla.ts.
   const [mes, setMes] = useState(primeroDelMes(inicial));
@@ -260,7 +265,7 @@ function Calendario({
                         style={[
                           styles.diaTexto,
                           esDomingo(iso) && styles.domingo,
-                          elegido && { color: colors.white },
+                          elegido && { color: colors.onAccent },
                           bloqueado && !origen && { color: colors.inputBorder },
                         ]}
                       >
@@ -278,14 +283,14 @@ function Calendario({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fondo: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(42, 38, 39, 0.45)",
+    backgroundColor: colors.velo,
   },
   hoja: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: 20,
@@ -347,7 +352,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   botonTexto: {
     flex: 1,
@@ -355,4 +360,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-});
+}));

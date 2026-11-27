@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, type SharedValue, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TituloContorno } from '@/components/TituloContorno';
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** Scroll (px) a partir del cual la separación de la cabecera se ve entera. */
 const SCROLL_SEPARACION = 12;
@@ -49,6 +50,7 @@ export function CabeceraPestana({
   /** Contenido fijo bajo el título (p. ej. la barra del calendario): queda dentro de la cabecera, con su fondo y su separación. */
   children?: ReactNode;
 }) {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const contenedor = useAnimatedStyle(() => {
     const s = sombra ? sombra.get() : 0;
@@ -81,11 +83,11 @@ export function CabeceraPestana({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   contenedor: {
     backgroundColor: colors.background,
     zIndex: 1,
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     shadowOpacity: 0,
@@ -104,4 +106,4 @@ const styles = StyleSheet.create({
   hijos: { paddingHorizontal: 20, paddingBottom: 8, gap: 8 },
   accion: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   linea: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: colors.border },
-});
+}));

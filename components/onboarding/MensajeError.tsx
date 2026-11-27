@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, Text } from 'react-native';
+import { AccessibilityInfo, Platform, Text } from 'react-native';
 
-import { colors, fonts, fontSizes } from '@/constants/theme';
+import { fonts, fontSizes } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** Error bajo el campo afectado: se anuncia al lector de pantalla al aparecer o cambiar. */
 export function MensajeError({ texto }: { texto?: string | null }) {
+  const styles = useStyles();
   useEffect(() => {
     if (texto && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(texto);
   }, [texto]);
@@ -16,6 +18,6 @@ export function MensajeError({ texto }: { texto?: string | null }) {
   );
 }
 
-const styles = StyleSheet.create({
-  texto: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.small, lineHeight: 20, color: colors.accent },
-});
+const useStyles = crearEstilos((colors) => ({
+  texto: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.small, lineHeight: 20, color: colors.error },
+}));

@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { FilaCalendario } from '@/components/calendario/FilaCalendario';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type ContextoLinea, type Elemento, type Lista, etiquetaAccesible, lineaElemento } from '@/lib/calendario/agrupar';
 import { type ColoresHuecos, marcador } from '@/lib/calendario/colores';
 
@@ -30,6 +31,8 @@ export function ListaDias({
   /** Id del evento o del pago cuya fila se resalta (el que se acaba de guardar). */
   resaltado?: string | null;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={styles.seccion}>
       <Text accessibilityRole="header" style={styles.titulo}>
@@ -63,7 +66,7 @@ export function ListaDias({
                   elemento={e}
                   linea={linea}
                   etiquetaA11y={etiquetaAccesible(e, linea, contexto)}
-                  marcador={marcador(e, colores.m1, colores.m2)}
+                  marcador={marcador(e, colores.m1, colores.m2, colors)}
                   conDia={lista.conDia}
                   hoy={hoy}
                   separador={i < s.elementos.length - 1}
@@ -81,11 +84,11 @@ export function ListaDias({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   seccion: { gap: 6 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   caja: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -99,4 +102,4 @@ const styles = StyleSheet.create({
   cabeceraExtra: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 0.4, color: colors.textSecondary, paddingTop: 8, paddingBottom: 0 },
   cabeceraHoy: { color: colors.accent },
   nada: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, paddingBottom: 8 },
-});
+}));

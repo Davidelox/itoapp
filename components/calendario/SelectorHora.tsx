@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTOS = Array.from({ length: 12 }, (_, i) => i * 5);
@@ -15,6 +16,8 @@ const dos = (n: number) => String(n).padStart(2, '0');
  * sin librerías nativas (el selector del sistema no existe igual en iOS, Android y web).
  */
 export function SelectorHora({ valor, onCambiar }: { valor: string; onCambiar: (hora: string) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [abierto, setAbierto] = useState(false);
   const hora = Number(valor.slice(0, 2));
   const minuto = Number(valor.slice(3, 5));
@@ -55,6 +58,7 @@ export function SelectorHora({ valor, onCambiar }: { valor: string; onCambiar: (
 }
 
 function Celda({ etiqueta, etiquetaA11y, activa, onPress }: { etiqueta: string; etiquetaA11y: string; activa: boolean; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -70,7 +74,7 @@ function Celda({ etiqueta, etiquetaA11y, activa, onPress }: { etiqueta: string; 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   campo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,7 +84,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   valor: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
   grande: { fontFamily: fonts.title, fontSize: 40, lineHeight: 46, color: colors.text, textAlign: 'center' },
@@ -91,5 +95,5 @@ const styles = StyleSheet.create({
   burbuja: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   burbujaActiva: { backgroundColor: colors.accent },
   celdaTexto: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.text },
-  celdaTextoActivo: { color: colors.white, fontFamily: fonts.bodyBold },
-});
+  celdaTextoActivo: { color: colors.onAccent, fontFamily: fonts.bodyBold },
+}));

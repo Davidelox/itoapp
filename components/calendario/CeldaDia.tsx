@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { type SharedValue } from 'react-native-reanimated';
 
 import { Marcador, OPACIDAD_ATENUADO } from '@/components/calendario/Marcador';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Elemento, puntosDelDia } from '@/lib/calendario/agrupar';
 import { type ColoresHuecos, marcador } from '@/lib/calendario/colores';
 import { ZONA_MINIMA, disposicionGlifos } from '@/lib/calendario/disposicion';
@@ -64,6 +65,8 @@ export function CeldaDia({
   reducida: boolean;
   onPress: (iso: string) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { puntos, restantes, secreto, cumples } = puntosDelDia(elementos, ocultos);
   const d = disposicionGlifos(puntos.length, restantes > 0, { ancho: ancho ?? ZONA_MINIMA.ancho, alto: ALTO_ZONA });
   const { handlers, estiloTinte } = usePulsacion({ arrastre });
@@ -98,7 +101,7 @@ export function CeldaDia({
               if (!h) return null;
               return (
                 <View key={e.clave} style={{ position: 'absolute', left: h.x, top: h.y }}>
-                  <Marcador marcador={marcador(e, colores.m1, colores.m2)} tamano={h.tamano} atenuado={atenuado} />
+                  <Marcador marcador={marcador(e, colores.m1, colores.m2, colors)} tamano={h.tamano} atenuado={atenuado} />
                 </View>
               );
             })}
@@ -127,7 +130,7 @@ export function CeldaDia({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   celda: { flex: 1, borderRadius: 10 },
   // Todo el contenido de la celda; las capas de fondo van aparte, a su espalda.
   contenido: { flex: 1, alignSelf: 'stretch', alignItems: 'center', paddingTop: 2 },
@@ -136,7 +139,7 @@ const styles = StyleSheet.create({
   numero: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   numeroHoy: { backgroundColor: colors.accent },
   numeroTexto: { fontFamily: fonts.bodyBold, fontSize: 13, lineHeight: 16, color: colors.text },
-  numeroTextoHoy: { color: colors.white },
+  numeroTextoHoy: { color: colors.onAccent },
   atenuado: { fontFamily: fonts.body, color: colors.diaAtenuado },
   pulsado: { backgroundColor: colors.pressed },
   // Ocupa el alto que queda bajo el número (y las barras) y centra el bloque de glifos.
@@ -150,4 +153,4 @@ const styles = StyleSheet.create({
   regalo: { position: 'absolute', top: 3, left: 2, width: 17, height: 14 },
   regaloMas: { position: 'absolute', top: -4, left: 10, fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 11, color: colors.cumpleMarca },
   esquinaAtenuada: { opacity: OPACIDAD_ATENUADO },
-});
+}));

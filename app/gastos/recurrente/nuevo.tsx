@@ -1,14 +1,16 @@
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioRecurrente } from '@/components/gastos/FormularioRecurrente';
-import { colors } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { origenDe } from '@/lib/calendario/destino';
 import { useAjustesGastos } from '@/lib/gastos/useGastos';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 export default function NuevoRecurrente() {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja } = useEstado();
   const ajustes = useAjustesGastos();
   // `origen`: desde dónde se abrió (calendario o gastos); decide a dónde se vuelve al guardar.
@@ -23,6 +25,6 @@ export default function NuevoRecurrente() {
   return <FormularioRecurrente pareja={pareja} ajustes={ajustes.data} personalInicial={tipo === 'personal'} diaInicial={dia} origen={origenDe(origen)} />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-});
+}));

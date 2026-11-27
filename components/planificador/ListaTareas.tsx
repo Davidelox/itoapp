@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { FilaTarea } from '@/components/planificador/FilaTarea';
 import { HojaTarea } from '@/components/planificador/HojaTarea';
 import { HojaTareasSugeridas } from '@/components/planificador/TareasSugeridas';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { nombreDeSitio } from '@/lib/mapa/conexiones';
@@ -24,8 +25,10 @@ type Hoja = { tipo: 'nueva' } | { tipo: 'editar'; tarea: Tarea } | { tipo: 'borr
 
 /** Sección «Tareas» del detalle de un plan: lista ordenada, casillas, contador y «+ Añadir tarea». */
 export function ListaTareas({ plan, tareas, pareja, userId }: { plan: Plan; tareas: Tarea[]; pareja: Pareja; userId: string }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarPlanificador();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const { data: sitios } = useSitios();
   const itinerario = useItinerario();
   const [hoja, setHoja] = useState<Hoja | null>(null);
@@ -138,8 +141,8 @@ export function ListaTareas({ plan, tareas, pareja, userId }: { plan: Plan; tare
   );
 }
 
-const styles = StyleSheet.create({
-  seccion: { gap: 4, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+const useStyles = crearEstilos((colors) => ({
+  seccion: { gap: 4, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   cabecera: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingBottom: 6 },
   titulo: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   contador: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
@@ -148,4 +151,4 @@ const styles = StyleSheet.create({
   sugeridasTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
   anadir: { minHeight: 44, marginTop: 6, alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg - 2, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.inputBorder },
   anadirTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.icon },
-});
+}));

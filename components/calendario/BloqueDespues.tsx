@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { HojaQuienPago } from '@/components/calendario/HojaQuienPago';
 import { FilaGasto } from '@/components/gastos/FilaGasto';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { descartarQuienPago } from '@/lib/calendario/consultas';
 import type { Evento } from '@/lib/calendario/evento';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
@@ -27,10 +28,12 @@ const MS_DIA = 24 * 60 * 60 * 1000;
  * enlazados y, en los que no preguntan, «Añadir gasto». `fecha` es el día concreto que se mira.
  */
 export function BloqueDespues({ evento, fecha, pareja }: { evento: Evento; fecha: string; pareja: Pareja }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const presupuestos = usePresupuestos();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const consulta = useGastosDelEvento(evento.id);
   const gastos = consulta.data ?? [];
@@ -135,12 +138,12 @@ export function BloqueDespues({ evento, fecha, pareja }: { evento: Evento; fecha
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   bloque: {
     gap: 10,
     padding: 16,
     borderRadius: radius.xl - 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -150,4 +153,4 @@ const styles = StyleSheet.create({
   pregunta: { fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22, color: colors.text },
   botones: { flexDirection: 'row', gap: 8 },
   boton: { flex: 1 },
-});
+}));

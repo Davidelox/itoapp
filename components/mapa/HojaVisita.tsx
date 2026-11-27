@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 
 import { Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -8,7 +8,8 @@ import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import type { Hueco } from '@/lib/calendario/evento';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { anadirVisita, corregirVisita } from '@/lib/mapa/consultas';
@@ -43,6 +44,8 @@ export function HojaVisita({
   onQuitar?: () => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarVisitas();
   const hoy = hoyISO();
   const [fecha, setFecha] = useState(visita?.visited_on ?? fechaInicial ?? hoy);
@@ -95,7 +98,7 @@ export function HojaVisita({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14 },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-});
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+}));

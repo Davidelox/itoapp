@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { diaMesCorto, rangoCorto } from '@/lib/calendario/rejilla';
 import { ErrorGasto, type TipoBorrable, pedirBorrar, responderBorrado, retirarBorrado } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
@@ -63,6 +64,8 @@ export function BorrarGasto({
   /** `banda`: solo el aviso de borrado pendiente (arriba de una pantalla); `pie`: solo el enlace de borrar; `todo`: lo que toque. */
   parte?: 'banda' | 'pie' | 'todo';
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const invalidarGastos = useInvalidarGastos();
   const invalidarMapa = useInvalidarMapa();
@@ -81,7 +84,7 @@ export function BorrarGasto({
   const delDia = useSolicitudBorrado(gasto.id, tipo, ofreceDia ? fecha : null);
   const solicitud = { data: serie.data ?? (ofreceDia ? delDia.data : null) };
   const cosa = nombre ?? (tipo === 'recurring_payment' ? 'pago' : esEvento ? 'evento' : tipo === 'collection' ? 'colección' : esSitio ? 'sitio' : esPlan ? 'plan' : 'gasto');
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   // Hoja de borrado: «alcance» (solo eventos repetidos) y «confirmar».
   const [paso, setPaso] = useState<'alcance' | 'confirmar' | null>(null);
   const [alcance, setAlcance] = useState<Alcance>('serie');
@@ -264,6 +267,8 @@ export function BorrarGasto({
 
 /** Una de las dos opciones de «¿Qué quieres borrar?»: tarjeta tocable de al menos 56 px. */
 function OpcionAlcance({ titulo, detalle, onPress }: { titulo: string; detalle: string; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -280,7 +285,7 @@ function OpcionAlcance({ titulo, detalle, onPress }: { titulo: string; detalle: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pie: { alignItems: 'center', marginTop: 8 },
   nota: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
   banda: {
@@ -302,7 +307,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 16,
     borderRadius: radius.xl - 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -320,8 +325,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   alcanceTextos: { flex: 1, gap: 1 },
   alcanceTitulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-});
+}));

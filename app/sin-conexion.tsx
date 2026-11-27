@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
-import { colors, fonts, spacing } from '@/constants/theme';
+import { fonts, spacing } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { cerrarSesion } from '@/lib/auth/acciones';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Hay sesión pero no se ha podido leer el espacio y no hay caché de la fase. */
 export default function SinConexion() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { refrescar } = useEstado();
   const [cargando, setCargando] = useState(false);
@@ -33,9 +35,9 @@ export default function SinConexion() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pantalla: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl, gap: spacing.sm },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   titulo: { fontFamily: fonts.title, fontSize: 28, color: colors.text, textAlign: 'center' },
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center', maxWidth: 300 },
-});
+}));

@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /**
  * Confirmación de algo que se pierde (deshacer un pago…): hoja inferior con la consecuencia clara, «Cancelar» y el
@@ -26,6 +27,7 @@ export function HojaConfirmar({
   ocupado?: boolean;
   error?: string | null;
 }) {
+  const styles = useStyles();
   return (
     <Hoja visible titulo={titulo} onCerrar={onCerrar} bloqueada={ocupado} alerta>
       <Text style={styles.texto}>{texto}</Text>
@@ -42,8 +44,8 @@ export function HojaConfirmar({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
   botones: { flexDirection: 'row', gap: 12 },
   boton: { flex: 1 },
-});
+}));

@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
-import { colors } from '@/constants/theme';
+import { paletas } from '@/constants/theme';
 import { INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
 import type { CategoriaSitio, EstadoSitio } from '@/lib/mapa/tipos';
+
+/** Los pines no cambian con el tema: sobre el mapa oscuro se leen mejor con su aspecto claro (docs/plan-modo-oscuro.md §5). */
+const colors = paletas.claro;
 
 /**
  * Pin de un sitio (docs/plan-mapa.md §5.2). El estado va en la forma, no solo en el color: «Quiero ir» = relleno blanco con
@@ -52,7 +55,7 @@ export function PinSitio({
         {emoji ? (
           <EmojiIcono emoji={emoji} size={Math.round(tamano * 0.5)} contorno={fue} desplazarX={enMapa ? AJUSTE_EMOJI_MAPA : 0} />
         ) : (
-          <Ionicons name={INFO_CATEGORIA_SITIO[categoria].icono} size={Math.round(tamano * 0.5)} color={fue ? colors.white : colors.accent} />
+          <Ionicons name={INFO_CATEGORIA_SITIO[categoria].icono} size={Math.round(tamano * 0.5)} color={fue ? colors.card : colors.accent} />
         )}
       </View>
       {conPico ? (
@@ -80,7 +83,7 @@ export function PinSitio({
 const styles = StyleSheet.create({
   caja: { alignItems: 'center' },
   insignia: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.accent },
-  insigniaQuiero: { backgroundColor: colors.white },
+  insigniaQuiero: { backgroundColor: colors.card },
   insigniaFue: { backgroundColor: colors.accent },
   pico: {
     width: 0,
@@ -95,7 +98,7 @@ const styles = StyleSheet.create({
     left: -6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.accent,
   },
@@ -105,7 +108,7 @@ const styles = StyleSheet.create({
     right: -6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },

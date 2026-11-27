@@ -1,5 +1,5 @@
 import { Children, Fragment, useEffect, useMemo, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   Easing,
   type SharedValue,
@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { colors } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Cubica, muestrearRecorrido, trazoEntre } from './geometria';
 import { HiloFisico } from './HiloFisico';
 
@@ -63,6 +63,7 @@ export function HiloConector({ children, desplazamiento }: Props) {
 }
 
 function Segmento({ indice, desplazamiento }: { indice: number; desplazamiento?: SharedValue<number> }) {
+  const styles = useStyles();
   const reducida = useReducedMotion();
   const lado = indice % 2 === 0 ? 1 : -1;
   const { a, b, recorrido } = useMemo(() => recorridoEntreTarjetas(lado), [lado]);
@@ -121,6 +122,7 @@ function Segmento({ indice, desplazamiento }: { indice: number; desplazamiento?:
 
 /** Ojal por el que el hilo atraviesa el borde de la tarjeta: un aro con el hueco en sombra. */
 function Ojal({ x, y }: { x: number; y: number }) {
+  const colors = useColores();
   return (
     <>
       <Circle cx={x} cy={y} r={4.4} fill={colors.segmented} stroke={colors.inputBorder} strokeWidth={1.2} />
@@ -129,8 +131,8 @@ function Ojal({ x, y }: { x: number; y: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   // Por encima de las tarjetas vecinas, para que los ojales se vean sobre su borde.
   hueco: { height: HUECO, alignItems: 'center', zIndex: 1 },
   lienzo: { position: 'absolute', top: -SOLAPE, width: ANCHO, height: ALTO },
-});
+}));

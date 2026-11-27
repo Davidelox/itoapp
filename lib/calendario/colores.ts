@@ -14,7 +14,7 @@
  * - Varios días: barra con relleno pastel y contorno oscuro (franjas pequeñas alternas de m1 y m2 si es de los dos).
  * Persona sin color elegido (o pareja aún sin unir): el azul de siempre. Si los dos colores salen iguales, no se raya.
  */
-import { colors, personColors, type ColorPersona } from '@/constants/theme';
+import type { ColorPersona, Paleta as PaletaApp } from '@/constants/theme';
 import type { Frecuencia } from '@/lib/gastos/recurrentes';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
@@ -85,34 +85,34 @@ export function coloresDeHuecos(pareja: Pick<Pareja, 'yo' | 'otra'>): ColoresHue
 export type Paleta = { relleno: string; borde: string };
 
 /** Pastel (`bg`, lo que se eligió en el perfil) con contorno oscuro (`ink`); el azul de reserva si no hay color. */
-export const paletaDe = (color: ColorPersona | null | undefined): Paleta =>
-  color ? { relleno: personColors[color].bg, borde: personColors[color].ink } : { relleno: colors.eventChip, borde: colors.eventDot };
+export const paletaDe = (color: ColorPersona | null | undefined, colors: PaletaApp): Paleta =>
+  color ? { relleno: colors.personas[color].bg, borde: colors.personas[color].ink } : { relleno: colors.eventChip, borde: colors.eventDot };
 
 /** Paletas de quien va (o de parte de quien es): una, o las dos si son distintas. */
-function paletasDe(asistentes: ParaMarcador['asistentes'], m1: ColorPersona | null, m2: ColorPersona | null): [Paleta, Paleta | null] {
-  const a = paletaDe(m1);
-  const b = paletaDe(m2);
+function paletasDe(asistentes: ParaMarcador['asistentes'], m1: ColorPersona | null, m2: ColorPersona | null, colors: PaletaApp): [Paleta, Paleta | null] {
+  const a = paletaDe(m1, colors);
+  const b = paletaDe(m2, colors);
   if (asistentes === 'm1') return [a, null];
   if (asistentes === 'm2') return [b, null];
   return a.relleno === b.relleno && a.borde === b.borde ? [a, null] : [a, b];
 }
 
 /** Marcador de un elemento. `m1` y `m2`: color de perfil de cada hueco de la pareja. */
-export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null): MarcadorSpec {
+export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null, colors: PaletaApp): MarcadorSpec {
   if (e.tipo === 'payment') {
     const recurrente = e.frecuencia !== 'once';
     if (e.duenoSolo) {
       // En solitario: la paleta de la persona (pastel + contorno oscuro); las monedas, en el tono oscuro.
-      const { relleno, borde } = paletaDe(e.duenoSolo === 'm1' ? m1 : m2);
+      const { relleno, borde } = paletaDe(e.duenoSolo === 'm1' ? m1 : m2, colors);
       return { forma: 'pago', recurrente, relleno, borde, tinta: borde };
     }
-    return { forma: 'pago', recurrente, relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.white };
+    return { forma: 'pago', recurrente, relleno: colors.pagoMarca, borde: colors.pagoMarca, tinta: colors.onMarca };
   }
   if (e.tipo === 'plan') {
     // Un plan es de los dos y no lleva color de persona: granate suave con contorno granate (decisión 10 del plan v2).
     return { forma: 'insignia', icono: 'briefcase', ...(e.emoji ? { emoji: e.emoji } : {}), relleno: colors.accentSoft, borde: colors.accent, tinta: colors.accent };
   }
-  const [uno, dos] = paletasDe(e.asistentes, m1, m2);
+  const [uno, dos] = paletasDe(e.asistentes, m1, m2, colors);
   const cumple = e.categoria === 'birthday';
   return {
     forma: 'insignia',
@@ -129,7 +129,7 @@ export function marcador(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPers
  * Marcador de una opción del menú de filtros: neutro (superficie con contorno y glifo de `icon`) y, si es la elegida,
  * en granate suave. «Pagos» dibuja las monedas del cuadrado de pago; el resto, una insignia con su icono.
  */
-export function marcadorFiltro(opcion: { icono: IconoFiltro }, activo: boolean): MarcadorSpec {
+export function marcadorFiltro(opcion: { icono: IconoFiltro }, activo: boolean, colors: PaletaApp): MarcadorSpec {
   const relleno = activo ? colors.accentSoft : colors.surface;
   const tinta = activo ? colors.accent : colors.icon;
   if (opcion.icono === 'pago') return { forma: 'pago', recurrente: false, relleno, borde: tinta, tinta };
@@ -139,9 +139,9 @@ export function marcadorFiltro(opcion: { icono: IconoFiltro }, activo: boolean):
 export type ColorBarra = { relleno: string; borde: string; relleno2: string | null; borde2: string | null };
 
 /** Colores de una barra de varios días: uno, o dos (franjas alternas, empezando por m1) si van los dos. */
-export function colorBarra(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null): ColorBarra {
+export function colorBarra(e: ParaMarcador, m1: ColorPersona | null, m2: ColorPersona | null, colors: PaletaApp): ColorBarra {
   if (e.tipo === 'plan') return { relleno: colors.accentSoft, borde: colors.accent, relleno2: null, borde2: null };
-  const [uno, dos] = paletasDe(e.asistentes, m1, m2);
+  const [uno, dos] = paletasDe(e.asistentes, m1, m2, colors);
   return { relleno: uno.relleno, borde: uno.borde, relleno2: dos?.relleno ?? null, borde2: dos?.borde ?? null };
 }
 

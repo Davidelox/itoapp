@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
 import { HojaComoLlegar } from '@/components/mapa/HojaComoLlegar';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { type SitioBuscado } from '@/lib/mapa/busqueda';
 import { INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
@@ -20,6 +21,8 @@ type Busqueda = ReturnType<typeof useBusquedaMapa>;
  * lector de pantalla) y tarjeta del elegido con «Guardar» / «Ya está en vuestro mapa» y «Cómo llegar». Los pines van en `MapaSitios`.
  */
 export function BuscadorMapa({ b, sitios, sinLista = false }: { b: Busqueda; sitios: Sitio[]; sinLista?: boolean }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const [llegar, setLlegar] = useState(false);
   const filas = useMemo(() => fusionarConGuardados([...(b.resultados ?? []), ...(b.extra ? [b.extra] : [])], sitios), [b.resultados, b.extra, sitios]);
@@ -94,7 +97,7 @@ export function BuscadorMapa({ b, sitios, sinLista = false }: { b: Busqueda; sit
         ) : null}
         {b.activa && b.movido && !b.cargando ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Buscar en esta zona" onPress={b.enEstaZona} style={({ pressed }) => [styles.zona, pressed && { opacity: 0.85 }]}>
-            <Ionicons name="refresh" size={16} color={colors.white} />
+            <Ionicons name="refresh" size={16} color={colors.onAccent} />
             <Text style={styles.zonaTexto}>Buscar en esta zona</Text>
           </Pressable>
         ) : null}
@@ -166,6 +169,8 @@ export function BuscadorMapa({ b, sitios, sinLista = false }: { b: Busqueda; sit
 }
 
 function FilaResultado({ r, numero, guardado, onPress }: { r: SitioBuscado; numero: number; guardado: boolean; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const linea = lineaResultado(r);
   return (
     <Pressable
@@ -193,33 +198,33 @@ function FilaResultado({ r, numero, guardado, onPress }: { r: SitioBuscado; nume
 
 const sombra = { shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 } as const;
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   // A la derecha queda el botón «Mi ubicación» del mapa (48 px + 16 de margen).
   arriba: { position: 'absolute', top: 16, left: 16, right: 76, gap: 8 },
-  barra: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...sombra },
+  barra: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...sombra },
   campo: { flex: 1, height: 48, fontFamily: fonts.body, fontSize: 16, color: colors.text },
   cerrar: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  sugerencias: { borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', ...sombra },
+  sugerencias: { borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', ...sombra },
   sugerencia: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8 },
   oculto: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  aviso: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  aviso: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   nota: { flexShrink: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   zona: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.full, backgroundColor: colors.accent, ...sombra },
-  zonaTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
+  zonaTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.onAccent },
   abajo: { position: 'absolute', left: 0, right: 0, bottom: 16, gap: 6 },
-  atribucion: { alignSelf: 'flex-end', marginRight: 16, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.85)', fontFamily: fonts.body, fontSize: 11, color: colors.text },
+  atribucion: { alignSelf: 'flex-end', marginRight: 16, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full, backgroundColor: colors.atribucion, fontFamily: fonts.body, fontSize: 11, color: colors.text },
   carrusel: { paddingHorizontal: 16, gap: 8 },
-  fila: { width: 250, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, ...sombra },
+  fila: { width: 250, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...sombra },
   numero: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  numeroTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
+  numeroTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onAccent },
   textos: { flex: 1, minWidth: 0, gap: 2 },
   filaNombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  tarjeta: { marginHorizontal: 16, gap: 10, padding: 14, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, ...sombra },
+  tarjeta: { marginHorizontal: 16, gap: 10, padding: 14, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, ...sombra },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   nombre: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   yaEsta: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
   botones: { flexDirection: 'row', gap: 8 },
   botonClaro: { backgroundColor: colors.surface },
   boton: { flex: 1, minHeight: 44, borderRadius: radius.full, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  botonTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
-});
+  botonTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.onAccent },
+}));

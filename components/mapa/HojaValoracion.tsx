@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
 import { HojaConfirmar } from '@/components/gastos/HojaConfirmar';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
 import { textoValoracionHablado } from '@/lib/mapa/lista';
@@ -20,6 +21,8 @@ export const AVISO_VALORAR = 'Podréis valorarlo cuando lo marquéis como «Hemo
 
 /** Cinco estrellas táctiles (con media) y, para lector de pantalla, un único control ajustable de 0,5 en 0,5. */
 function EstrellasEditables({ valor, onCambiar }: { valor: number | null; onCambiar: (v: number | null) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const v = valor ?? 0;
   return (
     <View
@@ -42,6 +45,8 @@ function EstrellasEditables({ valor, onCambiar }: { valor: number | null; onCamb
 
 /** Mi valoración y mi nota del sitio. Se monta al abrirla (parte siempre de lo guardado). Vaciar las dos y guardar las borra. */
 export function HojaValoracion({ sitio, estado, coupleId, userId, nombrePareja, onCerrar }: { sitio: Sitio; estado: string; coupleId: string; userId: string; nombrePareja: string | null; onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarMapa();
   const mia = miNota(sitio.place_notes, userId);
   const [rating, setRating] = useState<number | null>(mia?.rating ?? null);
@@ -120,10 +125,10 @@ export function HojaValoracion({ sitio, estado, coupleId, userId, nombrePareja, 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   estrellas: { flexDirection: 'row', gap: 6 },
   aviso: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   quitar: { alignSelf: 'flex-start', paddingVertical: 8 },
   quitarTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary },
-  campo: { minHeight: 100, maxHeight: 180, padding: 14, textAlignVertical: 'top', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-});
+  campo: { minHeight: 100, maxHeight: 180, padding: 14, textAlignVertical: 'top', borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+}));

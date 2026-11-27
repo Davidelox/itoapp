@@ -1,11 +1,12 @@
 import * as Crypto from 'expo-crypto';
 import { type ReactNode, useRef, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type FilaAjustes, aplicar, diferencias, hayCambios, incoherencia, textosCambios } from '@/lib/ajustes/ajustes';
 import { guardarDirecto, proponer } from '@/lib/ajustes/consultas';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -31,6 +32,8 @@ export function HojaCambio({
   onCerrar: () => void;
   children: ReactNode;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja, refrescar } = useEstado();
   const datos = useDatosAjustes();
   const invalidar = useInvalidarGastos();
@@ -41,7 +44,7 @@ export function HojaCambio({
   const ids = useRef(new Map<string, string>());
 
   if (!pareja) return null;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const solo = pareja.otra === null;
   const cambios = diferencias(actual, nuevo);
   const pendiente = !solo ? (datos.data?.pendiente ?? null) : null;
@@ -104,6 +107,6 @@ export function HojaCambio({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   nota: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },
-});
+}));

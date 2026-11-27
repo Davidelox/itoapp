@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { textoPagador } from '@/components/gastos/FilaGasto';
@@ -11,7 +11,8 @@ import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { ErrorGasto, type Gasto, deshacerPago, leerPago, leerSaldo, saldar } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
@@ -39,6 +40,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
  * Los gastos de un plan salen como UNA fila con su casilla de grupo (docs/plan-planificador.md §4); con `plan`, solo los de ese plan.
  */
 export function HojaSaldar({ onCerrar, plan }: { onCerrar: () => void; /** «Saldar solo esto»: solo los gastos de este plan, marcados al abrir. */ plan?: { id: string; nombre: string } }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { pareja, userId } = useEstado();
   const abiertos = useAbiertos();
@@ -70,7 +73,7 @@ export function HojaSaldar({ onCerrar, plan }: { onCerrar: () => void; /** «Sal
     return envolver(<CargandoHilo color={colors.accent} style={{ marginVertical: 40 }} />);
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
 
   if (hecho) {
@@ -280,7 +283,7 @@ export function HojaSaldar({ onCerrar, plan }: { onCerrar: () => void; /** «Sal
             );
           }
           const g = fila.gasto;
-          const pag = textoPagador(g, pareja);
+          const pag = textoPagador(g, pareja, colors);
           return (
             <Casilla
               key={g.id}
@@ -367,6 +370,8 @@ function Casilla({
   derecha: string;
   negrita?: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -376,7 +381,7 @@ function Casilla({
       style={styles.casilla}
     >
       <View style={[styles.caja, marcada || estado === 'algunos' ? styles.cajaMarcada : styles.cajaVacia]}>
-        {marcada ? <Ionicons name="checkmark" size={16} color={colors.white} /> : estado === 'algunos' ? <Ionicons name="remove" size={16} color={colors.white} /> : null}
+        {marcada ? <Ionicons name="checkmark" size={16} color={colors.onAccent} /> : estado === 'algunos' ? <Ionicons name="remove" size={16} color={colors.onAccent} /> : null}
       </View>
       <View style={styles.casillaTextos}>
         <Text style={[styles.casillaTitulo, negrita && { fontFamily: fonts.bodyBold }]} numberOfLines={1}>
@@ -389,9 +394,9 @@ function Casilla({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   resumen: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl,
@@ -421,7 +426,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   lista: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -447,7 +452,7 @@ const styles = StyleSheet.create({
   cajaVacia: {
     borderWidth: 2,
     borderColor: colors.textSecondary,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   casillaTextos: { flex: 1, minWidth: 0, gap: 1 },
   casillaTitulo: {
@@ -490,7 +495,7 @@ const styles = StyleSheet.create({
   metodoNormal: {
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     margin: 1,
   },
   metodoActivo: {
@@ -562,4 +567,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-});
+}));

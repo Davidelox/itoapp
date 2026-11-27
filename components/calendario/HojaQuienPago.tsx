@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { Text, TextInput } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
@@ -8,7 +8,8 @@ import { ControlesReparto } from '@/components/gastos/ControlesReparto';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { crearGastoDeEvento, descartarQuienPago } from '@/lib/calendario/consultas';
 import {
   type EventoParaGasto,
@@ -52,6 +53,8 @@ type Props = {
  * «Nuevo gasto». Se monta al abrirla (cada apertura parte de los valores del evento) y se cierra desmontándola.
  */
 export function HojaQuienPago(props: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const ajustes = useAjustesGastos();
   if (!ajustes.data) {
     return (
@@ -75,9 +78,11 @@ function Contenido({
   onHecho,
   ajustes,
 }: Props & { ajustes: NonNullable<ReturnType<typeof useAjustesGastos>['data']> }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { userId } = useEstado();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const inicial = valoresIniciales(evento, ajustes, hoyISO());
   const sinProporcional = ocultaProporcional(ajustes.pctProporcionalM1, false);
@@ -239,7 +244,7 @@ function Contenido({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   ayuda: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },
   campo: {
     height: 50,
@@ -247,7 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.bodyBold,
     fontSize: 18,
     color: colors.text,
@@ -261,4 +266,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 12,
   },
-});
+}));

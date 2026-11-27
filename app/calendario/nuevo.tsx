@@ -1,9 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioEvento, type TipoFormulario } from '@/components/calendario/FormularioEvento';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { CategoriaEvento } from '@/lib/calendario/evento';
 import { aISO, deISO, hoyISO } from '@/lib/gastos/fechas';
 import { sitioDeParametro, sitioInicialVisible } from '@/lib/mapa/conexiones';
@@ -22,6 +23,8 @@ const CATEGORIAS: CategoriaEvento[] = ['trip', 'eating_out', 'leisure', 'sports'
  * de ese plan (la fecha se limita a las del plan).
  */
 export default function NuevoEvento() {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja } = useEstado();
   const { fecha, tipo, categoria, sitio, plan: planParam } = useLocalSearchParams<{ fecha?: string; tipo?: string; categoria?: string; sitio?: string; plan?: string }>();
   const planId = planDeParametro(planParam);
@@ -55,7 +58,7 @@ export default function NuevoEvento() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   texto: { fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
-});
+}));

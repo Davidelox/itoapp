@@ -5,7 +5,8 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { SitiosMarcables } from '@/components/mapa/SitiosMarcables';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { anadirSitiosAColeccion } from '@/lib/mapa/consultasColecciones';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
@@ -14,6 +15,7 @@ import { useInvalidarMapa } from '@/lib/mapa/useSitios';
 
 /** «Añadir sitios» del detalle de una colección: hoja inferior con casillas para los sitios que aún no están en ella. Se monta al abrirla. */
 export function HojaAnadirSitios({ coleccion, coupleId, sitios, onCerrar }: { coleccion: Coleccion; coupleId: string; sitios: Sitio[]; onCerrar: () => void }) {
+  const colors = useColores();
   const invalidar = useInvalidarMapa();
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [ocupado, setOcupado] = useState(false);

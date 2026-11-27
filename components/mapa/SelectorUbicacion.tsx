@@ -4,7 +4,9 @@ import { StyleSheet, View } from 'react-native';
 import MapView from 'react-native-maps';
 
 import { BotonUbicacion } from '@/components/mapa/BotonUbicacion';
-import { colors, radius } from '@/constants/theme';
+import { radius } from '@/constants/theme';
+import { ESTILO_MAPA_OSCURO } from '@/lib/mapa/estiloOscuro';
+import { crearEstilos, useColores, useEsquema } from '@/lib/tema';
 import { DELTA_MINIMO, type Region } from '@/lib/mapa/encuadre';
 import { DELTA_UBICACION } from '@/lib/mapa/ubicacion';
 
@@ -16,6 +18,9 @@ export const SELECTOR_CON_MAPA = true;
  * mapa. `inicial` solo fija el encuadre de partida. «Mi ubicación» (opcional) pone la cruz donde estás; solo pide permiso al pulsarlo.
  */
 export function SelectorUbicacion({ inicial, onCambiar }: { inicial: Region; onCambiar: (lat: number, lng: number) => void }) {
+  const colors = useColores();
+  const styles = useStyles();
+  const oscuro = useEsquema() === 'oscuro';
   const mapa = useRef<MapView>(null);
   return (
     <View style={styles.caja} accessible accessibilityLabel="Mapa para elegir la ubicación. Mueve el mapa hasta que la cruz quede sobre el sitio.">
@@ -24,6 +29,8 @@ export function SelectorUbicacion({ inicial, onCambiar }: { inicial: Region; onC
         showsMyLocationButton={false}
         style={StyleSheet.absoluteFill}
         initialRegion={{ ...inicial, latitudeDelta: Math.max(inicial.latitudeDelta, DELTA_MINIMO), longitudeDelta: Math.max(inicial.longitudeDelta, DELTA_MINIMO) }}
+        userInterfaceStyle={oscuro ? "dark" : "light"}
+        customMapStyle={oscuro ? ESTILO_MAPA_OSCURO : undefined}
         mapType="standard"
         showsPointsOfInterests={false}
         toolbarEnabled={false}
@@ -42,8 +49,8 @@ export function SelectorUbicacion({ inicial, onCambiar }: { inicial: Region; onC
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { height: 260, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   ubicacion: { right: 8, top: 8 },
   cruz: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-});
+}));

@@ -6,14 +6,14 @@ import {
   ActivityIndicator,
   Keyboard,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 
 import { MensajeError } from "@/components/onboarding/MensajeError";
-import { colors, fonts, radius } from "@/constants/theme";
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from "@/lib/gastos/error";
 import {
   PAUSA_BUSQUEDA_MS,
@@ -46,6 +46,8 @@ export function BuscarLugarNuevo({
   coupleId: string;
   onElegido: (id: string) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const centro = usePosicion();
   const invalidar = useInvalidarMapa();
   const [escrito, setEscrito] = useState("");
@@ -195,7 +197,7 @@ export function BuscarLugarNuevo({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { gap: 10 },
   campo: {
     height: 50,
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.text,
@@ -220,9 +222,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   textos: { flex: 1, minWidth: 0 },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   guardado: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.accent },
-});
+}));

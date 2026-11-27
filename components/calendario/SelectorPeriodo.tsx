@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Rect, posicionMenu } from '@/lib/calendario/filtros';
 import { MESES } from '@/lib/gastos/fechas';
 import { type Vista, mismoPeriodo } from '@/lib/calendario/rejilla';
@@ -40,6 +41,8 @@ export function SelectorPeriodo({
   onElegir: (ancla: string) => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const ventana = useWindowDimensions();
   const [anio, setAnio] = useState(() => limitarAnio(Number(ancla.slice(0, 4))));
   const [mesElegido, setMesElegido] = useState<number | null>(null);
@@ -149,16 +152,16 @@ export function SelectorPeriodo({
   );
 }
 
-const styles = StyleSheet.create({
-  fondo: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(42, 38, 39, 0.08)' },
+const useStyles = crearEstilos((colors) => ({
+  fondo: { ...StyleSheet.absoluteFill, backgroundColor: colors.veloSuave },
   menu: {
     position: 'absolute',
     padding: PADDING,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -176,9 +179,9 @@ const styles = StyleSheet.create({
   actual: { borderColor: colors.accent },
   pulsada: { backgroundColor: colors.pressed },
   texto: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
-  textoVisible: { fontFamily: fonts.bodyBold, color: colors.white },
+  textoVisible: { fontFamily: fonts.bodyBold, color: colors.onAccent },
   textoActual: { fontFamily: fonts.bodyBold, color: colors.accent },
   pie: { height: ALTO_FILA, alignItems: 'center', justifyContent: 'center', marginTop: 'auto' },
   hoy: { minHeight: 36, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   hoyTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-});
+}));

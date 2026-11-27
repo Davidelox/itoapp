@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { CampoTexto } from '@/components/onboarding/CampoTexto';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { GrupoOpciones, OpcionRadio, Segmentado } from '@/components/onboarding/OpcionRadio';
 import { Pantalla } from '@/components/onboarding/Pantalla';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { type ColorPersona, fonts, type Paleta, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearEuros, leerEuros } from '@/lib/dinero/importe';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { type AjustesDinero, guardarDinero } from '@/lib/pareja/acciones';
@@ -23,8 +24,10 @@ type Reparto = AjustesDinero['reparto'];
  * (docs/modelo-datos.md, decisión 5): es lo que gana cada uno, sirva para el bote o para los gastos.
  */
 export default function Dinero() {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja, refrescar, retenerFase, soltarFase } = useEstado();
-  const miColor = pareja?.yo.color ? personColors[pareja.yo.color] : null;
+  const miColor = pareja?.yo.color ? colors.personas[pareja.yo.color] : null;
 
   const [bote, setBote] = useState(true);
   const [mensual, setMensual] = useState(true);
@@ -219,8 +222,9 @@ function ControlPorcentaje({
 }: {
   pct: number;
   onCambiar: (p: number) => void;
-  miColor: (typeof personColors)[keyof typeof personColors] | null;
+  miColor: Paleta['personas'][ColorPersona] | null;
 }) {
+  const styles = useStyles();
   return (
     <View style={styles.pctFila}>
       <BotonRedondo etiqueta="−" accesible="Bajar tu porcentaje" onPress={() => onCambiar(Math.max(5, pct - PASO_PCT))} />
@@ -235,6 +239,7 @@ function ControlPorcentaje({
 }
 
 function BotonRedondo({ etiqueta, accesible, onPress }: { etiqueta: string; accesible: string; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -247,7 +252,7 @@ function BotonRedondo({ etiqueta, accesible, onPress }: { etiqueta: string; acce
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   dosCampos: { flexDirection: 'row', gap: 12, marginTop: 4 },
   campo: { flex: 1, minWidth: 0 },
   resumen: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
@@ -261,10 +266,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   redondoPulsado: { backgroundColor: colors.surface },
   redondoTexto: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.text },
-});
+}));

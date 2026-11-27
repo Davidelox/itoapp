@@ -1,11 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** Pasos del primer uso de quien crea el espacio: espacio, perfil, dinero e invitar. */
 export const TOTAL_PASOS = 4;
 
 export function IndicadorPaso({ paso, total = TOTAL_PASOS }: { paso: number; total?: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.fila}>
       <View
@@ -25,10 +27,10 @@ export function IndicadorPaso({ paso, total = TOTAL_PASOS }: { paso: number; tot
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   barras: { flex: 1, flexDirection: 'row', gap: 6 },
   barra: { flex: 1, height: 8, borderRadius: 999, backgroundColor: colors.border },
   barraHecha: { backgroundColor: colors.accent },
   texto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
-});
+}));

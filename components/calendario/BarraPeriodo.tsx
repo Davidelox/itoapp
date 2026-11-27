@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Text, View, useWindowDimensions } from 'react-native';
 
 import { FiltrosActivos } from '@/components/calendario/FiltrosActivos';
 import { MenuFiltros } from '@/components/calendario/MenuFiltros';
 import { SelectorPeriodo } from '@/components/calendario/SelectorPeriodo';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Filtros } from '@/lib/calendario/agrupar';
 import { type Rect, quitarFiltro, resumenFiltros } from '@/lib/calendario/filtros';
 import { type Vista, etiquetaPeriodoCorta, modoBarra } from '@/lib/calendario/rejilla';
@@ -36,6 +37,8 @@ export function BarraPeriodo({
   onSaltar: (ancla: string) => void;
   onFiltros: (f: Filtros) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const etiqueta = etiquetaPeriodoCorta(vista, ancla);
   const activo = filtros.length > 0;
   const { width: anchoVentana, fontScale } = useWindowDimensions();
@@ -162,7 +165,7 @@ export function BarraPeriodo({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { gap: 8 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navegacion: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -197,5 +200,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  contadorTexto: { fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: colors.white },
-});
+  contadorTexto: { fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: colors.onAccent },
+}));

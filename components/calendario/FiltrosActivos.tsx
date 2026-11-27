@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, Text } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Marcador } from '@/components/calendario/Marcador';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Filtro, Filtros } from '@/lib/calendario/agrupar';
 import { marcadorFiltro } from '@/lib/calendario/colores';
 import { OPCIONES_FILTRO, etiquetaFiltro } from '@/lib/calendario/filtros';
@@ -14,6 +15,8 @@ import { OPCIONES_FILTRO, etiquetaFiltro } from '@/lib/calendario/filtros';
  * No sale si no hay ninguno.
  */
 export function FiltrosActivos({ filtros, onQuitar, onLimpiar }: { filtros: Filtros; onQuitar: (f: Filtro) => void; onLimpiar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   if (filtros.length === 0) return null;
   return (
     <Animated.View entering={FadeIn.duration(140)} style={styles.fila}>
@@ -27,7 +30,7 @@ export function FiltrosActivos({ filtros, onQuitar, onLimpiar }: { filtros: Filt
             hitSlop={{ top: 6, bottom: 6 }}
             style={({ pressed }) => [styles.pildora, pressed && { backgroundColor: colors.pressed }]}
           >
-            <Marcador marcador={marcadorFiltro(o, true)} tamano={16} />
+            <Marcador marcador={marcadorFiltro(o, true, colors)} tamano={16} />
             <Text style={styles.pildoraTexto} maxFontSizeMultiplier={1.2}>
               {o.etiqueta}
             </Text>
@@ -49,7 +52,7 @@ export function FiltrosActivos({ filtros, onQuitar, onLimpiar }: { filtros: Filt
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scroll: { flex: 1 },
   pildoras: { gap: 8, alignItems: 'center', paddingVertical: 1 },
@@ -74,6 +77,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
-});
+}));

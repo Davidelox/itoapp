@@ -1,13 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { CampoCodigo } from '@/components/onboarding/CampoCodigo';
 import { CampoTexto } from '@/components/onboarding/CampoTexto';
 import { Pantalla } from '@/components/onboarding/Pantalla';
 import { formatearSegundos, useCuentaAtras } from '@/components/onboarding/useCuentaAtras';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { emailValido, pedirRecuperacion, reenviarCodigo, verificarCodigo } from '@/lib/auth/acciones';
 import { useFlujoCuenta } from '@/lib/auth/FlujoCuenta';
 
@@ -17,6 +18,7 @@ const MIN_CIFRAS = 6;
 const PAUSA_ENVIO_MS = 450;
 
 export default function Verificar() {
+  const styles = useStyles();
   const router = useRouter();
   const flujo = useFlujoCuenta();
   const recuperacion = flujo.modo === 'recuperacion';
@@ -122,7 +124,7 @@ export default function Verificar() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   campos: { gap: 16 },
   aviso: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.textSecondary },
-});
+}));

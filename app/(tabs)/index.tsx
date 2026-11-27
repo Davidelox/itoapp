@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
@@ -20,7 +20,8 @@ import {
 import { HiloPareja } from '@/components/inicio/HiloPareja';
 import { TarjetasPendientes } from '@/components/inicio/TarjetasPendientes';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { fonts, radius, spacing } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { boteConPendiente } from '@/lib/gastos/bote';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { useDatosAjustes, useInvalidarGastos, useSaldo } from '@/lib/gastos/useGastos';
@@ -30,6 +31,7 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Pestaña Inicio (mockups Main e Inicio-vacio): próximo plan, saldo, pendientes y primeros pasos. */
 export default function Inicio() {
+  const styles = useStyles();
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
   const { pareja } = useEstado();
@@ -126,12 +128,12 @@ export default function Inicio() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: 20, paddingTop: spacing.md, paddingBottom: 100, gap: spacing.lg },
   vacio: { alignItems: 'center', gap: 8, paddingVertical: 32, paddingHorizontal: 12 },
   vacioTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
   boton: { height: 52, borderRadius: radius.full, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   pulsado: { backgroundColor: colors.accentDark },
-  texto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },
-});
+  texto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.onAccent },
+}));

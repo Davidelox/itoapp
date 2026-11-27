@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 
 import { BarraPorcentaje, Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { personas } from '@/lib/gastos/personas';
 import {
@@ -63,7 +64,9 @@ export function ControlesReparto({
   onVisible,
   mostrarVisible,
 }: Props) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const datos = aDatos(yo, pagador, reparto, pctYo, pctProporcionalM1);
   const vista = partes(cents ?? 0, datos.split_mode, datos.split_pct_m1);
@@ -148,8 +151,8 @@ export function ControlesReparto({
           importePareja={cents !== null ? formatearImporte(mias.pareja) : null}
           tintaYo={p.tintaYo}
           tintaPareja={p.tintaPareja}
-          fondoYo={p.yo.color ? personColors[p.yo.color].bg : colors.surface}
-          fondoPareja={p.otra?.color ? personColors[p.otra.color].bg : colors.divider}
+          fondoYo={p.yo.color ? colors.personas[p.yo.color].bg : colors.surface}
+          fondoPareja={p.otra?.color ? colors.personas[p.otra.color].bg : colors.divider}
         />
       ) : null}
 
@@ -176,10 +179,10 @@ export function ControlesReparto({
             accessibilityLabel={`Visible para ${p.nombrePareja}`}
             value={visible}
             onValueChange={onVisible}
-            trackColor={{ true: colors.accent, false: '#CFC8BB' }}
-            thumbColor={colors.white}
+            trackColor={{ true: colors.accent, false: colors.switchOff }}
+            thumbColor={colors.thumb}
             // En web la bolita usa activeThumbColor (react-native-web); en nativo basta thumbColor.
-            {...{ activeThumbColor: colors.white }}
+            {...{ activeThumbColor: colors.thumb }}
           />
         </View>
       ) : null}
@@ -187,7 +190,7 @@ export function ControlesReparto({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pagadores: { flexDirection: 'row', gap: 8 },
   pagador: {
     flex: 1,
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
   },
-  resultadoIcono: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  resultadoIcono: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   resultadoGuion: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.icon },
   resultadoTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 21, color: colors.text },
   visible: {
@@ -227,11 +230,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
   visibleTextos: { flex: 1, gap: 1 },
   visibleTitulo: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   visibleAyuda: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
-});
+}));

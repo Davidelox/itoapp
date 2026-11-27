@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Grupo } from '@/components/gastos/Controles';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { EMOJIS_SUGERIDOS, resolverTextoIcono } from '@/lib/mapa/colecciones';
 
 /**
@@ -25,6 +26,7 @@ export function SelectorIcono({
   sugeridos?: readonly { emoji: string; nombre: string }[];
   error?: string | null;
 }) {
+  const styles = useStyles();
   const [otroAbierto, setOtroAbierto] = useState(false);
   const esSugerido = sugeridos.some((e) => e.emoji === valor);
   const [texto, setTexto] = useState('');
@@ -91,12 +93,12 @@ export function SelectorIcono({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  emoji: { width: '23%', flexGrow: 1, height: 52, borderRadius: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.inputBorder, alignItems: 'center', justifyContent: 'center' },
+  emoji: { width: '23%', flexGrow: 1, height: 52, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.inputBorder, alignItems: 'center', justifyContent: 'center' },
   emojiOn: { borderWidth: 2, borderColor: colors.text },
   otro: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
   otroCaja: { gap: 6 },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  campoEmoji: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 24, color: colors.text, textAlign: 'center' },
-});
+  campoEmoji: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 24, color: colors.text, textAlign: 'center' },
+}));

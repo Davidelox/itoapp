@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput } from 'react-native';
+import { Text, TextInput } from 'react-native';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -8,7 +8,8 @@ import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { CampoSitio } from '@/components/mapa/CampoSitio';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { ERROR_GENERICO } from '@/lib/mapa/error';
@@ -53,6 +54,8 @@ export function HojaTarea({
   onBorrar?: () => void;
   onCerrar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarPlanificador();
   const itinerario = useItinerario();
   const todas = useTareas();
@@ -180,8 +183,8 @@ export function HojaTarea({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   nota: { height: undefined, minHeight: 84, maxHeight: 220, paddingTop: 14, paddingBottom: 14 },
   ayuda: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-});
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+}));

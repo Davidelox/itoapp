@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TextoLargo } from '@/components/TextoLargo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, type ReactNode, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
@@ -16,7 +16,8 @@ import { QuitarDelItinerario } from '@/components/planificador/QuitarDelItinerar
 import { SitioEnlazado } from '@/components/mapa/SitioEnlazado';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { coloresDeHuecos, marcador } from '@/lib/calendario/colores';
 import { revelarEvento } from '@/lib/calendario/consultas';
 import {
@@ -52,6 +53,8 @@ const esFecha = (s: string | undefined): s is string => !!s && aISO(deISO(s)) ==
  * enseña la próxima. El bloque «Después del evento» (¿Quién pagó? y gastos enlazados) es la fase C.
  */
 export default function DetalleEvento() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id, fecha: fechaParam } = useLocalSearchParams<{ id: string; fecha?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -114,7 +117,7 @@ export default function DetalleEvento() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const hoy = hoyISO();
   const repite = evento.recurrence !== 'none';
@@ -133,7 +136,7 @@ export default function DetalleEvento() {
   const titulo = cumple ? `Cumpleaños de ${evento.title}` : evento.title;
   const quien = cumple ? textoDeParte(evento.attendees, yo, p.nombrePareja) : textoAsistentes(evento.attendees, yo, p.nombrePareja);
   const colores = coloresDeHuecos(pareja);
-  const marca = marcador({ tipo: 'event', categoria: evento.category, asistentes: evento.attendees }, colores.m1, colores.m2);
+  const marca = marcador({ tipo: 'event', categoria: evento.category, asistentes: evento.attendees }, colores.m1, colores.m2, colors);
   const categoria = infoCategoriaEvento(evento.category);
   const enCurso = duracion > 0 ? textoEnCurso(fecha, fin, hoy) : null;
   // Sin pareja unida, «Vais los dos» no dice nada.
@@ -339,6 +342,8 @@ export default function DetalleEvento() {
 }
 
 function Fila({ icono, children }: { icono: ComponentProps<typeof Ionicons>['name']; children: ReactNode }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={styles.fila}>
       <View style={styles.icono} importantForAccessibility="no" accessibilityElementsHidden>
@@ -349,14 +354,14 @@ function Fila({ icono, children }: { icono: ComponentProps<typeof Ionicons>['nam
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   redondo: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -370,7 +375,7 @@ const styles = StyleSheet.create({
   contenido: { paddingHorizontal: 20, gap: 14 },
   titulo: { fontFamily: fonts.title, fontSize: 30, lineHeight: 36, color: colors.text },
   tarjeta: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -400,7 +405,7 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: 16,
     borderRadius: radius.xl - 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -410,4 +415,4 @@ const styles = StyleSheet.create({
   enlacePlan: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
   enlacePlanTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.accent, textDecorationLine: 'underline' },
   reservarTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-});
+}));

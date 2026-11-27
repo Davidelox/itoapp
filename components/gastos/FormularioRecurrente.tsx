@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { type ReactNode, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarraPorcentaje, Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
@@ -11,7 +11,8 @@ import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Origen, destinoTrasGuardarPago } from '@/lib/calendario/destino';
 import { formatearImporte, leerEuros } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
@@ -67,10 +68,12 @@ type Props = {
 
 /** Nuevo o editar pago recurrente (mockup NuevoPago, docs/plan-gastos-fase4.md §2). */
 export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuardarEdicion, personalInicial = false, diaInicial, origen = 'gastos' }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const editando = !!inicial;
   const hoy = hoyISO();
@@ -437,8 +440,8 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
             importePareja={cents !== null ? formatearImporte(mias.pareja) : null}
             tintaYo={p.tintaYo}
             tintaPareja={p.tintaPareja}
-            fondoYo={p.yo.color ? personColors[p.yo.color].bg : colors.surface}
-            fondoPareja={p.otra?.color ? personColors[p.otra.color].bg : colors.divider}
+            fondoYo={p.yo.color ? colors.personas[p.yo.color].bg : colors.surface}
+            fondoPareja={p.otra?.color ? colors.personas[p.otra.color].bg : colors.divider}
           />
         ) : null}
 
@@ -486,6 +489,8 @@ export function FormularioRecurrente({ pareja, ajustes, inicial, extra, alGuarda
 }
 
 function BotonRedondo({ icono, etiqueta, onPress }: { icono: 'add' | 'remove'; etiqueta: string; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -498,14 +503,14 @@ function BotonRedondo({ icono, etiqueta, onPress }: { icono: 'add' | 'remove'; e
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   cerrar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.text,
@@ -539,7 +544,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 10,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -551,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -563,7 +568,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -582,5 +587,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
-});
+  pie: { backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
+}));

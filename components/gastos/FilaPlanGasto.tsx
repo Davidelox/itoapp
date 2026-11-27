@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import type { FilaLista } from '@/lib/gastos/agrupar';
 import { fechaCorta } from '@/lib/gastos/fechas';
@@ -14,6 +15,7 @@ export const resumenFilaPlan = (f: Pick<FilaPlan, 'plan' | 'resumen'>) => `${f.p
 
 /** Todos los gastos de un plan en una sola fila de las listas de Gastos: emoji, nombre, total acumulado y cuántos son. Abre el plan. */
 export function FilaPlanGasto({ fila, conFecha = false, separador = false, onPress }: { fila: FilaPlan; conFecha?: boolean; separador?: boolean; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -39,7 +41,7 @@ export function FilaPlanGasto({ fila, conFecha = false, separador = false, onPre
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9, minHeight: 58 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   pulsada: { opacity: 0.6 },
@@ -48,4 +50,4 @@ const styles = StyleSheet.create({
   nombre: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   detalle: { fontFamily: fonts.body, fontSize: 12, color: colors.textSecondary },
   importe: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text, marginLeft: radius.sm },
-});
+}));

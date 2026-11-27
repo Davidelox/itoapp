@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { Pantalla } from '@/components/onboarding/Pantalla';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { registrarError } from '@/lib/registro';
 import { supabase } from '@/lib/supabase';
 
@@ -16,6 +17,8 @@ type Resultado = 'procesando' | 'confirmado_sin_sesion' | 'caducado';
  * Nunca se muestra `error_description` ni se registra la URL entrante.
  */
 export default function CallbackAuth() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { code, error } = useLocalSearchParams<{ code?: string; error?: string }>();
   const [resultado, setResultado] = useState<Resultado>(error ? 'caducado' : 'procesando');
@@ -72,7 +75,7 @@ export default function CallbackAuth() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.background },
   texto: { fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
-});
+}));

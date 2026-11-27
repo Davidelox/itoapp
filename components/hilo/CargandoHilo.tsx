@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { type StyleProp, View, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -13,7 +13,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { puntosOndaCarga } from '@/components/hilo/ondaCarga';
 import { trazoDePuntos } from '@/components/hilo/geometria';
-import { colors } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -36,7 +36,7 @@ function medidas(size: 'small' | 'large' | number): { ancho: number; alto: numbe
  */
 export function CargandoHilo({
   size = 'small',
-  color = colors.accent,
+  color: colorProp,
   style,
   accessibilityLabel = 'Cargando',
   oculto = false,
@@ -47,6 +47,9 @@ export function CargandoHilo({
   accessibilityLabel?: string;
   oculto?: boolean;
 }) {
+  const colors = useColores();
+  const color = colorProp ?? colors.accent;
+  const styles = useStyles();
   const { ancho, alto } = medidas(size);
   const grosor = Math.max(2, ancho / 18);
   const reducida = useReducedMotion();
@@ -93,8 +96,8 @@ export function CargandoHilo({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   // `alignSelf: 'center'`: en un padre con `alignItems: 'stretch'` (el de por defecto) el indicador, de ancho fijo, quedaría
   // pegado a la izquierda; así se centra como se centraba `ActivityIndicator`. En una fila solo centra en vertical.
   caja: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
-});
+}));

@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { type VistaPresupuesto, textoGastadoPlan, vistaPresupuesto } from '@/lib/planificador/plan';
 
@@ -9,6 +10,8 @@ import { type VistaPresupuesto, textoGastadoPlan, vistaPresupuesto } from '@/lib
  * en granate oscuro). Sin presupuesto: «Sin presupuesto»; con presupuesto pero sin saber lo gastado, solo el presupuesto.
  */
 export function BarraPresupuesto({ vista, tamano = 'normal' }: { vista: VistaPresupuesto; tamano?: 'normal' | 'grande' }) {
+  const colors = useColores();
+  const styles = useStyles();
   const grande = tamano === 'grande';
   if (vista.tipo !== 'barra') {
     return <Text style={[styles.texto, grande && styles.textoGrande, vista.tipo === 'ninguno' && styles.apagado]}>{vista.texto}</Text>;
@@ -37,13 +40,14 @@ export function BarraPresupuesto({ vista, tamano = 'normal' }: { vista: VistaPre
  * (y nada si no hay gasto).
  */
 export function DineroDelPlan({ presupuestoCents, gastadoCents, tamano = 'normal' }: { presupuestoCents: number | null; gastadoCents: number | null; tamano?: 'normal' | 'grande' }) {
+  const styles = useStyles();
   const presupuestos = usePresupuestos();
   if (presupuestos) return <BarraPresupuesto vista={vistaPresupuesto(presupuestoCents, gastadoCents)} tamano={tamano} />;
   const texto = textoGastadoPlan(gastadoCents);
   return texto ? <Text style={[styles.texto, tamano === 'grande' && styles.textoGrande]}>{texto}</Text> : null;
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { gap: 6 },
   fila: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   texto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
@@ -55,4 +59,4 @@ const styles = StyleSheet.create({
   pistaPasada: { backgroundColor: colors.accentSoft },
   pistaGrande: { height: 10, borderRadius: 5 },
   relleno: { height: '100%', borderRadius: 4 },
-});
+}));

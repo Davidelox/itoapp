@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { DineroDelPlan } from '@/components/planificador/BarraPresupuesto';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { cuentaAtras, etiquetaPlan, etiquetaTipo, textoFechas } from '@/lib/planificador/plan';
 import { chipsTarjeta, pendientesDe } from '@/lib/planificador/tareas';
@@ -11,6 +12,8 @@ import type { PlanLista, Tarea } from '@/lib/planificador/tipos';
 
 /** Tarjeta de un plan en la lista: icono, nombre, fechas, cuenta atrás, tipo, dinero y chips de tareas. Toda ella abre el detalle. */
 export function TarjetaPlan({ plan, tareas, yo, tintaYo, hoy, onPress }: { plan: PlanLista; tareas: Tarea[]; yo: 'm1' | 'm2'; tintaYo: string; hoy: string; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const presupuestos = usePresupuestos();
   const chips = chipsTarjeta(tareas, yo);
   const cuenta = cuentaAtras(plan, hoy);
@@ -73,8 +76,8 @@ export function TarjetaPlan({ plan, tareas, yo, tintaYo, hoy, onPress }: { plan:
   );
 }
 
-const styles = StyleSheet.create({
-  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+const useStyles = crearEstilos((colors) => ({
+  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   baldosa: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, minWidth: 0, gap: 2 },
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
   cuenta: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, backgroundColor: colors.surface },
   cuentaCurso: { backgroundColor: colors.accent },
   cuentaTexto: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.text },
-  cuentaTextoCurso: { color: colors.white },
+  cuentaTextoCurso: { color: colors.onAccent },
   pie: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, backgroundColor: colors.surface },
   chipTexto: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
@@ -91,4 +94,4 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chipHecha: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.accentSoft },
   chipHechaTexto: { color: colors.accent },
-});
+}));

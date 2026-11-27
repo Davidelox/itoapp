@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TextoLargo } from '@/components/TextoLargo';
@@ -12,7 +12,8 @@ import { Itinerario } from '@/components/planificador/Itinerario';
 import { GastosPlan } from '@/components/planificador/GastosPlan';
 import { ListaTareas } from '@/components/planificador/ListaTareas';
 import { SitiosDelPlan } from '@/components/planificador/SitiosDelPlan';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
 import { BarraPresupuesto } from '@/components/planificador/BarraPresupuesto';
@@ -25,6 +26,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
  * gastos del plan con su saldo, notas y «Pedir borrar este plan». El itinerario (F6) va entre las tareas y el presupuesto.
  */
 export default function DetallePlan() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -142,7 +145,7 @@ export default function DetallePlan() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   barra: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
   redondo: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
@@ -152,13 +155,13 @@ const styles = StyleSheet.create({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
   contenido: { paddingHorizontal: 20, gap: 16 },
   hero: { alignItems: 'center', gap: 6, padding: 20, borderRadius: radius.xl, backgroundColor: colors.accentSoft },
-  emoji: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emoji: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   titulo: { fontFamily: fonts.title, fontSize: 26, color: colors.text, textAlign: 'center' },
   fechas: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text, textAlign: 'center' },
   tipo: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-  calendario: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  calendario: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   calendarioTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  seccion: { gap: 10, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   seccionTitulo: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   notas: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.icon },
-});
+}));

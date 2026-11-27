@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { diasDelPlan, textoDia } from '@/lib/planificador/itinerario';
 import { textoFechas } from '@/lib/planificador/plan';
@@ -20,6 +21,8 @@ import { usePlanes } from '@/lib/planificador/usePlanificador';
  * Sin planes en curso ni próximos, no se enseña.
  */
 export function AnadirAlItinerario({ sitioId }: { sitioId: string }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const planes = usePlanes();
   const [abierta, setAbierta] = useState(false);
@@ -87,11 +90,11 @@ export function AnadirAlItinerario({ sitioId }: { sitioId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 6 },
   textos: { flex: 1, gap: 1 },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   volver: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-  opcion: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
-});
+  opcion: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+}));

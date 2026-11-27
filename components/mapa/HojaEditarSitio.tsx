@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 
 import { Chip, FilaChips, Grupo, Interruptor } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ErrorGasto } from '@/lib/gastos/error';
 import { personas } from '@/lib/gastos/personas';
 import { CATEGORIAS_SITIO, INFO_CATEGORIA_SITIO } from '@/lib/mapa/categorias';
@@ -21,9 +22,11 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
  * Se monta al abrirla (así parte siempre de lo guardado). Solo guarda lo que ha cambiado, con control de versión.
  */
 export function HojaEditarSitio({ sitio, pareja, onCerrar }: { sitio: Sitio; pareja: Pareja; onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarMapa();
   const { data: sitios = [] } = useSitios();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const [nombre, setNombre] = useState(sitio.name);
   const [direccion, setDireccion] = useState(sitio.address ?? '');
   const [categoria, setCategoria] = useState(sitio.category);
@@ -93,6 +96,6 @@ export function HojaEditarSitio({ sitio, pareja, onCerrar }: { sitio: Sitio; par
   );
 }
 
-const styles = StyleSheet.create({
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-});
+const useStyles = crearEstilos((colors) => ({
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+}));

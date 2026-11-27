@@ -1,19 +1,22 @@
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { marcarPreguntado, pedirPermiso, registrarDispositivo } from '@/lib/avisos/registro';
 import { personas } from '@/lib/gastos/personas';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Explica para qué son los avisos ANTES del diálogo del sistema (que solo se puede enseñar una vez). */
 export function HojaPermisoAvisos({ onCerrar }: { onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja } = useEstado();
   const [ocupado, setOcupado] = useState(false);
-  const otra = pareja ? personas(pareja).otra : null;
-  const nombre = otra ? personas(pareja!).nombrePareja : null;
+  const otra = pareja ? personas(pareja, colors).otra : null;
+  const nombre = otra ? personas(pareja!, colors).nombrePareja : null;
 
   const activar = async () => {
     setOcupado(true);
@@ -43,6 +46,6 @@ export function HojaPermisoAvisos({ onCerrar }: { onCerrar: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
-});
+}));

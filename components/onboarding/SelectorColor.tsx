@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { COLORES_PERSONA, type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
+import { COLORES_PERSONA, type ColorPersona, fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 type Props = {
   valor: ColorPersona | null;
@@ -13,10 +14,12 @@ type Props = {
 
 /** Seis colores en un radiogroup. El de la otra persona queda desactivado con «Lo usa David». */
 export function SelectorColor({ valor, onCambiar, ocupados = {}, inicial }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel="Tu color" style={styles.fila}>
       {COLORES_PERSONA.map((c) => {
-        const paleta = personColors[c];
+        const paleta = colors.personas[c];
         const usadoPor = ocupados[c];
         const elegido = valor === c;
         return (
@@ -47,7 +50,7 @@ export function SelectorColor({ valor, onCambiar, ocupados = {}, inicial }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   celda: { minWidth: 56, minHeight: 56, alignItems: 'center', gap: 4 },
   circulo: {
@@ -62,4 +65,4 @@ const styles = StyleSheet.create({
   ocupado: { opacity: 0.35 },
   letra: { fontFamily: fonts.titleBold, fontSize: 22 },
   nota: { fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary },
-});
+}));

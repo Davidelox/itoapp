@@ -3,16 +3,21 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { radius } from '@/constants/theme';
+import { ESTILO_MAPA_OSCURO } from '@/lib/mapa/estiloOscuro';
+import { useEsquema } from '@/lib/tema';
 import type { CategoriaSitio, EstadoSitio } from '@/lib/mapa/tipos';
 
 /** Minimapa de la ficha (160 px): sin gestos; es un botón «Ver en el mapa» que abre la pestaña Mapa en este sitio. */
 export function MiniMapa({ lat, lng, categoria, estado, privado, onPress }: { lat: number; lng: number; categoria: CategoriaSitio; estado: EstadoSitio; privado: boolean; onPress?: () => void }) {
+  const oscuro = useEsquema() === 'oscuro';
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="Ver en el mapa" onPress={onPress} style={styles.caja}>
       <View pointerEvents="none" style={StyleSheet.absoluteFill} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <MapView
         style={StyleSheet.absoluteFill}
         initialRegion={{ latitude: lat, longitude: lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+        userInterfaceStyle={oscuro ? "dark" : "light"}
+        customMapStyle={oscuro ? ESTILO_MAPA_OSCURO : undefined}
         mapType="standard"
         scrollEnabled={false}
         zoomEnabled={false}

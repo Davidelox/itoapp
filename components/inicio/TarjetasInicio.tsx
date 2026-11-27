@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { Estrellas } from '@/components/mapa/Valoraciones';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { usePresupuestos } from '@/lib/ajustes/presupuestos';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, type Paleta, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Elemento, textoImporte } from '@/lib/calendario/agrupar';
 import { paletaDe } from '@/lib/calendario/colores';
 import { rutaDeElemento } from '@/lib/calendario/destino';
@@ -35,6 +36,8 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** Tarjeta granate del próximo plan (mockup Main): cuándo, título y chips; lleva al detalle del evento. */
 export function TarjetaProximoPlan({ plan, distancia, hoy, reservado = false }: { plan: Elemento; distancia: string | null; hoy: string; reservado?: boolean }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const presupuestos = usePresupuestos();
   const cuando = etiquetaPlan(plan, hoy);
@@ -56,7 +59,7 @@ export function TarjetaProximoPlan({ plan, distancia, hoy, reservado = false }: 
         <View style={styles.chips}>
           {chips.map((c) => (
             <View key={c.texto} style={styles.chip}>
-              <Ionicons name={c.icono} size={14} color={colors.white} />
+              <Ionicons name={c.icono} size={14} color={colors.onAccent} />
               <Text style={styles.chipTexto}>{c.texto}</Text>
             </View>
           ))}
@@ -68,6 +71,7 @@ export function TarjetaProximoPlan({ plan, distancia, hoy, reservado = false }: 
 
 /** Bienvenida granate (mockup Inicio-vacio), cuando aún no hay ningún dato. */
 export function TarjetaBienvenida({ pareja }: { pareja: Pareja }) {
+  const styles = useStyles();
   const yo = pareja.yo;
   return (
     <View style={styles.bienvenida}>
@@ -88,6 +92,8 @@ export function TarjetaBienvenida({ pareja }: { pareja: Pareja }) {
 
 /** «Tu pareja aún no se ha unido · El código caduca en 7 días» con «Reenviar invitación» (abre Invitar). */
 export function AvisoInvitacion({ titulo, detalle }: { titulo: string; detalle: string | null }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   return (
     <View style={styles.aviso}>
@@ -111,15 +117,17 @@ export function AvisoInvitacion({ titulo, detalle }: { titulo: string; detalle: 
   );
 }
 
-const ICONO_PASO: Record<ClavePaso, { icono: keyof typeof Ionicons.glyphMap; fondo: string; tinta: string }> = {
+const iconoPaso = (colors: Paleta): Record<ClavePaso, { icono: keyof typeof Ionicons.glyphMap; fondo: string; tinta: string }> => ({
   gasto: { icono: 'wallet-outline', fondo: colors.surface, tinta: colors.icon },
   sitio: { icono: 'location-outline', fondo: colors.surface, tinta: colors.icon },
   evento: { icono: 'calendar-outline', fondo: colors.eventChip, tinta: colors.eventChipText },
   recurrente: { icono: 'repeat-outline', fondo: colors.paymentChip, tinta: colors.paymentChipText },
-};
+});
 
 /** «Primeros pasos»: barra de progreso y las cuatro filas, que llevan a los formularios. */
 export function PrimerosPasos({ hechos }: { hechos: Hechos }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { hechos: n, total } = progresoPasos(hechos);
   const ir = (clave: ClavePaso) => {
@@ -149,7 +157,7 @@ export function PrimerosPasos({ hechos }: { hechos: Hechos }) {
       <View style={styles.lista}>
         {PASOS.map((p, i) => {
           const hecho = hechos[p.clave];
-          const estilo = ICONO_PASO[p.clave];
+          const estilo = iconoPaso(colors)[p.clave];
           return (
             <Pressable
               key={p.clave}
@@ -159,7 +167,7 @@ export function PrimerosPasos({ hechos }: { hechos: Hechos }) {
               style={({ pressed }) => [styles.paso, i < PASOS.length - 1 && styles.pasoSeparado, pressed && { opacity: 0.7 }]}
             >
               <View style={[styles.pasoIcono, { backgroundColor: hecho ? colors.accent : estilo.fondo }]}>
-                <Ionicons name={hecho ? 'checkmark' : estilo.icono} size={22} color={hecho ? colors.white : estilo.tinta} />
+                <Ionicons name={hecho ? 'checkmark' : estilo.icono} size={22} color={hecho ? colors.onAccent : estilo.tinta} />
               </View>
               <View style={styles.pasoTextos}>
                 <Text style={[styles.pasoTitulo, hecho && { color: colors.textSecondary }]}>{p.titulo}</Text>
@@ -176,6 +184,7 @@ export function PrimerosPasos({ hechos }: { hechos: Hechos }) {
 
 /** Título de sección pequeño en versalitas, con enlace opcional a la derecha. */
 function TituloSeccion({ titulo, enlace, onEnlace }: { titulo: string; enlace?: string; onEnlace?: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.seccionCabecera}>
       <Text accessibilityRole="header" style={styles.seccionTitulo}>
@@ -192,6 +201,8 @@ function TituloSeccion({ titulo, enlace, onEnlace }: { titulo: string; enlace?: 
 
 /** «Esta semana»: lo que viene en los próximos 7 días (mockup Main). */
 export function EstaSemana({ elementos }: { elementos: Elemento[] }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const presupuestos = usePresupuestos();
   if (elementos.length === 0) return null;
@@ -246,6 +257,8 @@ export function EstaSemana({ elementos }: { elementos: Elemento[] }) {
 
 /** «Próximo plan»: la próxima planificación de varios días (viaje, escapada…), en granate suave (mockup Main). */
 export function TarjetaMultidia({ plan, hoy }: { plan: PlanMultidia; hoy: string }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const titulo = `${plan.titulo} · ${textoEnDias(plan.inicio, hoy)}`;
   const linea = lineaMultidia(plan, usePresupuestos());
@@ -282,6 +295,7 @@ export function TarjetaMultidia({ plan, hoy }: { plan: PlanMultidia; hoy: string
 
 /** «Último lugar visitado»: el sitio de la visita más reciente, con su pin, su categoría y la media de la pareja. */
 export function UltimoLugar({ sitio, fecha, emoji }: { sitio: Sitio; fecha: string | null; emoji: string | null }) {
+  const styles = useStyles();
   const router = useRouter();
   const media = mediaValoracion(sitio);
   const categoria = INFO_CATEGORIA_SITIO[sitio.category].etiqueta;
@@ -324,9 +338,11 @@ const ICONO_MOVIMIENTO: Record<Movimiento['tipo'], keyof typeof Ionicons.glyphMa
 
 /** «Últimos movimientos»: actividad reciente de la pareja, con el icono en el color de quien lo hizo. */
 export function UltimosMovimientos({ movimientos, pareja }: { movimientos: Movimiento[]; pareja: Pareja }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   if (movimientos.length === 0) return null;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const abrir = (m: Movimiento) => {
     const id = m.clave.slice(m.clave.indexOf(':') + 1);
     if (m.tipo === 'gasto') router.push({ pathname: '/gastos/[id]', params: { id } });
@@ -340,7 +356,7 @@ export function UltimosMovimientos({ movimientos, pareja }: { movimientos: Movim
       <View style={styles.listaPanel}>
         {movimientos.map((m, i) => {
           const miembro = m.quien === p.yo.userId ? p.yo : m.quien === p.otra?.userId ? p.otra : null;
-          const paleta = paletaDe(miembro?.color);
+          const paleta = paletaDe(miembro?.color, colors);
           const cuando = haceCuanto(m.cuando);
           return (
             <Pressable
@@ -367,13 +383,13 @@ export function UltimosMovimientos({ movimientos, pareja }: { movimientos: Movim
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   seccion: { gap: 8 },
   seccionCabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   seccionTitulo: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
   seccionEnlace: { minHeight: 44, justifyContent: 'center' },
   seccionEnlaceTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
-  listaPanel: { paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
+  listaPanel: { paddingHorizontal: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
   filaSemana: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingVertical: 6 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   dia: { width: 44, alignItems: 'center' },
@@ -385,28 +401,28 @@ const styles = StyleSheet.create({
   etiqueta: { borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
   etiquetaTexto: { fontFamily: fonts.bodyBold, fontSize: 12 },
   multidia: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.accentSoft, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
-  multidiaIcono: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  multidiaIcono: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   multidiaEmoji: { fontSize: 24 },
   multidiaTitulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   multidiaLinea: { fontFamily: fonts.body, fontSize: 13, color: colors.accentDark },
-  lugar: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
+  lugar: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
   media: { alignItems: 'flex-end', gap: 2 },
   mediaTexto: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.textSecondary },
   movIcono: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   movTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.text },
   plan: { backgroundColor: colors.accent, borderRadius: radius.xl, padding: 18, gap: 10 },
-  planCuando: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.white },
-  planTitulo: { fontFamily: fonts.title, fontSize: 23, lineHeight: 29, color: colors.white },
+  planCuando: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.onAccent },
+  planTitulo: { fontFamily: fonts.title, fontSize: 23, lineHeight: 29, color: colors.onAccent },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accentDark, borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 11 },
-  chipTexto: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
+  chipTexto: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.onAccent },
 
   bienvenida: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.accent, borderRadius: radius.xl, paddingVertical: 20, paddingHorizontal: 18 },
   bienvenidaTextos: { flex: 1, gap: 3 },
-  bienvenidaTitulo: { fontFamily: fonts.title, fontSize: 23, lineHeight: 29, color: colors.white },
-  bienvenidaTexto: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.white },
+  bienvenidaTitulo: { fontFamily: fonts.title, fontSize: 23, lineHeight: 29, color: colors.onAccent },
+  bienvenidaTexto: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onAccent },
 
-  aviso: { gap: 12, padding: 16, borderRadius: 20, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  aviso: { gap: 12, padding: 16, borderRadius: 20, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   avisoFila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avisoAvatar: {
     width: 40,
@@ -414,12 +430,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: personColors.lavanda.bg,
+    borderColor: colors.personas.lavanda.bg,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avisoInicial: { fontFamily: fonts.bodyBold, fontSize: 16, color: personColors.lavanda.ink },
+  avisoInicial: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.personas.lavanda.ink },
   avisoTextos: { flex: 1, gap: 2 },
   avisoTitulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   avisoDetalle: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
@@ -432,11 +448,11 @@ const styles = StyleSheet.create({
   pasosCuenta: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary },
   barra: { height: 6, borderRadius: radius.full, backgroundColor: colors.border, marginBottom: 6, overflow: 'hidden' },
   barraRelleno: { height: 6, borderRadius: radius.full, backgroundColor: colors.accent },
-  lista: { paddingVertical: 4, paddingHorizontal: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
+  lista: { paddingVertical: 4, paddingHorizontal: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: 20 },
   paso: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 11, minHeight: 44 },
   pasoSeparado: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   pasoIcono: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   pasoTextos: { flex: 1, gap: 2 },
   pasoTitulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   pasoDetalle: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.textSecondary },
-});
+}));

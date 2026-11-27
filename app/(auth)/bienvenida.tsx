@@ -1,15 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, spacing } from '@/constants/theme';
+import { fonts, spacing } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { useSesion } from '@/lib/auth/SesionProvider';
 import { ETIQUETA_PROVEEDOR, PROVEEDORES_SOCIALES, entrarConProveedor } from '@/lib/auth/proveedores';
 
 export default function Bienvenida() {
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { aviso, descartarAviso } = useSesion();
@@ -55,7 +57,7 @@ export default function Bienvenida() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pantalla: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.xl },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
   // Damion es cursiva: el trazo de la «o» sobresale de la caja medida del Text y iOS lo recorta. El relleno
@@ -74,11 +76,11 @@ const styles = StyleSheet.create({
   social: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   socialTexto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
-});
+}));

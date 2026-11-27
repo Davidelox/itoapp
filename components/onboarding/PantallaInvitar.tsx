@@ -1,14 +1,15 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Pantalla } from '@/components/onboarding/Pantalla';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 import { type CodigoVigente, codigoVigente, nuevoCodigo, salirDelEspacio } from '@/lib/pareja/acciones';
 import { formatearCodigo } from '@/lib/pareja/codigo';
@@ -23,6 +24,8 @@ type Carga = { estado: 'cargando' } | { estado: 'error' } | { estado: 'ok'; codi
  * sin esperar»). `inicio`: se abre desde la tarjeta «Tu pareja aún no se ha unido» de Inicio.
  */
 export function PantallaInvitar({ modo }: { modo: 'onboarding' | 'inicio' }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { pareja, refrescar, marcarInvitacionVista, soltarFase } = useEstado();
   const [carga, setCarga] = useState<Carga>({ estado: 'cargando' });
@@ -194,11 +197,11 @@ export function PantallaInvitar({ modo }: { modo: 'onboarding' | 'inicio' }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   cajaCodigo: {
     minHeight: 112,
     borderRadius: radius.xl,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -216,9 +219,9 @@ const styles = StyleSheet.create({
   estado: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textSecondary, textAlign: 'center' },
   estadoUnido: { color: colors.accent, fontFamily: fonts.bodyBold },
   caduca: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
-  confirmacion: { gap: 8, padding: 16, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  confirmacion: { gap: 8, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   confirmacionTexto: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.text },
   equivocado: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   equivocadoTexto: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
   enlace: { fontFamily: fonts.bodyBold, color: colors.accent },
-});
+}));

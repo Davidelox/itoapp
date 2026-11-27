@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { HojaComoLlegar } from '@/components/mapa/HojaComoLlegar';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { sitioEnlazado } from '@/lib/mapa/conexiones';
 import { useSitios } from '@/lib/mapa/useSitios';
 
@@ -13,6 +14,7 @@ import { useSitios } from '@/lib/mapa/useSitios';
  * «Sitio no disponible»; sin sitio o mientras carga, nada.
  */
 export function SitioEnlazado({ placeId, acciones = false }: { placeId: string | null; acciones?: boolean }) {
+  const styles = useStyles();
   const router = useRouter();
   const { data } = useSitios();
   const [comoLlegar, setComoLlegar] = useState(false);
@@ -49,7 +51,7 @@ export function SitioEnlazado({ placeId, acciones = false }: { placeId: string |
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { gap: 2 },
   enlaceSitio: { minHeight: 44, justifyContent: 'center' },
   nombre: { fontFamily: fonts.bodyMedium, fontSize: 15, lineHeight: 21, color: colors.accent, textDecorationLine: 'underline' },
@@ -57,4 +59,4 @@ const styles = StyleSheet.create({
   botones: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   boton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.full, backgroundColor: colors.surface },
   botonTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
-});
+}));

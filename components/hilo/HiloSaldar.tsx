@@ -15,7 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
-import { type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
+import { type ColorPersona, fonts, type Paleta } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Pareja, useEstado } from '@/lib/pareja/EstadoProvider';
 import {
   TRAZO_VACIO,
@@ -119,9 +120,9 @@ function formasDelHilo(ancho: number) {
 }
 
 /** Colores e inicial de quien ocupa un hueco de la pareja; los de reserva si falta la persona o su color. */
-function personaDeHueco(pareja: Pareja | null, slot: 'm1' | 'm2', reserva: ColorPersona, letra: string) {
+function personaDeHueco(pareja: Pareja | null, slot: 'm1' | 'm2', reserva: ColorPersona, letra: string, colors: Paleta) {
   const miembro = [pareja?.yo, pareja?.otra].find((m) => m?.slot === slot);
-  const paleta = personColors[miembro?.color ?? reserva];
+  const paleta = colors.personas[miembro?.color ?? reserva];
   return { bg: paleta.bg, ink: paleta.ink, letra: miembro?.nombre.trim().charAt(0).toUpperCase() || letra };
 }
 
@@ -140,11 +141,13 @@ type Props = {
  * Con «Reducir movimiento» el cambio es directo, con un fundido del mensaje.
  */
 export function HiloSaldar({ saldado, ref }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const reducida = useReducedMotion();
   // Colores e iniciales reales de la pareja (m1 a la izquierda, m2 a la derecha); Menta/Lavanda si aún no hay.
   const { pareja } = useEstado();
-  const izquierda = personaDeHueco(pareja, 'm1', 'menta', 'D');
-  const derecha = personaDeHueco(pareja, 'm2', 'lavanda', 'M');
+  const izquierda = personaDeHueco(pareja, 'm1', 'menta', 'D', colors);
+  const derecha = personaDeHueco(pareja, 'm2', 'lavanda', 'M', colors);
   const [interno, setInterno] = useState(false);
   const activo = saldado ?? interno;
   const [ancho, setAncho] = useState(280);
@@ -296,7 +299,7 @@ function anunciar() {
   if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('Cuentas a cero');
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   contenedor: { alignItems: 'center', alignSelf: 'stretch' },
   escena: { height: ALTO },
   avatar: {
@@ -311,4 +314,4 @@ const styles = StyleSheet.create({
   letra: { fontFamily: fonts.titleBold, fontSize: 24 },
   soloLector: { position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' },
   mensaje: { fontFamily: fonts.title, fontSize: 22, color: colors.accent, marginTop: 4, minHeight: 30 },
-});
+}));

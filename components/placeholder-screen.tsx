@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
-import { colors, fonts, fontSizes, spacing } from '@/constants/theme';
+import { fonts, fontSizes, spacing } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /**
  * Pantalla de pestaña con cabecera fija (`CabeceraPestana`) y contenido con scroll. `proximamente`: pinta «Próximamente»
@@ -20,6 +21,7 @@ export function PlaceholderScreen({
   proximamente?: boolean;
   children?: ReactNode;
 }) {
+  const styles = useStyles();
   const { onScroll, sombra } = useScrollCabecera();
   return (
     <View style={styles.container}>
@@ -32,8 +34,8 @@ export function PlaceholderScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   container: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 100 },
   soon: { fontFamily: fonts.body, fontSize: fontSizes.body, color: colors.textSecondary },
-});
+}));

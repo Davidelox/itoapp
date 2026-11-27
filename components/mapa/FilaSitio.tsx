@@ -1,16 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { Estrellas } from '@/components/mapa/Valoraciones';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { etiquetaAccesible, quienGuardo, textoSecundario, valoracionDe } from '@/lib/mapa/lista';
 import type { Sitio } from '@/lib/mapa/tipos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** Fila de la Lista: pin de 28 px, nombre, «Restaurante · Calle Mayor 12», tus estrellas, avatar de quien lo guardó y candado si es privado. */
 export function FilaSitio({ sitio, pareja, separador, emoji = null, onPress }: { sitio: Sitio; pareja: Pareja; separador: boolean; emoji?: string | null; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const mia = valoracionDe(sitio, pareja.yo.userId);
   const quien = quienGuardo(sitio, pareja.yo.userId, pareja.otra?.userId);
   const autor = quien === 'yo' ? pareja.yo : quien === 'otra' ? pareja.otra : null;
@@ -40,11 +43,11 @@ export function FilaSitio({ sitio, pareja, separador, emoji = null, onPress }: {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 10 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   pin: { width: 28, alignItems: 'center' },
   textos: { flex: 1, minWidth: 0, gap: 2 },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

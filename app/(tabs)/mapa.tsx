@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
@@ -13,7 +13,8 @@ import { HAY_MAPA, MapaSitios } from '@/components/mapa/MapaSitios';
 import { TarjetaSitio } from '@/components/mapa/TarjetaSitio';
 import { BotonSecundario } from '@/components/onboarding/Botones';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { iconosDePin } from '@/lib/mapa/colecciones';
 import { sitioDeParametro } from '@/lib/mapa/conexiones';
 import type { Region } from '@/lib/mapa/encuadre';
@@ -27,6 +28,8 @@ type Vista = 'mapa' | 'lista';
 
 /** Pestaña Mapa (docs/plan-mapa.md §5.1): vuestros sitios, en [Mapa | Lista] (en web, solo la Lista). */
 export default function Mapa() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { pareja } = useEstado();
   const { onScroll, sombra } = useScrollCabecera();
@@ -216,7 +219,7 @@ export default function Mapa() {
               <Ionicons name="albums-outline" size={20} color={colors.icon} />
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Guardar sitio" onPress={() => nuevo()} hitSlop={6} style={styles.mas}>
-              <Ionicons name="add" size={24} color={colors.white} />
+              <Ionicons name="add" size={24} color={colors.onAccent} />
             </Pressable>
           </View>
         }
@@ -247,10 +250,10 @@ export default function Mapa() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   acciones: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colecciones: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  colecciones: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   mas: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   barra: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   embudo: { marginLeft: 'auto' },
@@ -261,4 +264,4 @@ const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32, paddingBottom: 60 },
   vacioTitulo: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   vacioTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

@@ -15,7 +15,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg from 'react-native-svg';
 
-import { colors, radius, spacing } from '@/constants/theme';
+import { radius, spacing } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { trazoDePuntos } from './geometria';
 import { hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
@@ -190,6 +191,7 @@ type CapaProps = {
 
 /** Capa a pantalla completa con la tarjeta en tránsito, el hilo que tira de ella y el fondo que se despeja. */
 function CapaTiron({ contenido, destino, origen, dibujo, holgura, viaje, tiron }: CapaProps) {
+  const styles = useStyles();
   const { width, height } = useWindowDimensions();
   const grosor = useSharedValue(GROSOR);
 
@@ -241,6 +243,7 @@ function CapaTiron({ contenido, destino, origen, dibujo, holgura, viaje, tiron }
  * (rectDeDetalle). `children` es la tarjeta y debe llenar su contenedor (flex: 1).
  */
 export function TarjetaColgada({ rect, children }: { rect: RectHilo; children: ReactNode }) {
+  const styles = useStyles();
   const { width, height } = useWindowDimensions();
   const grosor = useSharedValue(GROSOR);
   const x = rect.x + rect.width / 2;
@@ -262,7 +265,7 @@ export function TarjetaColgada({ rect, children }: { rect: RectHilo; children: R
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fondo: { ...StyleSheet.absoluteFill, backgroundColor: colors.background },
   tarjeta: { position: 'absolute' },
   contenido: { flex: 1 },
@@ -286,4 +289,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     boxShadow: '0px 8px 20px rgba(94, 26, 38, 0.14)',
   },
-});
+}));

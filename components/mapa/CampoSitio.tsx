@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Grupo } from '@/components/gastos/Controles';
 import { Hoja } from '@/components/gastos/Hoja';
@@ -9,7 +9,8 @@ import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { BuscarLugarNuevo } from '@/components/mapa/BuscarLugarNuevo';
 import { PinSitio } from '@/components/mapa/PinSitio';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { personas } from '@/lib/gastos/personas';
 import { avisarSitioPrivado, buscarEnSitios, nombreDeSitio } from '@/lib/mapa/conexiones';
 import { editarSitio } from '@/lib/mapa/consultas';
@@ -23,6 +24,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
  * sitio privado enlazado, avisa y ofrece hacerlo visible o dejarlo así.
  */
 export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: string | null; onCambiar: (id: string | null) => void; compartido?: boolean }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [abierta, setAbierta] = useState(false);
   const [texto, setTexto] = useState('');
   const [modo, setModo] = useState<'guardados' | 'nuevo'>('guardados');
@@ -34,7 +37,7 @@ export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: st
   const [revelando, setRevelando] = useState(false);
   const [errorRevelar, setErrorRevelar] = useState<string | null>(null);
   const enlazado = sitios?.find((s) => s.id === valor);
-  const nombrePareja = pareja ? personas(pareja).nombrePareja : 'Tu pareja';
+  const nombrePareja = pareja ? personas(pareja, colors).nombrePareja : 'Tu pareja';
   const avisar = !!enlazado && dejado !== enlazado.id && avisarSitioPrivado(enlazado, compartido, !!pareja?.otra);
   // Un sitio enlazado que esta persona no ve (borrado o privado de su pareja) sale como «no disponible».
   const nombre = nombreDeSitio(sitios, valor) ?? (valor && sitios ? 'Sitio no disponible' : null);
@@ -161,7 +164,7 @@ export function CampoSitio({ valor, onCambiar, compartido = false }: { valor: st
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   boton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   botonTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
   vacio: { fontFamily: fonts.body, color: colors.textSecondary },
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.text,
@@ -195,4 +198,4 @@ const styles = StyleSheet.create({
   avisoBotones: { flexDirection: 'row', gap: 8, marginTop: 4 },
   avisoBoton: { flex: 1 },
   ayuda: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, paddingVertical: 8 },
-});
+}));

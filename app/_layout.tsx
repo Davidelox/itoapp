@@ -11,7 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Avisos } from '@/components/avisos/Avisos';
 import { SplashHilo } from '@/components/hilo/SplashHilo';
-import { colors } from '@/constants/theme';
+import { cargarTema, useColores } from '@/lib/tema';
 import { FlujoCuentaProvider } from '@/lib/auth/FlujoCuenta';
 import { SesionProvider } from '@/lib/auth/SesionProvider';
 import { QueryProvider } from '@/lib/consultas/QueryProvider';
@@ -49,7 +49,12 @@ function Raiz({ fuentesListas }: { fuentesListas: boolean }) {
   const { fase } = useEstado();
   // El arranque termina cuando hay fuentes y se conoce la fase; después, un «cargando» (al entrar) ya se pinta.
   const [arrancada, setArrancada] = useState(false);
-  const lista = fuentesListas && (arrancada || fase !== 'cargando');
+  // La preferencia de tema (Sistema / Claro / Oscuro) se aplica antes de pintar nada, para que no parpadee.
+  const [temaListo, setTemaListo] = useState(false);
+  useEffect(() => {
+    cargarTema().then(() => setTemaListo(true));
+  }, []);
+  const lista = temaListo && fuentesListas && (arrancada || fase !== 'cargando');
   if (lista && !arrancada) setArrancada(true);
 
   useEffect(() => {
@@ -63,6 +68,7 @@ function Raiz({ fuentesListas }: { fuentesListas: boolean }) {
 }
 
 function Navegacion() {
+  const colors = useColores();
   const { fase } = useEstado();
   // La capa del hilo se muestra una vez por arranque, cuando ya se sabe qué pantalla toca. Hacia dónde
   // acaba el hilo se decide aquí, una sola vez: con el espacio listo hay barra de pestañas.
@@ -75,7 +81,7 @@ function Navegacion() {
   const entrada = ENTRADA_FASE[fase];
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Protected guard={con('cargando')} redirectTo={entrada}>
           <Stack.Screen name="cargando" />

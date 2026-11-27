@@ -6,7 +6,8 @@ import { Cinta } from '@/components/calendario/Cinta';
 import { estilosCaja } from '@/components/calendario/RejillaMes';
 import { ALTO_LINEA, LineaSemana } from '@/components/calendario/LineaSemana';
 import { RETRASO_PULSACION, usePulsacion } from '@/components/calendario/usePulsacion';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { ContextoLinea, Elemento } from '@/lib/calendario/agrupar';
 import { type ColoresHuecos, colorBarra, marcador } from '@/lib/calendario/colores';
 import type { SegmentoBarra } from '@/lib/calendario/carriles';
@@ -50,6 +51,8 @@ export function SemanaDetallada({
   /** Abre el detalle de la línea tocada (el evento o el pago). */
   onLinea: (e: Elemento) => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const reducida = useReducedMotion();
   const { filas, segmentos } = filasSemana(dias, elementos, { hoy, maxLineas: MAX_LINEAS_SEMANA, maxCarriles: MAX_CARRILES_SEMANA });
   return (
@@ -75,7 +78,7 @@ export function SemanaDetallada({
                 arriba={i === 0}
                 abajo={i === fila.lineas.length - 1 && fila.mas === 0}
                 partes={lineaSemana(l, contexto)}
-                marcador={marcador(l.elemento, colores.m1, colores.m2)}
+                marcador={marcador(l.elemento, colores.m1, colores.m2, colors)}
                 onPress={() => onLinea(l.elemento)}
               />
             ))}
@@ -114,6 +117,7 @@ function FilaDelDia({
   reducida: boolean;
   onDia: (iso: string) => void;
 }) {
+  const styles = useStyles();
   const { handlers, estiloTinte } = usePulsacion({ arrastre });
   const pulsar = { onPressIn: handlers.onPressIn, onPressOut: handlers.onPressOut, unstable_pressDelay: RETRASO_PULSACION };
   const tocar = () => {
@@ -177,6 +181,7 @@ function FilaDelDia({
  * evento empieza o acaba, que se redondea y deja un margen.
  */
 function BarraVertical({ segmento: s, fila, colores }: { segmento: SegmentoBarra; fila: number; colores: ColoresHuecos }) {
+  const colors = useColores();
   const arriba = s.empieza && fila === s.colInicio;
   const abajo = s.termina && fila === s.colFin;
   return (
@@ -190,13 +195,13 @@ function BarraVertical({ segmento: s, fila, colores }: { segmento: SegmentoBarra
       }}
     >
       {/* Los dos: cinta partida a lo largo, m1 a la izquierda y m2 a la derecha. */}
-      <Cinta color={colorBarra(s.elemento, colores.m1, colores.m2)} grosor={ANCHO_BARRA} vertical inicio={arriba} fin={abajo} />
+      <Cinta color={colorBarra(s.elemento, colores.m1, colores.m2, colors)} grosor={ANCHO_BARRA} vertical inicio={arriba} fin={abajo} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  caja: { ...estilosCaja, paddingHorizontal: 0, paddingVertical: 0, gap: 0, overflow: 'hidden' },
+const useStyles = crearEstilos((colors) => ({
+  caja: { ...estilosCaja(colors), paddingHorizontal: 0, paddingVertical: 0, gap: 0, overflow: 'hidden' },
   fila: { flexDirection: 'row', minHeight: 56 },
   filaFinde: { backgroundColor: colors.finde },
   capa: { ...StyleSheet.absoluteFill },
@@ -212,7 +217,7 @@ const styles = StyleSheet.create({
   numero: { minWidth: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   numeroHoy: { backgroundColor: colors.accent },
   numeroTexto: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.text },
-  numeroTextoHoy: { color: colors.white, fontSize: 16 },
+  numeroTextoHoy: { color: colors.onAccent, fontSize: 16 },
   // Las barras se pintan aparte, en el hueco que deja `huecoCarriles` entre el día y las líneas.
   huecoCarriles: { width: ANCHO_CARRILES + 6 },
   carriles: { position: 'absolute', left: ANCHO_DIA, top: 0, bottom: 0, width: ANCHO_CARRILES },
@@ -220,4 +225,4 @@ const styles = StyleSheet.create({
   mas: { height: ALTO_LINEA, justifyContent: 'center', paddingLeft: 18, borderRadius: 8 },
   masPulsado: { backgroundColor: colors.pressed },
   masTexto: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.textSecondary },
-});
+}));

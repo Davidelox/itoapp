@@ -1,10 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioEvento } from '@/components/calendario/FormularioEvento';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Evento } from '@/lib/calendario/evento';
 import { useEvento } from '@/lib/calendario/useCalendario';
 import { personas } from '@/lib/gastos/personas';
@@ -17,6 +18,8 @@ import { usePlanes } from '@/lib/planificador/usePlanificador';
  * lo que estás escribiendo; sale un aviso con «Recargar».
  */
 export default function EditarEvento() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const evento = useEvento(id);
@@ -53,7 +56,7 @@ export default function EditarEvento() {
     );
   }
   const masNuevo = !guardandoYo && evento.data && evento.data.version > copia.version ? evento.data : null;
-  const nombre = personas(pareja).nombrePareja;
+  const nombre = personas(pareja, colors).nombrePareja;
 
   return (
     <View style={styles.raiz}>
@@ -70,7 +73,7 @@ export default function EditarEvento() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1 },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   texto: { fontFamily: fonts.body, fontSize: 15, color: colors.textSecondary },
@@ -88,7 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.text,
   },
-  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.white },
+  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, lineHeight: 19, color: colors.onAccent },
   avisoBoton: { minHeight: 44, minWidth: 44, paddingHorizontal: 10, justifyContent: 'center' },
   avisoEnlace: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accentSoft },
-});
+}));

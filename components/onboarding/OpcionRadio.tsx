@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 type IconoIonic = ComponentProps<typeof Ionicons>['name'];
 
@@ -18,6 +19,8 @@ type PropsOpcion = {
 
 /** Tarjeta de una sola elección dentro de un grupo (mockup «Reparto»): círculo con check y borde granate al elegirla. */
 export function OpcionRadio({ titulo, detalle, elegida, onElegir, recomendada = false, extra }: PropsOpcion) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={[styles.tarjeta, elegida ? styles.tarjetaElegida : styles.tarjetaNormal]}>
       <Pressable
@@ -28,7 +31,7 @@ export function OpcionRadio({ titulo, detalle, elegida, onElegir, recomendada = 
         style={styles.boton}
       >
         <View style={[styles.marca, elegida ? styles.marcaElegida : styles.marcaNormal]}>
-          {elegida ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}
+          {elegida ? <Ionicons name="checkmark" size={16} color={colors.onAccent} /> : null}
         </View>
         <View style={styles.textos}>
           <View style={styles.tituloFila}>
@@ -45,6 +48,7 @@ export function OpcionRadio({ titulo, detalle, elegida, onElegir, recomendada = 
 
 /** Grupo de opciones con su pregunta como cabecera. */
 export function GrupoOpciones({ pregunta, ayuda, children }: { pregunta: string; ayuda?: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.grupo} accessibilityRole="radiogroup" accessibilityLabel={pregunta}>
       <Text accessibilityRole="header" style={styles.pregunta}>
@@ -79,6 +83,8 @@ export function Segmentado<T extends string>({
   compacto?: boolean;
   iconos?: Partial<Record<T, IconoIonic>>;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={[styles.segmentado, compacto && styles.segmentadoCompacto]} accessibilityRole="radiogroup" accessibilityLabel={etiqueta}>
       {opciones.map((o) => {
@@ -112,11 +118,11 @@ export function Segmentado<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   grupo: { gap: 10 },
   pregunta: { fontFamily: fonts.title, fontSize: 20, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 13, lineHeight: 20, color: colors.textSecondary },
-  tarjeta: { backgroundColor: colors.white, borderRadius: radius.xl - 4 },
+  tarjeta: { backgroundColor: colors.card, borderRadius: radius.xl - 4 },
   tarjetaNormal: { borderWidth: 1, borderColor: colors.border, margin: 1 },
   tarjetaElegida: { borderWidth: 2, borderColor: colors.accent },
   boton: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 44, paddingVertical: 14, paddingHorizontal: 16 },
@@ -145,10 +151,10 @@ const styles = StyleSheet.create({
   // Sin ninguna propiedad `flex*`: el ancho es el del texto, que Yoga mide.
   segmentoCompacto: { minHeight: 32, minWidth: 52, paddingHorizontal: 12 },
   segmentoIcono: { minWidth: 40 },
-  segmentoActivo: { backgroundColor: colors.white },
+  segmentoActivo: { backgroundColor: colors.card },
   segmentoTexto: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.textSecondary },
   segmentoTextoCompacto: { fontSize: 14 },
   segmentoTextoActivo: { fontFamily: fonts.bodyBold, color: colors.text },
   // En compacto solo cambia el color: con otra fuente el segmento cambiaría de ancho al activarse (y lo que lo rodea bailaría).
   segmentoTextoActivoCompacto: { color: colors.text },
-});
+}));

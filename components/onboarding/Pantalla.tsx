@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IndicadorPaso } from '@/components/onboarding/IndicadorPaso';
-import { colors, fonts, fontSizes, spacing } from '@/constants/theme';
+import { fonts, fontSizes, spacing } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 type Props = {
   titulo?: string;
@@ -21,6 +22,8 @@ type Props = {
 
 /** Estructura común de las pantallas de cuenta y de primer uso: cabecera, contenido con scroll y pie fijo. */
 export function Pantalla({ titulo, subtitulo, onAtras, paso, pie, children }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   return (
     <KeyboardAvoidingView
@@ -57,7 +60,7 @@ export function Pantalla({ titulo, subtitulo, onAtras, paso, pie, children }: Pr
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   contenido: { flexGrow: 1, paddingHorizontal: spacing.xl, gap: spacing.xl },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 },
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -75,11 +78,11 @@ const styles = StyleSheet.create({
   titulo: { fontFamily: fonts.title, fontSize: fontSizes.title, letterSpacing: -0.3, color: colors.text },
   subtitulo: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary },
   pie: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     gap: spacing.sm,
   },
-});
+}));

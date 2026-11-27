@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Marcador } from '@/components/calendario/Marcador';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, type Paleta, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Elemento } from '@/lib/calendario/agrupar';
 import type { MarcadorSpec } from '@/lib/calendario/colores';
 import { INFO_CATEGORIA_EVENTO, type IconoCalendario } from '@/lib/calendario/evento';
@@ -14,7 +15,7 @@ type EtiquetaFila = { texto: string; fondo: string; tinta: string; icono: IconoC
  * Chip de la derecha: la categoría en gris neutro («Viaje», «Comer fuera», «Ocio», «Evento»), el pago en naranja,
  * el cumpleaños en fucsia y el secreto en azul. No depende solo del color: lleva texto e icono.
  */
-function etiquetaDe(e: Elemento): EtiquetaFila {
+function etiquetaDe(e: Elemento, colors: Paleta): EtiquetaFila {
   if (e.secreto) return { texto: 'Secreto · solo tú', fondo: colors.eventChip, tinta: colors.eventChipText, icono: 'lock-closed' };
   if (e.tipo === 'plan') return { texto: 'Plan', fondo: colors.accentSoft, tinta: colors.accent, icono: 'briefcase-outline' };
   if (e.tipo === 'payment') return { texto: 'Pago', fondo: colors.pagoChip, tinta: colors.pagoChipTexto, icono: 'card-outline' };
@@ -53,7 +54,9 @@ export function FilaCalendario({
   resaltada?: boolean;
   onPress?: () => void;
 }) {
-  const et = etiquetaDe(elemento);
+  const colors = useColores();
+  const styles = useStyles();
+  const et = etiquetaDe(elemento, colors);
   const esHoy = elemento.fecha === hoy;
   const contenido = (
     <>
@@ -99,7 +102,7 @@ export function FilaCalendario({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 9 },
   filaDiscreta: { minHeight: 46, paddingVertical: 6 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
@@ -116,4 +119,4 @@ const styles = StyleSheet.create({
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   etiqueta: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
   etiquetaTexto: { fontFamily: fonts.bodyBold, fontSize: 12 },
-});
+}));

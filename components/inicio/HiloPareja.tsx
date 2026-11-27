@@ -1,13 +1,14 @@
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, cancelAnimation, useAnimatedProps, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { trazoDePuntos } from '@/components/hilo/geometria';
 import { puntosOndaCarga } from '@/components/hilo/ondaCarga';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { paletaDe } from '@/lib/calendario/colores';
 import { etiquetaCabecera, mostrarNombres, recortarNombre } from '@/lib/inicio/hiloPareja';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
@@ -23,6 +24,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** Hilo ondulado entre los dos avatares: quieto por defecto; con movimiento permitido y la pestaña enfocada, una onda lenta en el hilo de UI. */
 function Hilo({ unido }: { unido: boolean }) {
+  const colors = useColores();
+  const styles = useStyles();
   const reducida = useReducedMotion();
   const enfocada = useIsFocused();
   const fase = useSharedValue(FASE_QUIETA);
@@ -60,6 +63,7 @@ function Hilo({ unido }: { unido: boolean }) {
 }
 
 function Nodo({ ancho, children, nombre, color }: { ancho: number; children: React.ReactNode; nombre: string | null; color: string }) {
+  const styles = useStyles();
   return (
     <View style={[styles.nodo, { width: ancho }]}>
       {children}
@@ -77,6 +81,8 @@ function Nodo({ ancho, children, nombre, color }: { ancho: number; children: Rea
  * y bajo cada uno su nombre. Un solo botón a Ajustes. Sin pareja: «?» discontinuo, «Pendiente» y el hilo punteado.
  */
 export function HiloPareja() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { pareja } = useEstado();
   const { width, fontScale } = useWindowDimensions();
@@ -92,11 +98,11 @@ export function HiloPareja() {
       hitSlop={8}
       style={({ pressed }) => [styles.fila, pressed && { opacity: 0.7 }]}
     >
-      <Nodo ancho={ancho} nombre={nombres ? recortarNombre(pareja.yo.nombre) : null} color={paletaDe(pareja.yo.color).borde}>
+      <Nodo ancho={ancho} nombre={nombres ? recortarNombre(pareja.yo.nombre) : null} color={paletaDe(pareja.yo.color, colors).borde}>
         <AvatarPersona nombre={pareja.yo.nombre} color={pareja.yo.color} avatarPath={pareja.yo.avatarPath} tamano={AVATAR} anillo />
       </Nodo>
       <Hilo unido={otra !== null} />
-      <Nodo ancho={ancho} nombre={nombres ? (otra ? recortarNombre(otra.nombre) : 'Pendiente') : null} color={otra ? paletaDe(otra.color).borde : colors.textSecondary}>
+      <Nodo ancho={ancho} nombre={nombres ? (otra ? recortarNombre(otra.nombre) : 'Pendiente') : null} color={otra ? paletaDe(otra.color, colors).borde : colors.textSecondary}>
         {otra ? (
           <AvatarPersona nombre={otra.nombre} color={otra.color} avatarPath={otra.avatarPath} tamano={AVATAR} anillo />
         ) : (
@@ -109,7 +115,7 @@ export function HiloPareja() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   fila: { flexDirection: 'row', alignItems: 'flex-start', minHeight: 44 },
   nodo: { alignItems: 'center' },
   // Centrado en vertical con el avatar de 44 px.
@@ -126,4 +132,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   interrogante: { fontFamily: fonts.titleBold, fontSize: 18, color: colors.textSecondary },
-});
+}));

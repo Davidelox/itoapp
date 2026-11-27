@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** «Revelar a Meri» (docs/plan-calendario.md §2): confirmación en una hoja inferior. Revelar no se puede deshacer. */
 export function HojaRevelar({
@@ -21,6 +22,7 @@ export function HojaRevelar({
   onCerrar: () => void;
   onRevelar: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Hoja visible={visible} titulo={`¿Revelar a ${nombrePareja}?`} onCerrar={onCerrar} bloqueada={ocupado}>
       <Text style={styles.texto}>{nombrePareja} lo verá. No se puede volver a ocultar.</Text>
@@ -37,8 +39,8 @@ export function HojaRevelar({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
   botones: { flexDirection: 'row', gap: 8 },
   boton: { flex: 1 },
-});
+}));

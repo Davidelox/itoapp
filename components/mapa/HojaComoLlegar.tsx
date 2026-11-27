@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { Linking, Platform, Pressable, Text } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { urlsComoLlegar } from '@/lib/mapa/sitio';
 import type { Sitio } from '@/lib/mapa/tipos';
 
 /** «Cómo llegar» (docs/plan-mapa.md §5.3): hoja inferior con la ruta en Apple Maps (solo iOS), Google Maps y Waze. */
 export function HojaComoLlegar({ sitio, visible, onCerrar }: { sitio: Pick<Sitio, 'name' | 'lat' | 'lng'>; visible: boolean; onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [error, setError] = useState<string | null>(null);
   const urls = urlsComoLlegar(sitio);
   const opciones = [
@@ -46,7 +49,7 @@ export function HojaComoLlegar({ sitio, visible, onCerrar }: { sitio: Pick<Sitio
   );
 }
 
-const styles = StyleSheet.create({
-  fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+const useStyles = crearEstilos((colors) => ({
+  fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   texto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
-});
+}));

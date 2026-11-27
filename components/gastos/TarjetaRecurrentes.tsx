@@ -1,13 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { esPersonal, fechaCobro, proximoCobro, totales } from '@/lib/gastos/recurrentes';
 import { useRecurrentes } from '@/lib/gastos/useGastos';
 
 /** Tarjeta de Gastos que abre Pagos recurrentes: total al mes y próximo cobro (docs/plan-gastos-fase4.md §2). */
 export function TarjetaRecurrentes({ onAbrir }: { onAbrir: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const consulta = useRecurrentes();
   const todos = consulta.data ?? [];
   // Como la lista: el total y el próximo cobro son de los compartidos.
@@ -42,12 +45,12 @@ export function TarjetaRecurrentes({ onAbrir }: { onAbrir: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   tarjeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -59,4 +62,4 @@ const styles = StyleSheet.create({
   textos: { flex: 1, minWidth: 0, gap: 2 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

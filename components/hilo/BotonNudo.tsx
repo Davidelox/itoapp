@@ -14,7 +14,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { type Punto, curvasPorPuntos, muestrearRecorrido } from './geometria';
 import { hapticaError, hapticaExito, hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
@@ -108,6 +109,7 @@ export function BotonNudo({
   onHecho,
   disabled = false,
 }: Props) {
+  const styles = useStyles();
   const reducida = useReducedMotion();
   const [fase, setFase] = useState<Fase>('reposo');
   const [ancho, setAncho] = useState(0);
@@ -405,7 +407,7 @@ export function BotonNudo({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   boton: {
     height: ALTO,
     borderRadius: radius.full,
@@ -417,9 +419,9 @@ const styles = StyleSheet.create({
   },
   pulsado: { backgroundColor: colors.accentDark },
   desactivado: { opacity: 0.5 },
-  texto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },
+  texto: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.onAccent },
   // Con el nudo a su izquierda, el texto se desplaza para que el conjunto quede centrado.
   textoConNudo: { transform: [{ translateX: (ANCHO_NUDO + SEPARACION) / 2 }] },
   medida: { position: 'absolute', opacity: 0 },
   lienzo: { position: 'absolute', left: 0, top: 0 },
-});
+}));

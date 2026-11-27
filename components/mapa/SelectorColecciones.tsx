@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import {
   type Seleccion,
   elegirColeccion,
@@ -30,6 +31,8 @@ export function SelectorColecciones({
   onCambiar: (s: Seleccion) => void;
   onNueva: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   // La colección recién añadida y las anteriores por las que se pregunta; se descarta al decidir.
   const [pregunta, setPregunta] = useState<{ nueva: string; otras: string[] } | null>(null);
   const porId = new Map(colecciones.map((c) => [c.id, c]));
@@ -60,10 +63,10 @@ export function SelectorColecciones({
               style={[styles.pildora, on ? styles.pildoraOn : styles.pildoraOff]}
             >
               <EmojiIcono emoji={c.icon} size={15} />
-              <Text style={[styles.pildoraTexto, on && { color: colors.white }]} numberOfLines={1}>
+              <Text style={[styles.pildoraTexto, on && { color: colors.onAccent }]} numberOfLines={1}>
                 {c.name}
               </Text>
-              {principal ? <Ionicons name="star" size={13} color={colors.white} /> : null}
+              {principal ? <Ionicons name="star" size={13} color={colors.onAccent} /> : null}
             </Pressable>
           );
         })}
@@ -84,7 +87,7 @@ export function SelectorColecciones({
               }}
               style={[styles.boton, styles.botonRelleno]}
             >
-              <Text style={[styles.botonTexto, { color: colors.white }]}>Quitar</Text>
+              <Text style={[styles.botonTexto, { color: colors.onAccent }]}>Quitar</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={() => setPregunta(null)} style={[styles.boton, styles.botonBorde]}>
               <Text style={styles.botonTexto}>{etiquetaMantener(preguntando.length)}</Text>
@@ -122,20 +125,20 @@ export function SelectorColecciones({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { gap: 8 },
   pildoras: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pildora: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.full },
   pildoraOn: { backgroundColor: colors.text },
-  pildoraOff: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.inputBorder },
-  nueva: { backgroundColor: colors.white, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#B9B2A4' },
+  pildoraOff: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.inputBorder },
+  nueva: { backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.casilla },
   pildoraTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text, flexShrink: 1 },
   pregunta: { gap: 8, padding: 12, borderRadius: radius.lg, backgroundColor: colors.surface },
   preguntaTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text },
   botones: { flexDirection: 'row', gap: 8 },
   boton: { flex: 1, minHeight: 44, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   botonRelleno: { backgroundColor: colors.accent },
-  botonBorde: { borderWidth: 1.5, borderColor: colors.text, backgroundColor: colors.white },
+  botonBorde: { borderWidth: 1.5, borderColor: colors.text, backgroundColor: colors.card },
   botonTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.text, textAlign: 'center' },
   lista: { paddingHorizontal: 12, borderRadius: radius.lg, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48 },
@@ -144,4 +147,4 @@ const styles = StyleSheet.create({
   principal: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 6 },
   principalTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   nota: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

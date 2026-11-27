@@ -42,3 +42,15 @@ _Actualizado: 2026-11-22 (Mac)_
 - **Próximo**: avisos del Planificador (`notify_plans`; ver `docs/plan-planificador.md` §6); franja horaria del plan; icono «Reservado» en la fila del calendario (ampliar `calendar_range`); sitio en pagos recurrentes (migración); ofrecer quitar el evento al borrar una visita; `npx expo install --check`; VoiceOver/TalkBack.
 - **Pendientes menores**: `Alert` en vez de toast tras borrar colección; carreras raras de bloqueo mutuo; «Borrar mi cuenta» sin espacio (Apple); zona horaria en móvil real; filtrar cobros variables en pausa en `pending_actions`; refrescar «hoy» tras medianoche.
 - **Decisiones**: operaciones rápidas en hoja inferior; embudo y mes son menús anclados. Recurrente proporcional conserva el % de creación. Personal = lo paga y es solo de una persona. Un cobro por periodo en recurrentes. `.env` nunca a git; `service_role` solo en servidor. Calendario: varios días máx. 31; cumpleaños = eventos `birthday` (año ancla 2000), borrar = serie entera con aprobación; filtros múltiples; cabecera de pestaña fija propia. Orquestación con subagentes, sesión principal Sonnet.
+
+## Publicación y modelo de negocio (decidido 23 nov 2026, a retomar tras la semana de pruebas)
+
+- **Inicio de sesión**: Apple + Google + email (Apple lo exige si hay Google, regla 4.8). Revocar token de Apple en `borrar-cuenta`. No depender del email real (relay de Apple).
+- **Privacidad (RGPD)**: política pública, etiquetas de Apple y «Seguridad de los datos» de Google; región UE de Supabase y acuerdo de tratamiento; edad mínima 16; decidir qué pasa con los datos al separarse la pareja. Photon público no vale para producción: pasar a proveedor de pago o propio.
+- **Anuncios**: ninguno (chocan con «solo vosotros dos» y obligarían a ATT/consentimiento).
+- **Suscripción por espacio (pareja)**: premium **2,99 €/mes** (anual a fijar; prueba ~7 días). Estado guardado en la tabla de la pareja (Supabase), no en el móvil; RevenueCat + webhook a Edge Function; límites comprobados en servidor. Casos a resolver: el pagador se va o borra la cuenta, restaurar compras, cambio de pagador. Si caduca: solo lectura, no se borran datos.
+- **Gratis**: gastos, calendario, mapa básico, **2 colecciones**, cumpleaños y aniversarios (no se cobran), avisos básicos.
+- **Premium**: Planificador completo (mejorarlo antes de cobrar), colecciones ilimitadas, estadísticas con resumen anual, fotos en recuerdos (fase 2: almacenamiento, cifrado y borrado al salir), personalización (temas, más colores de usuario, iconos de app extra).
+- **Fuera por ahora**: exportar CSV/PDF y avisos avanzados (reservados para versiones futuras).
+- **Tiendas**: Google Play pide prueba cerrada (~12 testers, 14 días) en cuentas nuevas; Apple pide cuenta demo y explicar el emparejamiento; Supabase pasaría a Pro (~25 $/mes).
+- **Criterio**: lo que se usa a diario no se cobra; revisar con los resultados de la semana qué abren más y qué da pereza abrir.

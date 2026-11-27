@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,7 +10,8 @@ import { HiloSaldar } from '@/components/hilo/HiloSaldar';
 import { SplashHilo } from '@/components/hilo/SplashHilo';
 import { TarjetaConectada } from '@/components/hilo/TarjetaConectada';
 import { type RectHilo, useTirarDelHilo } from '@/components/hilo/TirarDelHilo';
-import { colors, fonts, fontSizes, radius, spacing } from '@/constants/theme';
+import { fonts, fontSizes, radius, spacing } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 const TARJETAS = [
   { id: 'cena', titulo: 'Cena en Taberna El Olivo', tipo: 'Gasto', detalle: '48,50 € · pagó David' },
@@ -22,6 +23,7 @@ const TARJETAS = [
 const esperar = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms));
 
 export default function Laboratorio() {
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [splash, setSplash] = useState(false);
@@ -118,6 +120,7 @@ export default function Laboratorio() {
 }
 
 function Seccion({ titulo, texto, children }: { titulo: string; texto: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.seccion}>
       <Text style={styles.subtitulo}>{titulo}</Text>
@@ -128,6 +131,8 @@ function Seccion({ titulo, texto, children }: { titulo: string; texto: string; c
 }
 
 function BotonSecundario({ label, onPress }: { label: string; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -153,6 +158,7 @@ function Tarjeta({
   oculta: boolean;
   onPress: (enVentana: RectHilo) => void;
 }) {
+  const styles = useStyles();
   const ref = useRef<ComponentRef<typeof Pressable>>(null);
   return (
     <Pressable
@@ -167,7 +173,7 @@ function Tarjeta({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pantalla: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: spacing.xl, gap: spacing.xl },
   volver: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.body, color: colors.accent },
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
@@ -192,4 +198,4 @@ const styles = StyleSheet.create({
   secundarioTexto: { fontFamily: fonts.bodyBold, fontSize: fontSizes.body, color: colors.text },
   oculta: { opacity: 0 },
   tarjetaPulsada: { transform: [{ scale: 0.985 }] },
-});
+}));

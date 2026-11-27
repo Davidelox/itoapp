@@ -1,4 +1,5 @@
 import { claveFiltro } from '@/lib/calendario/agrupar';
+import { paletas } from '@/constants/theme';
 import { marcadorFiltro } from '@/lib/calendario/colores';
 import { CATEGORIAS_FORMULARIO, INFO_CATEGORIA_EVENTO, infoCategoriaEvento } from '@/lib/calendario/evento';
 import { OPCIONES_FILTRO, sugerenciaNuevo } from '@/lib/calendario/filtros';
@@ -14,13 +15,15 @@ const NUEVAS = [
   ['health', 'Salud', 'heart'],
 ] as const;
 
+const colors = paletas.claro;
+
 describe('categorías nuevas de evento', () => {
   it.each(NUEVAS)('%s: etiqueta, icono, formulario, filtro y sugerencia', (valor, etiqueta, icono) => {
     expect(INFO_CATEGORIA_EVENTO[valor].etiqueta).toBe(etiqueta);
     expect(CATEGORIAS_FORMULARIO.find((c) => c.valor === valor)?.etiqueta).toBe(etiqueta);
     const op = OPCIONES_FILTRO.find((o) => o.valor === valor);
     expect(op).toMatchObject({ etiqueta, icono });
-    expect(marcadorFiltro(op!, false).icono).toBe(icono);
+    expect(marcadorFiltro(op!, false, colors).icono).toBe(icono);
     expect(claveFiltro({ tipo: 'event', categoria: valor, planId: null })).toBe(valor);
     expect(sugerenciaNuevo([valor])).toEqual({ categoria: valor });
   });

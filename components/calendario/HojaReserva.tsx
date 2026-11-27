@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { editarEvento } from '@/lib/calendario/consultas';
 import { type Evento, MAX_NOTA_RESERVA, reservaAGuardar } from '@/lib/calendario/evento';
 import { ErrorGasto } from '@/lib/gastos/consultas';
@@ -12,6 +13,8 @@ import { useInvalidarGastos } from '@/lib/gastos/useGastos';
 
 /** «Marcar como reservado» desde el detalle del evento: hoja rápida con la nota opcional («a nombre de David, 21:30»). */
 export function HojaReserva({ evento, nombrePareja, onCerrar }: { evento: Pick<Evento, 'id' | 'version'>; nombrePareja: string; onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const invalidar = useInvalidarGastos();
   const [nota, setNota] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -51,6 +54,6 @@ export function HojaReserva({ evento, nombrePareja, onCerrar }: { evento: Pick<E
   );
 }
 
-const styles = StyleSheet.create({
-  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white, fontFamily: fonts.body, fontSize: 16, color: colors.text },
-});
+const useStyles = crearEstilos((colors) => ({
+  campo: { height: 50, paddingHorizontal: 16, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card, fontFamily: fonts.body, fontSize: 16, color: colors.text },
+}));

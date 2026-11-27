@@ -1,7 +1,7 @@
 import Animated, { type SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import { G, Path } from 'react-native-svg';
 
-import { colors } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -9,12 +9,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
  * Tonos del hilo. El granate es el de siempre, sobre fondos claros; el crema es el mismo hilo
  * visto sobre el granate (botones), donde la sombra necesita más fuerza para notarse.
  */
-const TONOS = {
-  granate: { cuerpo: colors.accent, sombra: colors.accentDark, fuerzaSombra: 1 },
-  crema: { cuerpo: colors.background, sombra: '#2B080E', fuerzaSombra: 2.2 },
-} as const;
-
-export type TonoHilo = keyof typeof TONOS;
+export type TonoHilo = 'granate' | 'crema';
 
 type Props = {
   /** Atributo `d` del hilo visible; se calcula en el hilo de UI (trazoEntre, trazoDePuntos…). */
@@ -37,7 +32,12 @@ type Props = {
  */
 export function HiloFisico({ d, grosor, grosorBase, sombra, tono = 'granate' }: Props) {
   const g = grosorBase;
-  const t = TONOS[tono];
+  const colors = useColores();
+  // `granate`: el hilo sobre el fondo (`accent`: granate en claro, crema en oscuro); `crema`: el hilo sobre un botón `accent`.
+  const t =
+    tono === 'granate'
+      ? { cuerpo: colors.accent, sombra: colors.hiloSombra, fuerzaSombra: 1 }
+      : { cuerpo: colors.hiloSobreAcento, sombra: colors.hiloSobreAcentoSombra, fuerzaSombra: 2.2 };
   const fuerza = t.fuerzaSombra;
 
   const sombraAncha = useAnimatedProps(() => ({

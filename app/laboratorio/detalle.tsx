@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   type SharedValue,
@@ -13,9 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TarjetaConectada } from '@/components/hilo/TarjetaConectada';
 import { TarjetaColgada, rectDeDetalle } from '@/components/hilo/TirarDelHilo';
-import { colors, fonts, fontSizes, radius, spacing } from '@/constants/theme';
+import { fonts, fontSizes, radius, spacing } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 export default function Detalle() {
+  const colors = useColores();
+  const styles = useStyles();
   const { titulo, tipo, detalle } = useLocalSearchParams<{ titulo?: string; tipo?: string; detalle?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -90,7 +93,7 @@ function Bloque({
   return <Animated.View style={[style, estilo]}>{children}</Animated.View>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   pantalla: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   cabecera: { position: 'absolute', left: spacing.xl, zIndex: 2 },
@@ -105,5 +108,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  botonTexto: { fontFamily: fonts.bodyBold, fontSize: fontSizes.body, color: colors.white },
-});
+  botonTexto: { fontFamily: fonts.bodyBold, fontSize: fontSizes.body, color: colors.onAccent },
+}));

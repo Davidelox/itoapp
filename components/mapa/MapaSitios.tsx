@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, Platform, StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { ESTILO_MAPA_OSCURO } from '@/lib/mapa/estiloOscuro';
+import { useEsquema } from '@/lib/tema';
 
 import { BotonUbicacion } from "@/components/mapa/BotonUbicacion";
 import { PinResultado } from "@/components/mapa/PinResultado";
@@ -142,6 +144,7 @@ export function MapaSitios({
     enfoque ? { latitude: enfoque.lat, longitude: enfoque.lng, latitudeDelta: DELTA_UBICACION, longitudeDelta: DELTA_UBICACION } : encuadre(sitios),
   );
   const mapa = useRef<MapView>(null);
+  const oscuro = useEsquema() === 'oscuro';
   const [conPunto, setConPunto] = useState(false);
   const claveEnfoque = useRef(enfoque?.clave ?? 0);
   useEffect(() => {
@@ -179,6 +182,8 @@ export function MapaSitios({
       <MapView
         ref={mapa}
         style={StyleSheet.absoluteFill}
+        userInterfaceStyle={oscuro ? "dark" : "light"}
+        customMapStyle={oscuro ? ESTILO_MAPA_OSCURO : undefined}
         showsUserLocation={conPunto}
         showsMyLocationButton={false}
         initialRegion={inicial}

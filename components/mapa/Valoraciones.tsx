@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { colors, fonts, personColors } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { personas } from '@/lib/gastos/personas';
 import { textoEstrellas, textoValoracionHablado, valoracionDe } from '@/lib/mapa/lista';
 import type { Sitio } from '@/lib/mapa/tipos';
@@ -9,6 +10,8 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
 
 /** Estrellas de solo lectura (5, con media) en un único elemento accesible. */
 export function Estrellas({ valor, tamano = 14 }: { valor: number; tamano?: number }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={styles.estrellas}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -23,7 +26,9 @@ export function Estrellas({ valor, tamano = 14 }: { valor: number; tamano?: numb
  * Solo salen las personas que han puntuado; devuelve null si no hay ninguna.
  */
 export function ValoracionesPareja({ sitio, pareja, userId }: { sitio: Sitio; pareja: Pareja; userId: string | null }) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
   const filas = [
     { nombre: p.yo.nombre, color: p.yo.color, valor: valoracionDe(sitio, userId), etiqueta: 'Tu valoración' },
     p.otra ? { nombre: p.nombrePareja, color: p.otra.color, valor: valoracionDe(sitio, p.otra.userId), etiqueta: `Valoración de ${p.nombrePareja}` } : null,
@@ -32,7 +37,7 @@ export function ValoracionesPareja({ sitio, pareja, userId }: { sitio: Sitio; pa
   return (
     <View style={styles.filas}>
       {filas.map((f) => {
-        const paleta = f.color ? personColors[f.color] : { bg: colors.surface, ink: colors.icon };
+        const paleta = f.color ? colors.personas[f.color] : { bg: colors.surface, ink: colors.icon };
         return (
           <View
             key={f.etiqueta}
@@ -52,10 +57,10 @@ export function ValoracionesPareja({ sitio, pareja, userId }: { sitio: Sitio; pa
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   estrellas: { flexDirection: 'row', gap: 1 },
   filas: { gap: 6 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start' },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 13, maxWidth: 120 },
   numero: { fontFamily: fonts.bodyBold, fontSize: 13 },
-});
+}));

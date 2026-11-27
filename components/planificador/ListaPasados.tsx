@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { etiquetaPasado, mesYAnio, pasados, textoGastado } from '@/lib/planificador/resumen';
 import { usePlanes } from '@/lib/planificador/usePlanificador';
 
 /** Pestaña «Pasados» (mockup Planificador): planes terminados, del más reciente al más antiguo, con lo gastado y «Ver resumen». */
 export function ListaPasados({ onScroll }: { onScroll: React.ComponentProps<typeof Animated.ScrollView>['onScroll'] }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const consulta = usePlanes();
   const [recargando, setRecargando] = useState(false);
@@ -83,16 +86,16 @@ export function ListaPasados({ onScroll }: { onScroll: React.ComponentProps<type
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   lista: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40, gap: 12 },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32, paddingBottom: 60 },
   vacioTitulo: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   vacioTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  tarjeta: { gap: 12, padding: 14, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   baldosa: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, minWidth: 0, gap: 2 },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
   fecha: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   gastado: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
-});
+}));

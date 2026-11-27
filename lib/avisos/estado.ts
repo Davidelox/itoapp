@@ -28,7 +28,7 @@ export const AVISOS = [
   { campo: 'notify_payment_reminder', titulo: 'Cobros y pagos', ayuda: 'Cobros próximos e importes variables sin poner.' },
   { campo: 'notify_events', titulo: 'Eventos y cumpleaños', ayuda: 'El recordatorio que elijas en cada evento.' },
   { campo: 'notify_who_paid', titulo: '¿Quién pagó?', ayuda: 'Al terminar un evento que lo pregunta.' },
-  { campo: 'notify_partner_expense', titulo: 'Gastos de tu pareja', ayuda: 'Cuando añade un gasto compartido.' },
+  { campo: 'notify_partner_expense', titulo: 'Gastos de tu pareja', ayuda: 'Cuando añade o edita un gasto compartido.' },
   { campo: 'notify_settlements', titulo: 'Liquidaciones', ayuda: 'Cuando te piden confirmar un pago o responden al tuyo.' },
   { campo: 'notify_requests', titulo: 'Peticiones de tu pareja', ayuda: 'Pedir borrar algo o cambiar los ajustes.' },
 ] as const;

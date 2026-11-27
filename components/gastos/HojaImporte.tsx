@@ -1,11 +1,12 @@
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { leerEuros } from '@/lib/dinero/importe';
 import { ponerImporte } from '@/lib/gastos/consultasRecurrentes';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -32,7 +33,9 @@ export function HojaImporte({
   /** Con él sale «Ver el pago» (el calendario abre esta hoja en vez del detalle del recurrente). */
   onVerPago?: () => void;
 }) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
   const invalidar = useInvalidarGastos();
   const [texto, setTexto] = useState((recurrente.amount_cents / 100).toFixed(2).replace('.', ','));
   const [ocupado, setOcupado] = useState(false);
@@ -91,10 +94,10 @@ export function HojaImporte({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   ayuda: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   importe: { minWidth: 120, maxWidth: 240, height: 64, textAlign: 'right', fontFamily: fonts.title, fontSize: 44, color: colors.text },
   euro: { fontFamily: fonts.title, fontSize: 44, color: colors.text },
   resultado: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text, textAlign: 'center' },
-});
+}));

@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 type PropsBoton = {
   etiqueta: string;
@@ -14,6 +15,8 @@ type PropsBoton = {
 
 /** Botón principal granate de al menos 56 px, ancho completo. */
 export function BotonPrincipal({ etiqueta, onPress, cargando = false, etiquetaCargando, deshabilitado = false }: PropsBoton) {
+  const colors = useColores();
+  const styles = useStyles();
   const inactivo = deshabilitado || cargando;
   return (
     <Pressable
@@ -28,14 +31,16 @@ export function BotonPrincipal({ etiqueta, onPress, cargando = false, etiquetaCa
         inactivo && !cargando && styles.apagado,
       ]}
     >
-      {cargando && <CargandoHilo color={colors.white} size={28} oculto />}
-      <Text style={[styles.texto, { color: colors.white }]}>{cargando ? (etiquetaCargando ?? etiqueta) : etiqueta}</Text>
+      {cargando && <CargandoHilo color={colors.onAccent} size={28} oculto />}
+      <Text style={[styles.texto, { color: colors.onAccent }]}>{cargando ? (etiquetaCargando ?? etiqueta) : etiqueta}</Text>
     </Pressable>
   );
 }
 
 /** Botón secundario: fondo `#EFEBE3`, texto oscuro. */
 export function BotonSecundario({ etiqueta, onPress, deshabilitado = false }: PropsBoton) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -51,6 +56,8 @@ export function BotonSecundario({ etiqueta, onPress, deshabilitado = false }: Pr
 
 /** Enlace de texto de al menos 44 px de alto («¿Has olvidado tu contraseña?»). */
 export function EnlaceTexto({ etiqueta, onPress, deshabilitado = false }: Omit<PropsBoton, 'cargando'>) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="link"
@@ -64,7 +71,7 @@ export function EnlaceTexto({ etiqueta, onPress, deshabilitado = false }: Omit<P
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   base: {
     minHeight: 56,
     paddingVertical: 16,
@@ -79,4 +86,4 @@ const styles = StyleSheet.create({
   texto: { fontFamily: fonts.bodyBold, fontSize: 16 },
   enlace: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   textoEnlace: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
-});
+}));

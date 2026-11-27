@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Marcador } from '@/components/calendario/Marcador';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { MarcadorSpec } from '@/lib/calendario/colores';
 import type { PartesLinea } from '@/lib/calendario/semana';
 
@@ -28,6 +29,8 @@ export function LineaSemana({
   abajo?: boolean;
   onPress: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -53,11 +56,11 @@ export function LineaSemana({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   linea: { height: ALTO_LINEA, flexDirection: 'row', alignItems: 'center', gap: 6 },
   marcador: { width: TAMANO_MARCADOR },
   hora: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text, flexShrink: 0 },
   titulo: { flexShrink: 1, flexGrow: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   derecha: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text, flexShrink: 0 },
   tachado: { textDecorationLine: 'line-through', opacity: 0.55 },
-});
+}));

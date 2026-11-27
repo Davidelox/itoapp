@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HojaDiaMes } from '@/components/calendario/HojaDiaMes';
@@ -15,7 +15,8 @@ import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { BotonPrincipal } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { crearEvento, editarEvento } from '@/lib/calendario/consultas';
 import { diaDelEventoNuevo, paramsAlCalendario } from '@/lib/calendario/destino';
 import {
@@ -91,13 +92,15 @@ type Props = {
 
 /** Nuevo o editar evento y cumpleaños (mockup NuevoEvento, docs/plan-calendario.md §2 y docs/plan-calendario-v2.md §2.4). */
 export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, categoriaInicial, sitioInicial, plan, alGuardarEdicion }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidarGastos = useInvalidarGastos();
   const invalidarPlan = useInvalidarPlanificador();
   // Un elemento del plan toca el itinerario, el calendario y el mapa (su sitio entra en la colección del plan).
   const invalidar = plan ? invalidarPlan : invalidarGastos;
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const editando = !!inicial;
   const hoy = hoyISO();
@@ -564,14 +567,14 @@ export function FormularioEvento({ pareja, inicial, fechaInicial, tipoInicial, c
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   cerrar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -586,7 +589,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.text,
@@ -601,7 +604,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   botonTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.text },
   importeFila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -610,5 +613,5 @@ const styles = StyleSheet.create({
   ayuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   plan: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   planTexto: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
-});
+  pie: { backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
+}));

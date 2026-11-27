@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { colors } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { suave, trazoEntre } from './geometria';
 import { hapticaLigera } from './haptics';
 import { HiloFisico } from './HiloFisico';
@@ -77,6 +77,8 @@ type Props = {
  * Con «Reducir movimiento» no hay recorrido: el hilo en reposo aparece y se va con un fundido.
  */
 export function SplashHilo({ onDone, relanzada = false, destino = 'barra' }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const ventana = useWindowDimensions();
   // El lienzo mide lo que mide de verdad esta capa (onLayout); la ventana solo sirve hasta entonces.
   const [medida, setMedida] = useState<{ width: number; height: number } | null>(null);
@@ -274,8 +276,8 @@ export function SplashHilo({ onDone, relanzada = false, destino = 'barra' }: Pro
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   capa: { ...StyleSheet.absoluteFill, zIndex: 1000 },
   fondo: { ...StyleSheet.absoluteFill, backgroundColor: colors.background },
   logo: { position: 'absolute' },
-});
+}));

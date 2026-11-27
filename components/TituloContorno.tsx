@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** Las 8 direcciones del contorno (como `EmojiIcono`: una sombra sin difuminar por dirección). */
 const DIRECCIONES: [number, number][] = [
@@ -23,6 +24,7 @@ const GROSOR = 0.6;
  * mantiene el título alineado a 20 px.
  */
 export function TituloContorno({ texto }: { texto: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.caja}>
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
@@ -44,8 +46,8 @@ export function TituloContorno({ texto }: { texto: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { flexShrink: 1, marginLeft: -8 },
   titulo: { fontFamily: fonts.brand, fontSize: 34, lineHeight: 46, paddingHorizontal: 8, color: colors.accentDark },
   copia: { position: 'absolute', left: 0, right: 0, top: 0, textShadowColor: colors.accent, textShadowRadius: 0 },
-});
+}));

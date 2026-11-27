@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, findNodeHandle } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Text, View, findNodeHandle } from 'react-native';
 
 import { HojaComoLlegar } from '@/components/mapa/HojaComoLlegar';
 import { PinSitio } from '@/components/mapa/PinSitio';
 import { ValoracionesPareja } from '@/components/mapa/Valoraciones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { ETIQUETA_ESTADO, textoSecundario } from '@/lib/mapa/lista';
 import type { Sitio } from '@/lib/mapa/tipos';
 import type { Pareja } from '@/lib/pareja/EstadoProvider';
@@ -15,6 +16,8 @@ import type { Pareja } from '@/lib/pareja/EstadoProvider';
  * Nombre, categoría y estado, las valoraciones, «Cómo llegar» y «Ver ficha». Al abrirse, el foco del lector de pantalla va al título.
  */
 export function TarjetaSitio({ sitio, pareja, emoji = null, onFicha, onCerrar }: { sitio: Sitio; pareja: Pareja; emoji?: string | null; onFicha: () => void; onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [llegar, setLlegar] = useState(false);
   const titulo = useRef<ComponentRef<typeof Text>>(null);
   useEffect(() => {
@@ -52,7 +55,7 @@ export function TarjetaSitio({ sitio, pareja, emoji = null, onFicha, onCerrar }:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   tarjeta: {
     position: 'absolute',
     left: 16,
@@ -60,11 +63,11 @@ const styles = StyleSheet.create({
     bottom: 16,
     gap: 10,
     padding: 14,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -78,5 +81,5 @@ const styles = StyleSheet.create({
   botones: { flexDirection: 'row', gap: 8 },
   botonClaro: { backgroundColor: colors.surface },
   boton: { flex: 1, minHeight: 44, borderRadius: radius.full, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  botonTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
-});
+  botonTexto: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.onAccent },
+}));

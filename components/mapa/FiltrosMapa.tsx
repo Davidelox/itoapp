@@ -4,7 +4,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Rect, posicionMenu } from '@/lib/calendario/filtros';
 import {
   GRUPOS,
@@ -34,6 +35,8 @@ const ALTO_MENU = 440;
  * Escape lo cierran y «Limpiar» desmarca todo.
  */
 export function BotonFiltrosMapa({ valor, onCambiar, colecciones = [] }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void; colecciones?: Coleccion[] }) {
+  const colors = useColores();
+  const styles = useStyles();
   const ventana = useWindowDimensions();
   const embudo = useRef<ComponentRef<typeof View>>(null);
   const [abierto, setAbierto] = useState(false);
@@ -139,6 +142,8 @@ export function BotonFiltrosMapa({ valor, onCambiar, colecciones = [] }: { valor
  * el botón que los quita todos. No sale si no hay ninguno.
  */
 export function FiltrosActivosMapa({ valor, onCambiar, colecciones = [] }: { valor: FiltrosMapa; onCambiar: (f: FiltrosMapa) => void; colecciones?: Coleccion[] }) {
+  const colors = useColores();
+  const styles = useStyles();
   if (contarFiltros(valor) === 0) return null;
   return (
     <Animated.View entering={FadeIn.duration(140)} style={styles.fila}>
@@ -183,8 +188,8 @@ function IconoOpcion({ opcion, tamano, color }: { opcion: OpcionMapa; tamano: nu
   );
 }
 
-const styles = StyleSheet.create({
-  embudo: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+const useStyles = crearEstilos((colors) => ({
+  embudo: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   embudoActivo: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: colors.accentSoft },
   contador: {
     position: 'absolute',
@@ -200,16 +205,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  contadorTexto: { fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: colors.white },
-  fondo: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(42, 38, 39, 0.08)' },
+  contadorTexto: { fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: colors.onAccent },
+  fondo: { ...StyleSheet.absoluteFill, backgroundColor: colors.veloSuave },
   menu: {
     position: 'absolute',
     width: ANCHO_MENU,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   chipMarcado: { borderWidth: 1.5, borderColor: colors.accent, backgroundColor: colors.accentSoft },
   chipTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
@@ -252,5 +257,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   pildoraTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
-  quitarTodos: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 32, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
-});
+  quitarTodos: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 32, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+}));

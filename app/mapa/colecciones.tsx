@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { EmojiIcono } from '@/components/mapa/EmojiIcono';
 import { BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { useSolicitudBorrado } from '@/lib/gastos/useGastos';
 import { contarSitios, esDePlan, textoContadorSitios } from '@/lib/mapa/colecciones';
 import type { Coleccion } from '@/lib/mapa/tipos';
@@ -14,6 +15,8 @@ import { useColecciones, usePertenencias } from '@/lib/mapa/useSitios';
 
 /** «Mis colecciones»: todas las que ves, con su icono y cuántos sitios tienen. Tocar una abre su detalle (sus sitios; desde ahí se edita). */
 export default function MisColecciones() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colecciones = useColecciones();
@@ -61,6 +64,8 @@ export default function MisColecciones() {
 }
 
 function FilaColeccion({ coleccion, sitios, separador, onPress }: { coleccion: Coleccion; sitios: number; separador: boolean; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const solicitud = useSolicitudBorrado(coleccion.id, 'collection');
   const detalle = [
     textoContadorSitios(sitios),
@@ -93,7 +98,7 @@ function FilaColeccion({ coleccion, sitios, separador, onPress }: { coleccion: C
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
   redondo: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
@@ -104,8 +109,8 @@ const styles = StyleSheet.create({
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 10 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
-  emoji: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  emoji: { width: 44, height: 44, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, minWidth: 0, gap: 2 },
   nombre: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   linea: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

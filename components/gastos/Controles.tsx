@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 /** Chip redondeado: relleno oscuro cuando está elegido (mockup AnadirGasto). */
 export function Chip({
@@ -24,6 +25,8 @@ export function Chip({
   deshabilitado?: boolean;
   pista?: string;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole={rol}
@@ -34,7 +37,7 @@ export function Chip({
       onPress={onPress}
       style={[styles.chip, activo ? styles.chipActivo : styles.chipNormal, deshabilitado && styles.chipDeshabilitado]}
     >
-      {icono ? <Ionicons name={icono} size={15} color={activo ? colors.white : colors.text} /> : null}
+      {icono ? <Ionicons name={icono} size={15} color={activo ? colors.onAccent : colors.text} /> : null}
       <Text style={[styles.chipTexto, activo && styles.chipTextoActivo]}>{etiqueta}</Text>
     </Pressable>
   );
@@ -42,6 +45,7 @@ export function Chip({
 
 /** Etiqueta pequeña de un grupo de campos («Categoría», «¿Quién pagó?»). */
 export function Grupo({ etiqueta, children, rol }: { etiqueta: string; children: ReactNode; rol?: 'radiogroup' }) {
+  const styles = useStyles();
   return (
     <View style={styles.grupo} accessibilityRole={rol} accessibilityLabel={rol ? etiqueta : undefined}>
       <Text style={styles.grupoEtiqueta}>{etiqueta}</Text>
@@ -51,6 +55,7 @@ export function Grupo({ etiqueta, children, rol }: { etiqueta: string; children:
 }
 
 export function FilaChips({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <View style={styles.filaChips}>{children}</View>;
 }
 
@@ -68,6 +73,8 @@ export function Interruptor({
   onCambiar: (v: boolean) => void;
   deshabilitado?: boolean;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <View style={styles.interruptor}>
       <View style={styles.interruptorTextos}>
@@ -79,10 +86,10 @@ export function Interruptor({
         value={valor}
         disabled={deshabilitado}
         onValueChange={onCambiar}
-        trackColor={{ true: colors.accent, false: '#CFC8BB' }}
-        thumbColor={colors.white}
+        trackColor={{ true: colors.accent, false: colors.switchOff }}
+        thumbColor={colors.thumb}
         // En web la bolita usa activeThumbColor (react-native-web); en nativo basta thumbColor.
-        {...{ activeThumbColor: colors.white }}
+        {...{ activeThumbColor: colors.thumb }}
       />
     </View>
   );
@@ -110,6 +117,7 @@ export function BarraPorcentaje({
   fondoYo: string;
   fondoPareja: string;
 }) {
+  const styles = useStyles();
   const pctPareja = 100 - pctYo;
   return (
     <View style={styles.barraCaja}>
@@ -139,6 +147,8 @@ export function BarraPorcentaje({
 }
 
 function BotonRedondo({ icono, etiqueta, onPress }: { icono: 'add' | 'remove'; etiqueta: string; onPress: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -151,7 +161,7 @@ function BotonRedondo({ icono, etiqueta, onPress }: { icono: 'add' | 'remove'; e
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   grupo: { gap: 6 },
   grupoEtiqueta: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
   filaChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 10,
     borderRadius: radius.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -173,12 +183,12 @@ const styles = StyleSheet.create({
   interruptorAyuda: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   chipDeshabilitado: { opacity: 0.4 },
-  chipNormal: { borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.white },
+  chipNormal: { borderWidth: 1, borderColor: colors.inputBorder, backgroundColor: colors.card },
   chipActivo: { backgroundColor: colors.text },
   chipTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
-  chipTextoActivo: { color: colors.white },
+  chipTextoActivo: { color: colors.onAccent },
   barraCaja: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -195,11 +205,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1.5,
     borderColor: colors.text,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
   barra: { flexDirection: 'row', height: 10, borderRadius: radius.full, overflow: 'hidden', backgroundColor: colors.divider },
   barraPie: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   barraTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
-});
+}));

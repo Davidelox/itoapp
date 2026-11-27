@@ -3,7 +3,7 @@ import { TextoLargo } from '@/components/TextoLargo';
 import * as Crypto from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
@@ -22,7 +22,8 @@ import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -42,6 +43,8 @@ import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Ficha de un sitio (docs/plan-mapa.md §5.3): estado, «Cómo llegar», «Ver en Google Maps», editar y pedir borrar. */
 export default function FichaSitio() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -103,7 +106,7 @@ export default function FichaSitio() {
     );
   }
 
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const quien = quienGuardo(sitio, pareja.yo.userId, pareja.otra?.userId);
   const autor = quien === 'yo' ? pareja.yo : quien === 'otra' ? pareja.otra : null;
   const categoria = INFO_CATEGORIA_SITIO[sitio.category];
@@ -132,7 +135,7 @@ export default function FichaSitio() {
     .map((n) => {
       const mia = n.user_id === pareja.yo.userId;
       const color = mia ? pareja.yo.color : pareja.otra?.color;
-      return { nombre: mia ? 'Tu nota' : `Nota de ${p.nombrePareja}`, texto: (n.note as string).trim(), paleta: color ? personColors[color] : null };
+      return { nombre: mia ? 'Tu nota' : `Nota de ${p.nombrePareja}`, texto: (n.note as string).trim(), paleta: color ? colors.personas[color] : null };
     });
   const hoy = hoyISO();
   const listaVisitas = ordenarVisitas(visitas.data ?? []);
@@ -391,7 +394,7 @@ export default function FichaSitio() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8 },
   redondo: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
@@ -402,11 +405,11 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.full, backgroundColor: colors.surface },
   chipTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.text },
-  tarjeta: { gap: 10, padding: 14, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  tarjeta: { gap: 10, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   filaTexto: { flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.text },
   stats: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.textSecondary },
   filaTextos: { flex: 1, gap: 1 },
   visitaFecha: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   notaTitulo: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.textSecondary },
-});
+}));

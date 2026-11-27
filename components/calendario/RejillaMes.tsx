@@ -4,7 +4,8 @@ import { type SharedValue, useReducedMotion } from 'react-native-reanimated';
 
 import { Cinta } from '@/components/calendario/Cinta';
 import { ALTO_CARRIL, CeldaDia, INICIO_CARRILES } from '@/components/calendario/CeldaDia';
-import { colors, fonts } from '@/constants/theme';
+import { fonts, type Paleta } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type Elemento, etiquetaDia } from '@/lib/calendario/agrupar';
 import { carrilesUsados, segmentosSemana, type SegmentoBarra } from '@/lib/calendario/carriles';
 import { type ColoresHuecos, colorBarra } from '@/lib/calendario/colores';
@@ -44,6 +45,7 @@ export function RejillaMes({
   arrastre: SharedValue<number>;
   onDia: (iso: string) => void;
 }) {
+  const styles = useStyles();
   const reducida = useReducedMotion();
   // Ancho de una celda: se mide en la fila de las iniciales (siete celdas justas) para que los glifos sean lo más
   // grandes que caben en este móvil. Hasta entonces, el de un móvil estrecho.
@@ -114,6 +116,7 @@ export function RejillaMes({
 
 /** Franja gris de los días de otros meses de una semana; llega al borde de la tarjeta donde toca el borde. */
 function FueraDeMes({ tramo, ultima }: { tramo: { desde: number; hasta: number } | null; ultima: boolean }) {
+  const styles = useStyles();
   if (!tramo) return null;
   return (
     <View
@@ -132,6 +135,7 @@ function FueraDeMes({ tramo, ultima }: { tramo: { desde: number; hasta: number }
 
 /** Una barra horizontal: persona = su color; los dos = cinta bicolor (4 px m1 arriba, 4 px m2 abajo). Extremos redondeados solo donde empieza o acaba. */
 function Barra({ segmento: s, colores }: { segmento: SegmentoBarra; colores: ColoresHuecos }) {
+  const colors = useColores();
   const columnas = s.colFin - s.colInicio + 1;
   return (
     <View
@@ -146,25 +150,25 @@ function Barra({ segmento: s, colores }: { segmento: SegmentoBarra; colores: Col
         paddingRight: s.termina ? 3 : 0,
       }}
     >
-      <Cinta color={colorBarra(s.elemento, colores.m1, colores.m2)} grosor={ALTO_BARRA} inicio={s.empieza} fin={s.termina} />
+      <Cinta color={colorBarra(s.elemento, colores.m1, colores.m2, colors)} grosor={ALTO_BARRA} inicio={s.empieza} fin={s.termina} />
     </View>
   );
 }
 
-export const estilosCaja = {
-  backgroundColor: colors.white,
+export const estilosCaja = (colors: Paleta) => ({
+  backgroundColor: colors.card,
   borderWidth: 1,
   borderColor: colors.border,
   borderRadius: 20,
   paddingVertical: 8,
   paddingHorizontal: 6,
   gap: 2,
-} as const;
+}) as const;
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   // Sin `gap`: las filas van pegadas y las separa la cuadrícula.
   // `overflow: hidden` recorta el tinte del fin de semana con las esquinas redondeadas de la tarjeta.
-  caja: { ...estilosCaja, gap: 0, overflow: 'hidden' },
+  caja: { ...estilosCaja(colors), gap: 0, overflow: 'hidden' },
   fila: { flexDirection: 'row' },
   inicial: { flex: 1, textAlign: 'center', fontFamily: fonts.bodyBold, fontSize: 11, color: colors.textSecondary, paddingBottom: 4 },
   // Cuadrícula con dos pesos: una línea de 1 px entre semanas (se lee por semanas) y entre columnas una fina, más suave.
@@ -176,4 +180,4 @@ const styles = StyleSheet.create({
   fueraDeMes: { position: 'absolute', top: 0, bottom: 0, backgroundColor: colors.fueraDeMes },
   findeArriba: { top: -8 },
   findeAbajo: { bottom: -8 },
-});
+}));

@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 
 /** Hoja inferior modal (mockups Bote, DetalleGasto): fondo oscurecido que la cierra, asa y título. */
 export function Hoja({
@@ -28,6 +29,7 @@ export function Hoja({
   pie?: ReactNode;
   children: ReactNode;
 }) {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const cerrar = () => {
     if (!bloqueada) onCerrar();
@@ -66,10 +68,10 @@ export function Hoja({
   );
 }
 
-const styles = StyleSheet.create({
-  fondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(42, 38, 39, 0.45)' },
+const useStyles = crearEstilos((colors) => ({
+  fondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.velo },
   hoja: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl + 4,
     borderTopRightRadius: radius.xl + 4,
     paddingHorizontal: 20,
@@ -85,4 +87,4 @@ const styles = StyleSheet.create({
   scroll: { flexShrink: 1 },
   scrollContenido: { gap: 10, paddingBottom: 12 },
   pie: { marginHorizontal: -20, paddingHorizontal: 20, paddingTop: 16, gap: 12, borderTopWidth: 1, borderTopColor: colors.border },
-});
+}));

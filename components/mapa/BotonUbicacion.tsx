@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { CLAVE_POSICION } from '@/lib/mapa/usePosicion';
 import { estadoTrasPermiso, ofreceAjustes, textoAviso, type EstadoUbicacion } from '@/lib/mapa/ubicacion';
 
@@ -13,6 +14,8 @@ import { estadoTrasPermiso, ofreceAjustes, textoAviso, type EstadoUbicacion } fr
  * guarda ni se envía a ningún sitio. Denegado: aviso con enlace a Ajustes, sin volver a pedir por su cuenta.
  */
 export function BotonUbicacion({ onUbicacion, style }: { onUbicacion: (lat: number, lng: number) => void; style?: StyleProp<ViewStyle> }) {
+  const colors = useColores();
+  const styles = useStyles();
   const [estado, setEstado] = useState<EstadoUbicacion>('libre');
   const cliente = useQueryClient();
 
@@ -59,10 +62,10 @@ export function BotonUbicacion({ onUbicacion, style }: { onUbicacion: (lat: numb
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   caja: { position: 'absolute', alignItems: 'flex-end', gap: 8, maxWidth: '85%' },
-  boton: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  aviso: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 6 },
+  boton: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  aviso: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 6 },
   textoAviso: { fontFamily: fonts.body, fontSize: 13, color: colors.text },
   enlace: { fontFamily: fonts.body, fontSize: 14, color: colors.accent, textDecorationLine: 'underline' },
-});
+}));

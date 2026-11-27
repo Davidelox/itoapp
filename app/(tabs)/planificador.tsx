@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
@@ -10,7 +10,8 @@ import { Segmentado } from '@/components/onboarding/OpcionRadio';
 import { ListaIdeas } from '@/components/planificador/ListaIdeas';
 import { ListaPasados } from '@/components/planificador/ListaPasados';
 import { TarjetaPlan } from '@/components/planificador/TarjetaPlan';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { hoyISO } from '@/lib/gastos/fechas';
 import { proximos } from '@/lib/planificador/plan';
 import { personas } from '@/lib/gastos/personas';
@@ -22,6 +23,8 @@ type Vista = 'proximos' | 'ideas' | 'pasados';
 
 /** Pestaña Planificador (docs/plan-planificador.md §5): planes próximos y en curso, Ideas y Pasados. */
 export default function Planificador() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
   const consulta = usePlanes();
@@ -73,7 +76,7 @@ export default function Planificador() {
         contentContainerStyle={styles.lista}
       >
         {lista.map((p) => (
-          <TarjetaPlan key={p.id} plan={p} tareas={porPlan.get(p.id) ?? []} yo={pareja?.yo.slot ?? 'm1'} tintaYo={pareja ? personas(pareja).tintaYo : colors.text} hoy={hoy} onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: p.id } })} />
+          <TarjetaPlan key={p.id} plan={p} tareas={porPlan.get(p.id) ?? []} yo={pareja?.yo.slot ?? 'm1'} tintaYo={pareja ? personas(pareja, colors).tintaYo : colors.text} hoy={hoy} onPress={() => router.push({ pathname: '/planificador/[id]', params: { id: p.id } })} />
         ))}
       </Animated.ScrollView>
     );
@@ -87,7 +90,7 @@ export default function Planificador() {
         cargando={consulta.isLoading || consulta.isRefetching}
         accion={
           <Pressable accessibilityRole="button" accessibilityLabel="Nuevo plan" onPress={nuevo} hitSlop={6} style={styles.mas}>
-            <Ionicons name="add" size={24} color={colors.white} />
+            <Ionicons name="add" size={24} color={colors.onAccent} />
           </Pressable>
         }
       >
@@ -108,7 +111,7 @@ export default function Planificador() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   mas: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   subtitulo: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary },
@@ -116,4 +119,4 @@ const styles = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 32, paddingBottom: 60 },
   vacioTitulo: { fontFamily: fonts.title, fontSize: 22, color: colors.text, textAlign: 'center' },
   vacioTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { BorrarGasto } from '@/components/gastos/BorrarGasto';
@@ -9,7 +9,8 @@ import { Hoja } from '@/components/gastos/Hoja';
 import { HojaImporte } from '@/components/gastos/HojaImporte';
 import { BotonPrincipal, BotonSecundario, EnlaceTexto } from '@/components/onboarding/Botones';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { type CobroConGasto, editarRecurrente, saltarCobro } from '@/lib/gastos/consultasRecurrentes';
 import { ErrorGasto } from '@/lib/gastos/error';
@@ -23,6 +24,8 @@ import { type Pareja, useEstado } from '@/lib/pareja/EstadoProvider';
  * persona lo cambia mientras tanto, sale «Recargar». Debajo: últimos cobros, pausar y borrar (en hojas).
  */
 export default function EditarRecurrente() {
+  const colors = useColores();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const ajustes = useAjustesGastos();
@@ -56,7 +59,7 @@ export default function EditarRecurrente() {
 
   const actual = consulta.data?.recurrente ?? null;
   const masNuevo = !guardandoYo && actual && actual.version > copia.version ? actual : null;
-  const nombre = personas(pareja).nombrePareja;
+  const nombre = personas(pareja, colors).nombrePareja;
 
   return (
     <View style={styles.raiz}>
@@ -103,9 +106,11 @@ function Extras({
   boteActivo: boolean;
   alPausar: () => void;
 }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const invalidar = useInvalidarGastos();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const [pausando, setPausando] = useState(false);
   const [importeDe, setImporteDe] = useState<CobroConGasto | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -221,7 +226,7 @@ function Extras({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.text },
@@ -237,9 +242,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: colors.text,
   },
-  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.white },
+  avisoTexto: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.onAccent },
   avisoBoton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  avisoEnlace: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.white },
+  avisoEnlace: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.onAccent },
   extras: { gap: 12, marginTop: 12 },
   alerta: {
     fontFamily: fonts.bodyMedium,
@@ -250,13 +255,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 12,
   },
-  estado: { gap: 6, padding: 14, borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  estado: { gap: 6, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   estadoTitulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   ayuda: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   seccion: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1, color: colors.textSecondary },
-  lista: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
+  lista: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 56 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   filaCuerpo: { flex: 1, paddingVertical: 8, gap: 2 },
   filaFecha: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
-});
+}));

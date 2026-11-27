@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
@@ -8,7 +8,8 @@ import { BotonPrincipal, EnlaceTexto } from '@/components/onboarding/Botones';
 import { CampoTexto } from '@/components/onboarding/CampoTexto';
 import { MensajeError } from '@/components/onboarding/MensajeError';
 import { SelectorColor } from '@/components/onboarding/SelectorColor';
-import { COLORES_PERSONA, type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
+import { COLORES_PERSONA, type ColorPersona, fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { borrarCuenta } from '@/lib/ajustes/consultas';
 import { cambiarContrasena, cerrarSesion, contrasenaValida, pedirCodigoReautenticacion } from '@/lib/auth/acciones';
 import { MENSAJES } from '@/lib/auth/errores';
@@ -20,6 +21,8 @@ import { registrarError } from '@/lib/registro';
 
 /** Foto, nombre y color. Es solo tuyo: se guarda al momento, sin aprobación. */
 export function HojaPerfil({ onCerrar }: { onCerrar: () => void }) {
+  const colors = useColores();
+  const styles = useStyles();
   const { pareja, userId, refrescar } = useEstado();
   const invalidar = useInvalidarGastos();
   const yo = pareja?.yo;
@@ -125,7 +128,7 @@ export function HojaPerfil({ onCerrar }: { onCerrar: () => void }) {
       />
       <View style={styles.colorTitulo}>
         <Text style={styles.etiqueta}>Tu color</Text>
-        {color ? <Text style={[styles.nombreColor, { color: personColors[color].ink }]}>{personColors[color].nombre}</Text> : null}
+        {color ? <Text style={[styles.nombreColor, { color: colors.personas[color].ink }]}>{colors.personas[color].nombre}</Text> : null}
       </View>
       <SelectorColor valor={color} onCambiar={setElegido} ocupados={ocupados} inicial={nombre.trim().charAt(0).toUpperCase() || '?'} />
       {otra?.color ? <Text style={styles.ayuda}>El color de {otra.nombre.trim() || 'tu pareja'} no se puede repetir.</Text> : null}
@@ -138,6 +141,7 @@ export function HojaPerfil({ onCerrar }: { onCerrar: () => void }) {
  * change»), se envía un código al email y se pide aquí mismo.
  */
 export function HojaContrasena({ onCerrar }: { onCerrar: () => void }) {
+  const styles = useStyles();
   const [password, setPassword] = useState('');
   const [codigo, setCodigo] = useState('');
   const [pideCodigo, setPideCodigo] = useState(false);
@@ -221,6 +225,7 @@ export function HojaContrasena({ onCerrar }: { onCerrar: () => void }) {
 
 /** Salir del espacio (o eliminarlo si no hay nadie más). Antes estaba en Inicio. */
 export function HojaSalir({ onCerrar }: { onCerrar: () => void }) {
+  const styles = useStyles();
   const { pareja, refrescar } = useEstado();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -256,6 +261,7 @@ export function HojaSalir({ onCerrar }: { onCerrar: () => void }) {
 
 /** Borrar la cuenta (Apple lo exige). Lo hace la Edge Function `borrar-cuenta`. */
 export function HojaBorrarCuenta({ onCerrar }: { onCerrar: () => void }) {
+  const styles = useStyles();
   const { pareja } = useEstado();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -289,7 +295,7 @@ export function HojaBorrarCuenta({ onCerrar }: { onCerrar: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   avatarFila: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   enlaces: { alignItems: 'flex-start' },
   colorTitulo: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 },
@@ -297,4 +303,4 @@ const styles = StyleSheet.create({
   nombreColor: { fontFamily: fonts.bodyBold, fontSize: 14 },
   ayuda: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   texto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.text },
-});
+}));

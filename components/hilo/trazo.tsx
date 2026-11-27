@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import Animated, { type SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import { Path } from 'react-native-svg';
 
-import { colors } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 
 /** Recorrido del hilo del icono de ito (viewBox 100x100). Entra por la izquierda, un tirabuzón, sale por la derecha. */
 export const HILO_ICONO =
@@ -58,7 +58,9 @@ type Props = {
 };
 
 /** Trazo que se dibuja con strokeDasharray/strokeDashoffset animados. Debe ir dentro de un <Svg>. */
-export function HiloTrazo({ d, progress, stroke = colors.accent, strokeWidth = 2, opacity }: Props) {
+export function HiloTrazo({ d, progress, stroke: strokeProp, strokeWidth = 2, opacity }: Props) {
+  const colors = useColores();
+  const stroke = strokeProp ?? colors.accent;
   const len = useMemo(() => medirTrazo(d) + 2, [d]);
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: len * (1 - progress.value),

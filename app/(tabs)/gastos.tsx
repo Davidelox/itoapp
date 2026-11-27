@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Pressable, RefreshControl, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, RefreshControl, Switch, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { CabeceraPestana, useScrollCabecera } from '@/components/CabeceraPestana';
@@ -14,7 +14,8 @@ import { TarjetaBote, TarjetaSaldo } from '@/components/gastos/TarjetaSaldo';
 import { TarjetaRecurrentes } from '@/components/gastos/TarjetaRecurrentes';
 import { boteConPendiente } from '@/lib/gastos/bote';
 import { BotonPrincipal, BotonSecundario } from '@/components/onboarding/Botones';
-import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { fonts, radius, spacing } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { formatearImporte } from '@/lib/dinero/importe';
 import { agruparPorPlan, claveFila } from '@/lib/gastos/agrupar';
 import { personas } from '@/lib/gastos/personas';
@@ -28,6 +29,8 @@ const FILAS_ULTIMOS = 5;
 
 /** Pestaña Gastos (mockup «Dinero»): saldo, bote (solo lectura) y últimos gastos. Saldar llega en la fase 2. */
 export default function Gastos() {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const { onScroll, sombra } = useScrollCabecera();
   const { pareja } = useEstado();
@@ -103,7 +106,7 @@ export default function Gastos() {
                 >
                   <Ionicons name="alert-circle-outline" size={20} color={colors.accent} />
                   <Text style={styles.rechazoTexto}>
-                    {personas(pareja).nombrePareja} dice que no ha recibido tu pago de {formatearImporte(avisoRechazo.amount_cents)}. Los
+                    {personas(pareja, colors).nombrePareja} dice que no ha recibido tu pago de {formatearImporte(avisoRechazo.amount_cents)}. Los
                     gastos vuelven a estar pendientes.
                   </Text>
                 </Pressable>
@@ -149,10 +152,10 @@ export default function Gastos() {
                     accessibilityLabel="Ver solo los gastos sin saldar"
                     value={soloSinSaldar}
                     onValueChange={cambiarFiltro}
-                    trackColor={{ true: colors.accent, false: '#CFC8BB' }}
-                    thumbColor={colors.white}
+                    trackColor={{ true: colors.accent, false: colors.switchOff }}
+                    thumbColor={colors.thumb}
                     // En web la bolita usa activeThumbColor (react-native-web); en nativo basta thumbColor.
-                    {...{ activeThumbColor: colors.white }}
+                    {...{ activeThumbColor: colors.thumb }}
                   />
                 </View>
                 {gastos.length === 0 ? (
@@ -195,14 +198,14 @@ export default function Gastos() {
           onPress={nuevo}
           style={({ pressed }) => [styles.mas, pressed && { backgroundColor: colors.accentDark }]}
         >
-          <Ionicons name="add" size={28} color={colors.white} />
+          <Ionicons name="add" size={28} color={colors.onAccent} />
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   contenido: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 100, gap: 12 },
   rechazo: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, backgroundColor: colors.accentSoft },
@@ -218,7 +221,7 @@ const styles = StyleSheet.create({
   todoSaldado: { fontFamily: fonts.body, fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
   verTodosTexto: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
   lista: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -239,10 +242,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7A3419',
+    shadowColor: colors.sombra,
     shadowOpacity: 0.28,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-});
+}));

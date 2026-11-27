@@ -2,7 +2,8 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
-import { type ColorPersona, colors, fonts, personColors } from '@/constants/theme';
+import { type ColorPersona, fonts } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { useUrlAvatar } from '@/lib/avatar';
 import { paletaDe } from '@/lib/calendario/colores';
 
@@ -23,8 +24,10 @@ type Props = {
 
 /** Foto, o la inicial en la tinta del color sobre su fondo pastel. Se reutilizará en toda la app. */
 export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44, cargando = false, vacio = '?', anillo = false }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const firmada = useUrlAvatar(avatarPath);
-  const paleta = color ? personColors[color] : { bg: colors.surface, ink: colors.icon };
+  const paleta = color ? colors.personas[color] : { bg: colors.surface, ink: colors.icon };
   const inicial = nombre.trim().charAt(0).toUpperCase() || vacio;
   const uri = uriLocal ?? firmada;
   const aro = anillo ? ANILLO : 0;
@@ -47,7 +50,7 @@ export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44
       )}
       {cargando && (
         <View style={styles.velo}>
-          <CargandoHilo color={colors.white} />
+          <CargandoHilo color={colors.thumb} />
         </View>
       )}
     </View>
@@ -61,7 +64,7 @@ export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44
         height: tamano + aro * 2,
         borderRadius: (tamano + aro * 2) / 2,
         borderWidth: aro,
-        borderColor: paletaDe(color).borde,
+        borderColor: paletaDe(color, colors).borde,
       }}
     >
       {circulo}
@@ -71,8 +74,8 @@ export function AvatarPersona({ nombre, color, avatarPath, uriLocal, tamano = 44
 
 const ANILLO = 3;
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   circulo: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   inicial: { fontFamily: fonts.titleBold },
-  velo: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(42,38,39,0.35)', alignItems: 'center', justifyContent: 'center' },
-});
+  velo: { ...StyleSheet.absoluteFill, backgroundColor: colors.velo, alignItems: 'center', justifyContent: 'center' },
+}));

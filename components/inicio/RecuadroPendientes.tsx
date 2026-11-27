@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AvatarPersona } from '@/components/onboarding/AvatarPersona';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import type { Pendiente } from '@/lib/gastos/consultas';
 import { personas } from '@/lib/gastos/personas';
 import { resumenPendientes, textoCortoPendiente, tituloPendientes } from '@/lib/gastos/pendientes';
@@ -26,7 +27,9 @@ export function RecuadroPendientes({
   onAlternar: () => void;
   children: ReactNode;
 }) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const styles = useStyles();
+  const p = personas(pareja, colors);
   const titulo = tituloPendientes(avisos.length);
   const resumen = resumenPendientes(avisos.map((a) => textoCortoPendiente(a, p.yo.slot, p.nombrePareja)));
   return (
@@ -65,14 +68,14 @@ export function RecuadroPendientes({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   grupo: { gap: 8 },
   recuadro: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     minHeight: 56,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.xl - 4,
@@ -80,10 +83,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   iconos: { flexDirection: 'row', alignItems: 'center' },
-  icono: { borderRadius: 18, borderWidth: 2, borderColor: colors.white, backgroundColor: colors.white },
+  icono: { borderRadius: 18, borderWidth: 2, borderColor: colors.card, backgroundColor: colors.card },
   solapado: { marginLeft: -10 },
   iconoCobro: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   textos: { flex: 1, gap: 2 },
   titulo: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   resumen: { fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
-});
+}));

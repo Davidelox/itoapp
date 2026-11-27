@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos } from '@/lib/tema';
 import { formatearCodigo } from '@/lib/pareja/codigo';
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
 
 /** Un solo campo (no 6 cajas): se lee mejor con lector de pantalla y se puede pegar. */
 export function CampoCodigo({ etiqueta, valor, onCambiar, tipo, error, editable = true, autoFocus }: Props) {
+  const styles = useStyles();
   const [enfocado, setEnfocado] = useState(false);
   const esOtp = tipo === 'otp';
   return (
@@ -46,7 +48,7 @@ export function CampoCodigo({ etiqueta, valor, onCambiar, tipo, error, editable 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   grupo: { gap: 6 },
   etiqueta: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.text },
   entrada: {
@@ -54,7 +56,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     textAlign: 'center',
     fontFamily: fonts.bodyBold,
     fontSize: 30,
@@ -64,5 +66,5 @@ const styles = StyleSheet.create({
     outlineStyle: 'none',
   } as object,
   enfocado: { borderColor: colors.text, borderWidth: 1.5 },
-  conError: { borderColor: colors.accent, borderWidth: 1.5 },
-});
+  conError: { borderColor: colors.error, borderWidth: 1.5 },
+}));

@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { type ComponentProps } from 'react';
 
 import { TabBarHilo } from '@/components/hilo/TabBarHilo';
-import { colors } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { useTiempoRealGastos } from '@/lib/gastos/useGastos';
 import { useTiempoRealMapa } from '@/lib/mapa/useSitios';
 import { useTiempoRealPlanificador } from '@/lib/planificador/usePlanificador';
@@ -19,6 +19,7 @@ const tabs: { name: string; title: string; icon: IconName }[] = [
 ];
 
 export default function TabsLayout() {
+  const colors = useColores();
   // Las pestañas siguen montadas debajo del detalle y del formulario: el canal vive aquí.
   useTiempoRealGastos();
   useTiempoRealMapa();

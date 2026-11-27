@@ -3,12 +3,14 @@ import { Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
 import { FormularioColeccion } from '@/components/mapa/FormularioColeccion';
-import { colors, fonts } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
+import { useColores } from '@/lib/tema';
 import { useColecciones } from '@/lib/mapa/useSitios';
 import { useEstado } from '@/lib/pareja/EstadoProvider';
 
 /** Editar una colección: nombre, icono, visibilidad y borrado. */
 export default function EditarColeccion() {
+  const colors = useColores();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { pareja } = useEstado();
   const colecciones = useColecciones();

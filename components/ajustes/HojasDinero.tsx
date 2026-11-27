@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type ReactNode, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { HojaCambio } from '@/components/ajustes/HojaCambio';
 import { BarraPorcentaje } from '@/components/gastos/Controles';
 import { CampoTexto } from '@/components/onboarding/CampoTexto';
 import { GrupoOpciones, OpcionRadio, Segmentado } from '@/components/onboarding/OpcionRadio';
-import { colors, fonts, personColors, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { type FilaAjustes, aplicar, cambiosBote, listaCategorias, ordenarCategorias } from '@/lib/ajustes/ajustes';
 import { formatearEuros, leerEuros } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
@@ -18,9 +19,10 @@ type Props = { actual: FilaAjustes; pareja: Pareja; onCerrar: () => void };
 
 /** Barra de porcentaje vista desde quien mira (en la base de datos siempre se guarda el de m1). */
 function Porcentaje({ pctM1, onCambiar, pareja }: { pctM1: number; onCambiar: (pctM1: number) => void; pareja: Pareja }) {
-  const p = personas(pareja);
+  const colors = useColores();
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
-  const fondo = (c: Pareja['yo']['color']) => (c ? personColors[c].bg : colors.surface);
+  const fondo = (c: Pareja['yo']['color']) => (c ? colors.personas[c].bg : colors.surface);
   return (
     <BarraPorcentaje
       pctYo={pctDeYo(yo, pctM1)}
@@ -38,6 +40,7 @@ function Porcentaje({ pctM1, onCambiar, pareja }: { pctM1: number; onCambiar: (p
 
 /** Reparto por defecto de los gastos y su porcentaje. */
 export function HojaReparto({ actual, pareja, onCerrar }: Props) {
+  const styles = useStyles();
   const [reparto, setReparto] = useState<RepartoPorDefecto>(actual.default_split);
   const [pct, setPct] = useState(actual.proportional_pct_m1);
   const nuevo = aplicar(actual, { default_split: reparto, proportional_pct_m1: pct });
@@ -67,6 +70,8 @@ export function HojaReparto({ actual, pareja, onCerrar }: Props) {
 
 /** Qué categorías paga el bote en el reparto Mixto. */
 export function HojaCategorias({ actual, onCerrar }: Omit<Props, 'pareja'>) {
+  const colors = useColores();
+  const styles = useStyles();
   const [elegidas, setElegidas] = useState<Categoria[]>(actual.pot_categories);
   const nuevo = aplicar(actual, { pot_categories: ordenarCategorias(elegidas) });
   const cambiar = (c: Categoria) => setElegidas((l) => (l.includes(c) ? l.filter((x) => x !== c) : [...l, c]));
@@ -100,6 +105,8 @@ export function HojaCategorias({ actual, onCerrar }: Omit<Props, 'pareja'>) {
 
 /** Bote común: sí o no, cómo se rellena (importe y día) y cómo aportáis. */
 export function HojaBote({ actual, pareja, onCerrar }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const [activo, setActivo] = useState(actual.pot_enabled);
   const [mensual, setMensual] = useState(actual.pot_funding === 'monthly');
   const [importe, setImporte] = useState(actual.pot_monthly_cents ? String(actual.pot_monthly_cents / 100).replace('.', ',') : '');
@@ -119,7 +126,7 @@ export function HojaBote({ actual, pareja, onCerrar }: Props) {
     pctM1,
   });
   const nuevo = aplicar(actual, cambios);
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const mio = pctDeYo(p.yo.slot, pctM1);
 
   return (
@@ -206,11 +213,11 @@ export function HojaBote({ actual, pareja, onCerrar }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   ayuda: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },
   dosCampos: { flexDirection: 'row', gap: 12, marginTop: 4 },
   campo: { flex: 1, minWidth: 0 },
-  lista: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
+  lista: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl - 4, paddingHorizontal: 14 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
   separador: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   filaNombre: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
@@ -218,5 +225,5 @@ const styles = StyleSheet.create({
   etiquetaBote: { backgroundColor: colors.text },
   etiquetaRepartir: { backgroundColor: colors.surface },
   etiquetaTexto: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.text },
-  etiquetaTextoBote: { color: colors.white },
-});
+  etiquetaTextoBote: { color: colors.onAccent },
+}));

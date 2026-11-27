@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip, FilaChips, Grupo } from '@/components/gastos/Controles';
@@ -14,7 +14,8 @@ import { CampoPlan } from '@/components/planificador/CampoPlan';
 import { SelectorFecha } from '@/components/gastos/SelectorFecha';
 import { BotonNudo } from '@/components/hilo/BotonNudo';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { leerEuros } from '@/lib/dinero/importe';
 import { CATEGORIAS, type Categoria, INFO_CATEGORIA } from '@/lib/gastos/categorias';
 import { type AjustesGastos, ErrorGasto, type Gasto, crearGasto, editarGasto, soloCambios } from '@/lib/gastos/consultas';
@@ -61,11 +62,13 @@ type Props = {
 
 /** Añadir o editar un gasto (mockup AnadirGasto, docs/plan-gastos.md §3.2 y §3.4). */
 export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdicion }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const invalidar = useInvalidarGastos();
   const invalidarVisitas = useInvalidarVisitas();
-  const p = personas(pareja);
+  const p = personas(pareja, colors);
   const yo = p.yo.slot;
   const editando = !!inicial;
 
@@ -108,6 +111,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
   const saldado = !!inicial?.settlement_id;
   const soyQuienLoCreo = !inicial || inicial.created_by === p.yo.userId;
 
+  const refImporte = useRef<React.ElementRef<typeof TextInput>>(null);
   const cents = leerEuros(importe);
   const conceptoLimpio = concepto.trim();
   const datos = aDatos(yo, pagador, reparto, pctYo, pctProporcionalM1);
@@ -244,8 +248,13 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
           <Text style={styles.aviso}>Este gasto ya está saldado: el importe y el reparto no se pueden cambiar.</Text>
         ) : null}
 
-        <View style={styles.importeFila}>
+        <Pressable
+          accessible={false}
+          onPress={() => refImporte.current?.focus()}
+          style={[styles.importeFila, saldado && styles.importeFilaSaldado]}
+        >
           <TextInput
+            ref={refImporte}
             accessibilityLabel="Importe en euros"
             value={importe}
             onChangeText={(t) => setImporte(t.replace(/[^0-9.,]/g, ''))}
@@ -260,7 +269,7 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
           <Text style={styles.euro} importantForAccessibility="no">
             €
           </Text>
-        </View>
+        </Pressable>
         <MensajeError texto={errores.importe} />
 
         <Grupo etiqueta="Concepto">
@@ -343,14 +352,14 @@ export function FormularioGasto({ pareja, ajustes, inicial, plan, alGuardarEdici
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   raiz: { flex: 1, backgroundColor: colors.background },
   cabecera: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   cerrar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -368,7 +377,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 12,
   },
-  importeFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  importeFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.card,
+  },
+  importeFilaSaldado: { backgroundColor: colors.surface, borderColor: colors.border },
   importe: { minWidth: 120, maxWidth: 240, height: 64, textAlign: 'right', fontFamily: fonts.title, fontSize: 44, color: colors.text },
   euro: { fontFamily: fonts.title, fontSize: 44, color: colors.text },
   campo: {
@@ -377,7 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.inputBorder,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.text,
@@ -386,5 +406,5 @@ const styles = StyleSheet.create({
   notaPlanTexto: { flex: 1, fontFamily: fonts.body, fontSize: 13, color: colors.textSecondary },
   preguntaTexto: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.icon },
   preguntaBotones: { gap: 12 },
-  pie: { backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
-});
+  pie: { backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 16 },
+}));

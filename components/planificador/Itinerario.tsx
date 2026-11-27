@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Hoja } from '@/components/gastos/Hoja';
 import { MensajeError } from '@/components/onboarding/MensajeError';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 import { editarEvento } from '@/lib/calendario/consultas';
 import { infoCategoriaEvento } from '@/lib/calendario/evento';
 import { tituloDia } from '@/lib/calendario/rejilla';
@@ -25,12 +26,14 @@ import { useInvalidarPlanificador, useItinerario, useTareas } from '@/lib/planif
  * ordenados, «+ Añadir» por día y, aparte, lo que ha quedado fuera de las fechas del plan con «Mover a un día del plan».
  */
 export function Itinerario({ plan, pareja }: { plan: Plan; pareja: Pareja }) {
+  const colors = useColores();
+  const styles = useStyles();
   const router = useRouter();
   const invalidar = useInvalidarPlanificador();
   const { data: sitios } = useSitios();
   const consulta = useItinerario();
   const tareas = useTareas();
-  const nombrePareja = personas(pareja).nombrePareja;
+  const nombrePareja = personas(pareja, colors).nombrePareja;
   const [moviendo, setMoviendo] = useState<ElementoItinerario | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,8 +145,8 @@ export function Itinerario({ plan, pareja }: { plan: Plan; pareja: Pareja }) {
   );
 }
 
-const styles = StyleSheet.create({
-  seccion: { gap: 14, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+const useStyles = crearEstilos((colors) => ({
+  seccion: { gap: 14, padding: 16, borderRadius: radius.xl - 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   seccionTitulo: { fontFamily: fonts.title, fontSize: 18, color: colors.text },
   dia: { gap: 4 },
   diaTitulo: { fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 0.5, color: colors.textSecondary, textTransform: 'uppercase' },
@@ -160,5 +163,5 @@ const styles = StyleSheet.create({
   sitioTexto: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.accent, textDecorationLine: 'underline' },
   anadir: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
   anadirTexto: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
-  opcion: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
-});
+  opcion: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
+}));

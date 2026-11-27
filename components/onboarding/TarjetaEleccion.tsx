@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CargandoHilo } from '@/components/hilo/CargandoHilo';
-import { colors, fonts, radius } from '@/constants/theme';
+import { fonts, radius } from '@/constants/theme';
+import { crearEstilos, useColores } from '@/lib/tema';
 
 type Props = {
   icono: ComponentProps<typeof Ionicons>['name'];
@@ -18,6 +19,8 @@ type Props = {
 
 /** Tarjeta de elección grande (Crear o unirse). La pulsada muestra un indicador y las dos quedan desactivadas. */
 export function TarjetaEleccion({ icono, titulo, detalle, onPress, principal = false, cargando = false, deshabilitada = false }: Props) {
+  const colors = useColores();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -45,14 +48,14 @@ export function TarjetaEleccion({ icono, titulo, detalle, onPress, principal = f
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = crearEstilos((colors) => ({
   tarjeta: {
     gap: 14,
     padding: 20,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   pulsada: { backgroundColor: colors.surface },
   apagada: { opacity: 0.5 },
@@ -61,4 +64,4 @@ const styles = StyleSheet.create({
   textos: { flex: 1, gap: 4 },
   titulo: { fontFamily: fonts.title, fontSize: 21, color: colors.text },
   detalle: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
-});
+}));
